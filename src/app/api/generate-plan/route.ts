@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateLearningPlan } from '@/lib/claude';
+import { generateLearningPlan } from '@/lib/ai';
 
 export async function POST(request: Request) {
   try {

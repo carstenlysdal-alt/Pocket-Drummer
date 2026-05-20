@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateMusicXML } from '@/lib/claude';
+import { generateMusicXML } from '@/lib/ai';
 
 export async function POST(request: Request) {
   try {
