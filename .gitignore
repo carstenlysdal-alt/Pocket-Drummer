@@ -45,3 +45,4 @@ next-env.d.ts
 firebase-debug.log*
 temp-npm-cache/
 temp_extracted/
+scratch_design.html

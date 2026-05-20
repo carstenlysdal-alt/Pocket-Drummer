@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,9 +10,9 @@ import {
   IcMetro, IcLoop, IcMin, IcPlus,
 } from '@/components/DesktopIcons';
 import {
-  getSavedExercises, getUserGoal, getUserPlan, getCompletedExercises,
+  getUserPlan, getCompletedExercises,
   getPremiumStatus, setPremiumStatus, resetMockDatabase,
-  Exercise, UserPlan,
+  UserPlan,
 } from '@/lib/mockData';
 import {
   LEVELS, MODULES, PILLARS,
@@ -131,6 +131,14 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: React.FC<any> }[] = [
 ];
 
 function Sidebar({ t, view, onView, dark, isPremium, onUpgrade }: { t: T; view: ViewId; onView: (v: ViewId) => void; dark: boolean; isPremium: boolean; onUpgrade: () => void }) {
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); searchRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
   return (
     <div style={{ width: 240, height: '100%', flexShrink: 0, background: t.sidebar, borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', padding: '18px 14px 16px' }}>
       {/* Brand */}
@@ -144,7 +152,7 @@ function Sidebar({ t, view, onView, dark, isPremium, onUpgrade }: { t: T; view: 
       {/* Search */}
       <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 10, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={t.textDim} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <input placeholder="Søg øvelser, genrer…" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontFamily: t.font, fontSize: 12, padding: 0, margin: 0 }} />
+        <input ref={searchRef} placeholder="Søg øvelser, genrer…" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontFamily: t.font, fontSize: 12, padding: 0, margin: 0 }} />
         <span style={{ fontFamily: t.mono, fontSize: 9, color: t.textDim, padding: '1px 5px', borderRadius: 4, border: `1px solid ${t.border}` }}>⌘K</span>
       </div>
 
@@ -154,7 +162,7 @@ function Sidebar({ t, view, onView, dark, isPremium, onUpgrade }: { t: T; view: 
         {NAV_ITEMS.map(it => {
           const active = view === it.id;
           return (
-            <button key={it.id} onClick={() => onView(it.id)} style={{
+            <button key={it.id} onClick={() => onView(it.id)} aria-current={active ? 'page' : undefined} style={{
               display: 'flex', alignItems: 'center', gap: 11, padding: '10px 11px',
               background: active ? t.accentSoft : 'transparent',
               border: 'none', borderRadius: 10, cursor: 'pointer',
@@ -215,13 +223,14 @@ function Sidebar({ t, view, onView, dark, isPremium, onUpgrade }: { t: T; view: 
 }
 
 // ─── AI COACH PANEL ───────────────────────────────────────────
-interface ChatMessage { role: 'ai' | 'user'; text: string }
+interface ChatMessage { id: number; role: 'ai' | 'user'; text: string }
 function CoachPanel({ t, dark, open, onToggle, isPremium, onUpgrade }: { t: T; dark: boolean; open: boolean; onToggle: () => void; isPremium: boolean; onUpgrade: () => void }) {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([
-    { role: 'ai', text: 'Hej 👋 Jeg er din AI-trommerlærer.\n\nHvad øver du dig på i dag?' },
+    { id: 0, role: 'ai', text: 'Hej 👋 Jeg er din AI-trommerlærer.\n\nHvad øver du dig på i dag?' },
   ]);
+  const msgIdRef = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -233,7 +242,7 @@ function CoachPanel({ t, dark, open, onToggle, isPremium, onUpgrade }: { t: T; d
     if (!isPremium && msgs.filter(m => m.role === 'user').length >= 2) { onUpgrade(); return; }
     const q = input.trim();
     setInput('');
-    setMsgs(prev => [...prev, { role: 'user', text: q }]);
+    setMsgs(prev => [...prev, { id: msgIdRef.current++, role: 'user', text: q }]);
     setTyping(true);
     setTimeout(() => {
       const replies: Record<string, string> = {
@@ -245,7 +254,7 @@ function CoachPanel({ t, dark, open, onToggle, isPremium, onUpgrade }: { t: T; d
       const match = Object.keys(replies).find(k => q.toLowerCase().includes(k));
       const reply = match ? replies[match] : 'Godt spørgsmål! Hvad er dit nuværende niveau, og hvad øver du dig mest på?';
       setTyping(false);
-      setMsgs(prev => [...prev, { role: 'ai', text: reply }]);
+      setMsgs(prev => [...prev, { id: msgIdRef.current++, role: 'ai', text: reply }]);
     }, 900);
   };
 
@@ -278,8 +287,8 @@ function CoachPanel({ t, dark, open, onToggle, isPremium, onUpgrade }: { t: T; d
 
       {/* Messages */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {msgs.map((m, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+        {msgs.map((m) => (
+          <div key={m.id} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
             <div style={{
               maxWidth: '82%', padding: '10px 14px', borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
               background: m.role === 'user' ? t.accent : t.surface,
@@ -335,7 +344,6 @@ function CoachPanel({ t, dark, open, onToggle, isPremium, onUpgrade }: { t: T; d
           </button>
         </div>
       </div>
-      <style>{`@keyframes bounce { to { transform: translateY(-5px); opacity: 0.4; } }`}</style>
     </div>
   );
 }
@@ -609,7 +617,7 @@ function AcademyView({ t, dark, isPremium, onUpgrade, completedIds }: { t: T; da
 }
 
 // ─── EXERCISES VIEW ───────────────────────────────────────────
-function ExercisesView({ t, exercises, isPremium, onUpgrade, completedIds }: { t: T; exercises: Exercise[]; isPremium: boolean; onUpgrade: () => void; completedIds: string[] }) {
+function ExercisesView({ t, isPremium, onUpgrade, completedIds }: { t: T; isPremium: boolean; onUpgrade: () => void; completedIds: string[] }) {
   const [catFilter, setCatFilter] = useState('all');
   const [lvlFilter, setLvlFilter] = useState('all');
   const CATS = ['all', 'rudiments', 'groove', 'fills', 'timing', 'koordination', 'stilarter'];
@@ -714,15 +722,30 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
 
   // Shared AudioContext (reused across hits to avoid Safari limits)
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const channelGainsRef = useRef<Record<string, GainNode>>({});
+  const volsRef = useRef(vols);
+  volsRef.current = vols;
+
   const getCtx = () => {
     if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
       audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      channelGainsRef.current = {};
     }
     if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
     return audioCtxRef.current;
   };
 
-  const hit = (i: number) => {
+  const getChannelGain = (ctx: AudioContext, channel: string): GainNode => {
+    if (!channelGainsRef.current[channel]) {
+      const g = ctx.createGain();
+      g.connect(ctx.destination);
+      channelGainsRef.current[channel] = g;
+    }
+    channelGainsRef.current[channel].gain.value = (volsRef.current[channel] ?? 100) / 100;
+    return channelGainsRef.current[channel];
+  };
+
+  const hit = useCallback((i: number) => {
     setActive(a => ({ ...a, [i]: Date.now() }));
     setTimeout(() => setActive(a => { const n = { ...a }; delete n[i]; return n; }), 220);
     try {
@@ -731,7 +754,6 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
       const label = pads[i].label;
 
       if (label === 'Kick') {
-        // Pitch-swept sine — stortromme
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
@@ -739,11 +761,11 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
         osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
         gain.gain.setValueAtTime(1.0, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
-        osc.connect(gain); gain.connect(ctx.destination);
+        osc.connect(gain); gain.connect(getChannelGain(ctx, 'kick'));
         osc.start(now); osc.stop(now + 0.4);
 
       } else if (label === 'Snare') {
-        // Noise burst (overtoner) + body tone (lilletromme)
+        const ch = getChannelGain(ctx, 'snare');
         const bufSize = ctx.sampleRate * 0.2;
         const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
         const data = buf.getChannelData(0);
@@ -753,7 +775,7 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
         const noiseGain = ctx.createGain();
         noiseGain.gain.setValueAtTime(0.7, now);
         noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-        noise.connect(noiseGain); noiseGain.connect(ctx.destination);
+        noise.connect(noiseGain); noiseGain.connect(ch);
         noise.start(now); noise.stop(now + 0.2);
 
         const body = ctx.createOscillator();
@@ -763,11 +785,10 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
         body.frequency.exponentialRampToValueAtTime(80, now + 0.08);
         bodyGain.gain.setValueAtTime(0.5, now);
         bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-        body.connect(bodyGain); bodyGain.connect(ctx.destination);
+        body.connect(bodyGain); bodyGain.connect(ch);
         body.start(now); body.stop(now + 0.12);
 
       } else if (label === 'Hi-hat') {
-        // Bandpass-filtreret white noise
         const bufSize = ctx.sampleRate * 0.06;
         const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
         const data = buf.getChannelData(0);
@@ -782,11 +803,10 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
         const decay = pads[i].sub === 'Open' ? 0.25 : 0.06;
         gain.gain.setValueAtTime(0.55, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
-        noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        noise.connect(filter); filter.connect(gain); gain.connect(getChannelGain(ctx, 'hihat'));
         noise.start(now); noise.stop(now + decay + 0.01);
 
       } else if (label === 'Crash' || label === 'Ride') {
-        // Metallic filtered noise — cymbal
         const bufSize = ctx.sampleRate * 0.8;
         const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
         const data = buf.getChannelData(0);
@@ -800,11 +820,10 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
         const decay = label === 'Crash' ? 0.7 : 0.4;
         gain.gain.setValueAtTime(0.45, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
-        noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        noise.connect(filter); filter.connect(gain); gain.connect(getChannelGain(ctx, 'cymbals'));
         noise.start(now); noise.stop(now + decay + 0.01);
 
       } else {
-        // Toms — pitch-swept sine ved varierende frekvenser
         const freqMap: Record<string, [number, number]> = {
           'Tom 1': [280, 100], 'Tom 2': [220, 80], 'Floor': [170, 60],
         };
@@ -816,16 +835,19 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
         osc.frequency.exponentialRampToValueAtTime(end, now + 0.18);
         gain.gain.setValueAtTime(0.8, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        osc.connect(gain); gain.connect(ctx.destination);
+        osc.connect(gain); gain.connect(getChannelGain(ctx, 'toms'));
         osc.start(now); osc.stop(now + 0.32);
       }
     } catch { }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  const hitRef = useRef(hit);
+  hitRef.current = hit;
 
   useEffect(() => {
     const keys: Record<string, number> = { 'h': 0, 'g': 1, 'c': 2, 's': 3, 't': 4, 'y': 5, 'f': 6, 'r': 7, 'k': 8 };
-    const onKey = (e: KeyboardEvent) => { const idx = keys[e.key.toLowerCase()]; if (idx !== undefined) { e.preventDefault(); hit(idx); } };
+    const onKey = (e: KeyboardEvent) => { const idx = keys[e.key.toLowerCase()]; if (idx !== undefined) { e.preventDefault(); hitRef.current(idx); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
@@ -932,7 +954,6 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
 
 // ─── PROFILE VIEW ─────────────────────────────────────────────
 function ProfileView({ t, dark, setDark, isPremium, onUpgrade, completedIds, onReset }: { t: T; dark: boolean; setDark: (d: boolean) => void; isPremium: boolean; onUpgrade: () => void; completedIds: string[]; onReset: () => void }) {
-  const lv = LEVELS[1]; // mock
   return (
     <div style={{ padding: '36px 44px 60px', color: t.text, fontFamily: t.font }}>
       {/* Header */}
@@ -1021,6 +1042,10 @@ function ProfileView({ t, dark, setDark, isPremium, onUpgrade, completedIds, onR
 function CheckoutModal({ t, onClose, onSuccess }: { t: T; onClose: () => void; onSuccess: () => void }) {
   const [step, setStep] = useState<'pricing' | 'method' | 'processing' | 'success'>('pricing');
   const [method, setMethod] = useState<'card' | 'mobilepay'>('card');
+  const [cardNum, setCardNum] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvc, setCvc] = useState('');
+  const [phone, setPhone] = useState('');
 
   const handlePay = () => {
     setStep('processing');
@@ -1111,23 +1136,23 @@ function CheckoutModal({ t, onClose, onSuccess }: { t: T; onClose: () => void; o
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: t.textMuted, display: 'block', marginBottom: 6 }}>Kortnummer</label>
-                  <input defaultValue="4242 4242 4242 4242" style={{ width: '100%', background: t.surface2, border: `1px solid ${t.border}`, borderRadius: 10, padding: '12px 14px', color: t.text, fontFamily: t.mono, fontSize: 14, outline: 'none' }} />
+                  <input value={cardNum} onChange={e => setCardNum(e.target.value)} placeholder="4242 4242 4242 4242" style={{ width: '100%', background: t.surface2, border: `1px solid ${t.border}`, borderRadius: 10, padding: '12px 14px', color: t.text, fontFamily: t.mono, fontSize: 14, outline: 'none' }} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: t.textMuted, display: 'block', marginBottom: 6 }}>Udløb</label>
-                    <input defaultValue="12/28" style={{ width: '100%', background: t.surface2, border: `1px solid ${t.border}`, borderRadius: 10, padding: '12px 14px', color: t.text, fontFamily: t.mono, fontSize: 14, outline: 'none' }} />
+                    <input value={expiry} onChange={e => setExpiry(e.target.value)} placeholder="MM/ÅÅ" style={{ width: '100%', background: t.surface2, border: `1px solid ${t.border}`, borderRadius: 10, padding: '12px 14px', color: t.text, fontFamily: t.mono, fontSize: 14, outline: 'none' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: t.textMuted, display: 'block', marginBottom: 6 }}>CVC</label>
-                    <input defaultValue="123" style={{ width: '100%', background: t.surface2, border: `1px solid ${t.border}`, borderRadius: 10, padding: '12px 14px', color: t.text, fontFamily: t.mono, fontSize: 14, outline: 'none' }} />
+                    <input value={cvc} onChange={e => setCvc(e.target.value)} placeholder="CVC" style={{ width: '100%', background: t.surface2, border: `1px solid ${t.border}`, borderRadius: 10, padding: '12px 14px', color: t.text, fontFamily: t.mono, fontSize: 14, outline: 'none' }} />
                   </div>
                 </div>
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '20px', background: t.surface2, borderRadius: 12, marginBottom: 24 }}>
                 <p style={{ color: t.textMuted, marginBottom: 12, fontSize: 13 }}>Indtast dit telefonnummer:</p>
-                <input defaultValue="+45 12 34 56 78" style={{ background: 'transparent', border: 'none', outline: 'none', color: t.text, fontFamily: t.mono, fontSize: 22, fontWeight: 700, textAlign: 'center', width: '100%' }} />
+                <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+45 12 34 56 78" style={{ background: 'transparent', border: 'none', outline: 'none', color: t.text, fontFamily: t.mono, fontSize: 22, fontWeight: 700, textAlign: 'center', width: '100%' }} />
               </div>
             )}
             <div style={{ display: 'flex', gap: 12 }}>
@@ -1142,7 +1167,6 @@ function CheckoutModal({ t, onClose, onSuccess }: { t: T; onClose: () => void; o
             <div style={{ width: 52, height: 52, border: `4px solid ${t.border}`, borderTop: `4px solid ${t.accent}`, borderRadius: '50%', margin: '0 auto 24px', animation: 'spin 0.8s linear infinite' }} />
             <Display t={t} size={24} style={{ marginBottom: 8 }}>Behandler betaling…</Display>
             <p style={{ color: t.textMuted, fontSize: 13 }}>Opretter sikkert abonnement via Stripe</p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
 
@@ -1171,7 +1195,6 @@ export default function App() {
   const [coachOpen, setCoachOpen] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [plan, setPlan] = useState<UserPlan | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
 
@@ -1186,7 +1209,6 @@ export default function App() {
     if (mobile) { router.replace('/prototype'); return; }
 
     // Load data
-    setExercises(getSavedExercises());
     setPlan(getUserPlan());
     setCompletedIds(getCompletedExercises());
     setIsPremium(getPremiumStatus());
@@ -1199,7 +1221,6 @@ export default function App() {
     setIsPremium(false);
     setCompletedIds([]);
     setPlan(null);
-    setExercises(getSavedExercises());
   };
 
   // Loading / redirect state
@@ -1217,7 +1238,7 @@ export default function App() {
   let content: React.ReactNode;
   if (view === 'home') content = <HomeView t={t} dark={dark} setDark={setDark} onView={setView} isPremium={isPremium} onUpgrade={openCheckout} />;
   else if (view === 'academy') content = <AcademyView t={t} dark={dark} isPremium={isPremium} onUpgrade={openCheckout} completedIds={completedIds} />;
-  else if (view === 'exercises') content = <ExercisesView t={t} exercises={exercises} isPremium={isPremium} onUpgrade={openCheckout} completedIds={completedIds} />;
+  else if (view === 'exercises') content = <ExercisesView t={t} isPremium={isPremium} onUpgrade={openCheckout} completedIds={completedIds} />;
   else if (view === 'studio') content = <StudioView t={t} dark={dark} />;
   else if (view === 'profile') content = <ProfileView t={t} dark={dark} setDark={setDark} isPremium={isPremium} onUpgrade={openCheckout} completedIds={completedIds} onReset={handleReset} />;
 
