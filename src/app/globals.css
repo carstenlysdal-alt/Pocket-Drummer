@@ -7,35 +7,35 @@
 
 
 :root {
-  --bg-deep: #0c0d11;
-  --bg-dark: #111217;
-  --bg-card: #16171e;
-  --bg-card-hover: #1e2029;
+  --bg-deep: #0a0a0a;
+  --bg-dark: #121212;
+  --bg-card: #1a1a1a;
+  --bg-card-hover: #242424;
   --border-color: rgba(255, 255, 255, 0.05);
-  --border-focus: rgba(242, 92, 61, 0.5);
-  --border-glow: rgba(242, 92, 61, 0.15);
+  --border-focus: rgba(239, 90, 58, 0.5);
+  --border-glow: rgba(239, 90, 58, 0.15);
   
   --text-primary: #f8fafc;
   --text-secondary: #9ca3af;
-  --text-muted: #4b5563;
+  --text-muted: #52525b;
   
-  --accent-purple: #f25c3d; /* Re-mapped to Coral */
-  --accent-purple-hover: #e04f30;
-  --accent-purple-glow: rgba(242, 92, 61, 0.35);
+  --accent-purple: #ef5a3a; /* Coral Orange */
+  --accent-purple-hover: #d94626;
+  --accent-purple-glow: rgba(239, 90, 58, 0.35);
   
-  --accent-cyan: #ff7e60; /* Light Coral */
-  --accent-cyan-hover: #f25c3d;
-  --accent-cyan-glow: rgba(255, 126, 96, 0.35);
+  --accent-cyan: #ff7d61; /* Light Coral */
+  --accent-cyan-hover: #ef5a3a;
+  --accent-cyan-glow: rgba(255, 125, 97, 0.35);
   
   --accent-emerald: #10b981;
   --accent-emerald-glow: rgba(16, 185, 129, 0.2);
   
-  --accent-orange: #ff5a36;
+  --accent-orange: #ef5a3a;
   --accent-rose: #f43f5e;
   
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-title: 'Outfit', sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-serif: 'DM Serif Display', Georgia, serif;
   
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -44,7 +44,7 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-glow: 0 0 20px rgba(242, 92, 61, 0.15);
+  --shadow-glow: 0 0 20px rgba(239, 90, 58, 0.15);
   
   --border-radius-sm: 6px;
   --border-radius-md: 12px;
