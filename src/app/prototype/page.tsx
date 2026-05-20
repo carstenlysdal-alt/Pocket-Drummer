@@ -1814,9 +1814,12 @@ export default function MobilePrototype() {
 
             {/* Content area */}
             <div ref={contentRef} style={{
-              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              position: 'absolute',
+              top: 'var(--safe-top)',
+              left: 0,
+              right: 0,
+              bottom: 0,
               overflow: 'auto',
-              paddingTop: 'var(--safe-top)',
               paddingBottom: 'calc(var(--safe-bottom) + 100px)',
             }}>
               {tab === 'home' && (
