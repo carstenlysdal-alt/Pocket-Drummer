@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User profiles: Users can read and write only their own profiles
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Learning Plans: Users can view/edit only their own learning plans
+    match /learningPlans/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Exercises: Globally readable by everyone, editable only by system admins (none by default)
+    match /exercises/{exerciseId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
