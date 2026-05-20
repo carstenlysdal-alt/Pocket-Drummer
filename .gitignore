@@ -43,3 +43,5 @@ next-env.d.ts
 # local caches and firebase logs
 .npm-cache/
 firebase-debug.log*
+temp-npm-cache/
+temp_extracted/
