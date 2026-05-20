@@ -48,9 +48,6 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="text-center p-3" style={{ maxWidth: '900px', margin: '4rem auto 2rem auto' }}>
-        <span className="badge badge-purple mb-2" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}>
-          <Sparkles size={14} style={{ marginRight: '0.25rem' }} /> Nyt i version 1.2: Claude AI-Nodegenerering
-        </span>
         <h1 style={{ fontSize: '3.5rem', marginBottom: '0.5rem', lineHeight: '1.1' }} className="logo-brand">
           DRUMM<span style={{ color: 'var(--accent-purple)' }}>.</span>
         </h1>
@@ -82,7 +79,7 @@ export default function LandingPage() {
             <Calendar size={32} className="text-purple mb-2" />
             <h3 className="mb-1">AI-Læringsplaner</h3>
             <p style={{ fontSize: '0.9rem' }}>
-              Claude 3.5 Haiku analyserer din øvetid, dit niveau og dine delmål og stykker en skræddersyet ugekalender sammen til dig.
+              DeepSeek AI analyserer din øvetid, dit niveau og dine delmål og stykker en skræddersyet ugekalender sammen til dig.
             </p>
           </div>
 
@@ -98,7 +95,7 @@ export default function LandingPage() {
             <Sparkles size={32} className="text-emerald mb-2" />
             <h3 className="mb-1">Instant AI-Generering</h3>
             <p style={{ fontSize: '0.9rem' }}>
-              Har du brug for en specifik øvelse? Claude Sonnet 4.6 genererer trommenoder som gyldig MusicXML baseret på dine parametre på under 15 sekunder.
+              Har du brug for en specifik øvelse? DeepSeek AI genererer trommenoder som gyldig MusicXML baseret på dine parametre på under 15 sekunder.
             </p>
           </div>
 
@@ -146,7 +143,7 @@ export default function LandingPage() {
                 <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', marginBottom: '1.5rem' }} />
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem' }}>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Check size={16} className="text-purple" /> 2.000+ øvelser i biblioteket</li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Check size={16} className="text-purple" /> <b>Personlig AI-læringsplan (Claude)</b></li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Check size={16} className="text-purple" /> <b>Personlig AI-læringsplan (DeepSeek)</b></li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Check size={16} className="text-purple" /> Interaktive noder med cursor synk</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Check size={16} className="text-purple" /> Tone.js MIDI-afspilning & tempo-skift</li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Check size={16} className="text-purple" /> PDF-download af alle noder</li>
