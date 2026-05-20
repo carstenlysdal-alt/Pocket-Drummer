@@ -3,9 +3,10 @@ import { getStandardDrumMusicXML } from './mockData';
 export interface ScanSheetMusicOptions {
   base64Data: string; // The raw base64 string
   mimeType: string;   // e.g. "image/jpeg", "image/png", "application/pdf"
+  systemPrompt?: string;
 }
 
-export async function scanSheetMusic({ base64Data, mimeType }: ScanSheetMusicOptions): Promise<string> {
+export async function scanSheetMusic({ base64Data, mimeType, systemPrompt }: ScanSheetMusicOptions): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -15,7 +16,7 @@ export async function scanSheetMusic({ base64Data, mimeType }: ScanSheetMusicOpt
     return getStandardDrumMusicXML("Scannet Trommenode (Demo Fallback)", 110, "standard");
   }
 
-  const prompt = `Du er en ekspert i Optical Music Recognition (OMR) og trommenoder.
+  const defaultPrompt = `Du er en ekspert i Optical Music Recognition (OMR) og trommenoder.
 Analysér det vedhæftede billede eller PDF af en trommenode og transskriber den til en gyldig, komplet MusicXML 4.0-streng.
 
 Vigtige regler:
@@ -23,6 +24,8 @@ Vigtige regler:
 2. Noderne skal være skrevet i percussion clef (trommenoder) i 4/4 takt.
 3. Brug standard General MIDI trommenotations-standarder (f.eks. display-step C5 og display-octave 5 for lilletromme (snare), F4/4 for stortromme (kick), G5/5 med krydshoved for hi-hat osv.).
 4. Sørg for at XML-strukturen er komplet med <score-partwise>, <part-list>, <measure> osv., og at den kan fortolkes af OpenSheetMusicDisplay (OSMD).`;
+
+  const prompt = systemPrompt || defaultPrompt;
 
   try {
     const response = await fetch(

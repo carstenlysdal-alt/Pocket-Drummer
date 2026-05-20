@@ -19,7 +19,8 @@ export async function POST(request: Request) {
       sværhedsgrad: body.sværhedsgrad,
       tempo: Number(body.tempo),
       takter: Number(body.takter),
-      fokus: body.fokus || "Generelt groove"
+      fokus: body.fokus || "Generelt groove",
+      systemPrompt: body.systemPrompt
     });
 
     return NextResponse.json({ xml });

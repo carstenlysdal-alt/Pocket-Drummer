@@ -36,6 +36,27 @@ export default function AdminPage() {
   const [measures, setMeasures] = useState(2);
   const [focus, setFocus] = useState("Ghost notes og svage snare beats");
   
+  // Custom Prompts & Genres
+  const [systemPrompt, setSystemPrompt] = useState(`Du er DrumLab AI, en ekspert i trommenotering og MusicXML 4.0-struktur.
+Du skal generere en syntaktisk komplet og valid MusicXML-fil for en tromme-øvelse.
+Regler for noteringen:
+- Instrument: Trommesæt (Drums)
+- Nøglesignatur: percussion (<sign>percussion</sign>) på linje 2.
+- Stortromme (Bass drum): display-step = F, display-octave = 4.
+- Lilletromme (Snare drum): display-step = C, display-octave = 5.
+- Hi-hat: display-step = G, display-octave = 5, notehoved skal være x (<notehead>x</notehead>).`);
+
+  const [scanSystemPrompt, setScanSystemPrompt] = useState(`Du er en ekspert i Optical Music Recognition (OMR) og trommenoder.
+Analysér det vedhæftede billede eller PDF af en trommenode og transskriber den til en gyldig, komplet MusicXML 4.0-streng.
+
+Vigtige regler:
+1. Returner KUN den rå XML-streng uden nogen Markdown-formatering eller forklaringer.
+2. Noderne skal være skrevet i percussion clef i 4/4 takt.
+3. Brug standard General MIDI trommenotations-standarder.`);
+
+  const [genre, setGenre] = useState("Rock");
+  const [scanDescription, setScanDescription] = useState("");
+  
   // Klangio simulation state
   const [audioUrl, setAudioUrl] = useState("");
   const [klangioLoading, setKlangioLoading] = useState(false);
@@ -92,7 +113,8 @@ export default function AdminPage() {
           sværhedsgrad: difficulty,
           tempo,
           takter: measures,
-          fokus: focus
+          fokus: focus,
+          systemPrompt: systemPrompt
         })
       });
 
@@ -149,6 +171,7 @@ export default function AdminPage() {
     try {
       const formData = new FormData();
       formData.append("file", scanFile);
+      formData.append("systemPrompt", scanSystemPrompt);
 
       const response = await fetch('/api/scan-sheet-music', {
         method: 'POST',
@@ -234,7 +257,8 @@ export default function AdminPage() {
       takter: measures,
       ai_genereret: true,
       godkendt: true,
-      beskrivelse: `AI-genereret øvelse med fokus på: ${focus}. Rytmen spilles ved ${tempo} BPM i ${measures} takter.`
+      genre: genre,
+      beskrivelse: scanDescription || `AI-genereret øvelse med fokus på: ${focus}. Rytmen spilles ved ${tempo} BPM i ${measures} takter.`
     };
 
     saveExercise(newExercise);
@@ -356,6 +380,17 @@ export default function AdminPage() {
                 />
               </div>
 
+              <div className="form-group">
+                <label className="form-label">AI Model Systeminstruktioner (System Prompt)</label>
+                <textarea 
+                  className="form-control" 
+                  style={{ height: '90px', fontSize: '0.8rem', fontFamily: 'monospace' }}
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  placeholder="Systeminstruktioner til DeepSeek..."
+                />
+              </div>
+
               <button 
                 onClick={handleGenerateAI} 
                 className="btn btn-primary w-full"
@@ -421,6 +456,48 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Scanner Systeminstruktioner (Gemini OMR Prompt)</label>
+                <textarea 
+                  className="form-control" 
+                  style={{ height: '80px', fontSize: '0.8rem', fontFamily: 'monospace' }}
+                  value={scanSystemPrompt}
+                  onChange={(e) => setScanSystemPrompt(e.target.value)}
+                  placeholder="Instruktioner til Gemini OMR..."
+                />
+              </div>
+
+              <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                <div>
+                  <label className="form-label">Musikgenre (Upload-only)</label>
+                  <select 
+                    className="form-control" 
+                    value={genre}
+                    onChange={(e) => setGenre(e.target.value)}
+                  >
+                    <option value="Rock">Rock</option>
+                    <option value="Jazz">Jazz</option>
+                    <option value="Funk">Funk</option>
+                    <option value="Pop">Pop</option>
+                    <option value="Blues">Blues</option>
+                    <option value="Metal">Metal</option>
+                    <option value="Latinsk / Bossa Nova">Latinsk / Bossa Nova</option>
+                    <option value="Skæve taktarter">Skæve taktarter</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Beskrivelse (Upload-only, vises til elever)</label>
+                <textarea 
+                  className="form-control" 
+                  style={{ height: '60px', resize: 'none' }}
+                  value={scanDescription}
+                  onChange={(e) => setScanDescription(e.target.value)}
+                  placeholder="Beskriv denne uploadede trommeøvelse..."
+                />
               </div>
 
               <button 

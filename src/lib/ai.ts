@@ -85,6 +85,7 @@ interface GenerateMusicXMLInput {
   tempo: number;
   takter: number;
   fokus: string;
+  systemPrompt?: string;
 }
 
 export async function generateMusicXML(input: GenerateMusicXMLInput): Promise<string> {
@@ -96,7 +97,7 @@ export async function generateMusicXML(input: GenerateMusicXMLInput): Promise<st
   }
 
   try {
-    const systemPrompt = `Du er DrumLab AI, en ekspert i trommenotering og MusicXML 4.0-struktur.
+    const defaultSystemPrompt = `Du er DrumLab AI, en ekspert i trommenotering og MusicXML 4.0-struktur.
 Du skal generere en syntaktisk komplet og valid MusicXML-fil for en tromme-øvelse.
 Regler for noteringen:
 - Instrument: Trommesæt (Drums)
@@ -111,6 +112,8 @@ Skabelonen skal være på ${input.takter} takter, i 4/4 takt, med tempo ${input.
 Kategori: ${input.kategori}, Sværhedsgrad: ${input.sværhedsgrad}, Fokus: ${input.fokus}.
 
 Returner KUN den rå XML-tekst startende med <?xml version="1.0" ...> og sluttende med </score-partwise>. Ingen forklarende tekst, ingen markdown-fencing.`;
+
+    const systemPrompt = input.systemPrompt || defaultSystemPrompt;
 
     const response = await fetch(DEEPSEEK_API_URL, {
       method: "POST",

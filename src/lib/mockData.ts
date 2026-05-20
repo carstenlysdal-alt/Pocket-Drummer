@@ -12,6 +12,7 @@ export interface Exercise {
   ai_genereret: boolean;
   godkendt: boolean;
   beskrivelse: string;
+  genre?: string;
 }
 
 export interface UserGoal {

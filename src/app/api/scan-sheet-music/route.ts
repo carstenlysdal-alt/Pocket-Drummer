@@ -5,6 +5,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const systemPrompt = formData.get('systemPrompt') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: "Ingen fil modtaget i anmodningen." }, { status: 400 });
@@ -18,7 +19,11 @@ export async function POST(req: NextRequest) {
     const base64Data = buffer.toString('base64');
 
     // Run the OMR processing via Gemini
-    const xml = await scanSheetMusic({ base64Data, mimeType });
+    const xml = await scanSheetMusic({ 
+      base64Data, 
+      mimeType, 
+      systemPrompt: systemPrompt || undefined 
+    });
 
     return NextResponse.json({ xml });
   } catch (error) {
