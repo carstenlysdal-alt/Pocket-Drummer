@@ -34,26 +34,19 @@ export default function DrumkitPage() {
   const hihatSynth = useRef<ToneSynth | null>(null);
   const tomSynth = useRef<ToneSynth | null>(null);
   const cymbalSynth = useRef<ToneSynth | null>(null);
+  const volumeNodeRef = useRef<any>(null);
   const audioContextStarted = useRef(false);
 
   const updateVolumes = () => {
     import('tone').then((Tone) => {
-      const volNode = new Tone.Volume(volume).toDestination();
-      
-      const synths = [kickSynth.current, snareSynth.current, hihatSynth.current, tomSynth.current, cymbalSynth.current];
-      synths.forEach(s => {
-        if (s) {
-          s.disconnect?.();
-          s.connect?.(volNode);
-        }
-      });
+      if (volumeNodeRef.current) {
+        volumeNodeRef.current.volume.value = volume;
+      }
 
       if (kitType === 'elektronisk') {
         if (kickSynth.current?.oscillator) kickSynth.current.oscillator.type = 'square';
-        if (snareSynth.current?.envelope) snareSynth.current.envelope.decay = 0.25;
       } else {
         if (kickSynth.current?.oscillator) kickSynth.current.oscillator.type = 'sine';
-        if (snareSynth.current?.envelope) snareSynth.current.envelope.decay = 0.12;
       }
     });
   };
@@ -107,33 +100,46 @@ export default function DrumkitPage() {
   useEffect(() => {
     // Dynamic client-side load of Tone.js
     import('tone').then((Tone) => {
+      const volNode = new Tone.Volume(volume).toDestination();
+      volumeNodeRef.current = volNode;
+
       kickSynth.current = new Tone.MembraneSynth({
-        envelope: { sustain: 0, attack: 0.005, decay: 0.2 }
-      }).toDestination();
+        pitchDecay: 0.08,
+        octaves: 5,
+        envelope: { sustain: 0, attack: 0.001, decay: 0.22 }
+      }).connect(volNode);
+
+      const snareFilter = new Tone.Filter({
+        type: 'bandpass',
+        frequency: 1100,
+        Q: 1.0
+      }).connect(volNode);
 
       snareSynth.current = new Tone.NoiseSynth({
         noise: { type: 'pink' },
-        envelope: { attack: 0.001, decay: 0.15, sustain: 0 }
-      }).toDestination();
+        envelope: { attack: 0.001, decay: 0.16, sustain: 0 }
+      }).connect(snareFilter);
 
       const hihat = new Tone.MetalSynth({
-        envelope: { attack: 0.001, decay: 0.05, sustain: 0 },
-        resonance: 4000,
-        harmonicity: 5.1
-      }).toDestination();
-      hihat.frequency.value = 200;
+        envelope: { attack: 0.001, decay: 0.04, sustain: 0 },
+        resonance: 6000,
+        harmonicity: 6.2
+      }).connect(volNode);
+      hihat.frequency.value = 250;
       hihatSynth.current = hihat;
 
       tomSynth.current = new Tone.MembraneSynth({
-        envelope: { sustain: 0, attack: 0.01, decay: 0.3 }
-      }).toDestination();
+        pitchDecay: 0.09,
+        octaves: 4,
+        envelope: { sustain: 0, attack: 0.002, decay: 0.32 }
+      }).connect(volNode);
 
       const cymbal = new Tone.MetalSynth({
-        envelope: { attack: 0.005, decay: 0.6, sustain: 0 },
-        resonance: 6000,
-        harmonicity: 6.2
-      }).toDestination();
-      cymbal.frequency.value = 300;
+        envelope: { attack: 0.002, decay: 0.9, sustain: 0 },
+        resonance: 8500,
+        harmonicity: 7.2
+      }).connect(volNode);
+      cymbal.frequency.value = 280;
       cymbalSynth.current = cymbal;
 
       updateVolumes();

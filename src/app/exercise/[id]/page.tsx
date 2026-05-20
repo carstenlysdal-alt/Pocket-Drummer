@@ -161,20 +161,33 @@ export default function ExercisePage({ params }: PageProps) {
 
     // Bass drum synth
     bassSynthRef.current = new Tone.MembraneSynth({
+      pitchDecay: 0.08,
+      octaves: 5,
       envelope: { attack: 0.001, decay: 0.2, sustain: 0 }
     }).toDestination();
 
-    // Snare drum noise synth
-    snareSynthRef.current = new Tone.NoiseSynth({
-      volume: -6,
-      envelope: { attack: 0.001, decay: 0.1, sustain: 0 }
+    // Snare drum noise synth with a bandpass shaper
+    const snareFilter = new Tone.Filter({
+      type: 'bandpass',
+      frequency: 1100,
+      Q: 1.0
     }).toDestination();
 
-    // Hi-hat metal synth
-    hihatSynthRef.current = new Tone.MetalSynth({
-      volume: -12,
-      envelope: { attack: 0.001, decay: 0.05, sustain: 0 }
+    snareSynthRef.current = new Tone.NoiseSynth({
+      volume: -3,
+      noise: { type: 'pink' },
+      envelope: { attack: 0.001, decay: 0.14, sustain: 0 }
+    }).connect(snareFilter);
+
+    // Hi-hat metal synth with realistic metallic sweep
+    const hihatSynth = new Tone.MetalSynth({
+      volume: -10,
+      envelope: { attack: 0.001, decay: 0.04, sustain: 0 },
+      resonance: 6000,
+      harmonicity: 5.2
     }).toDestination();
+    hihatSynth.frequency.value = 250;
+    hihatSynthRef.current = hihatSynth;
   };
 
   const startMidiPlayback = async () => {

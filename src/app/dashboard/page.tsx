@@ -448,23 +448,83 @@ export default function DashboardPage() {
         ctx.resume();
       }
 
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
       const pad = studioPads[idx];
-      const volumeLevel = getVolumeForPad(pad.label) / 100;
+      const volumeLevel = getVolumeForPad(pad.label);
+      const vol = volumeLevel / 100;
+      const now = ctx.currentTime;
+
+      // Helper to play noise (Snare wires, Hi-hats, Cymbals)
+      const playNoise = (decay: number, filterFreq: number, filterType: BiquadFilterType = 'highpass', gainMul: number = 0.25) => {
+        const bufferSize = ctx.sampleRate * decay;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        
+        const noiseSource = ctx.createBufferSource();
+        noiseSource.buffer = buffer;
+        
+        const filter = ctx.createBiquadFilter();
+        filter.type = filterType;
+        filter.frequency.value = filterFreq;
+        
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(gainMul * vol, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+        
+        noiseSource.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        noiseSource.start(now);
+        noiseSource.stop(now + decay);
+      };
+
+      // Helper to play pitch-swept tone (Kick, Snare body, Toms)
+      const playOsc = (startFreq: number, endFreq: number, decay: number, oscType: OscillatorType = 'sine', gainMul: number = 0.35) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        osc.type = oscType;
+        osc.frequency.setValueAtTime(startFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(endFreq, now + (decay * 0.7));
+        
+        gainNode.gain.setValueAtTime(gainMul * vol, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+        
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        osc.start(now);
+        osc.stop(now + decay);
+      };
+
+      const type = pad.label.toLowerCase();
       
-      osc.type = pad.type;
-      osc.frequency.value = pad.freq;
-      
-      // Dynamic synth decay
-      const baseGain = pad.label === 'Kick' ? 0.28 : pad.label === 'Snare' ? 0.16 : 0.08;
-      gainNode.gain.setValueAtTime(baseGain * volumeLevel, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (pad.label === 'Kick' ? 0.24 : pad.label === 'Snare' ? 0.15 : 0.09));
-      
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.25);
+      if (type.includes('kick')) {
+        playOsc(150, 45, 0.22, 'sine', 0.6);
+      } 
+      else if (type.includes('snare')) {
+        playOsc(180, 100, 0.12, 'triangle', 0.28);
+        playNoise(0.18, 1200, 'highpass', 0.3);
+      } 
+      else if (type.includes('hi-hat') || type.includes('hihat')) {
+        const isOpen = pad.sub.toLowerCase().includes('open');
+        playNoise(isOpen ? 0.38 : 0.05, 8000, 'highpass', 0.16);
+      } 
+      else if (type.includes('crash')) {
+        playNoise(1.3, 5500, 'highpass', 0.24);
+      } 
+      else if (type.includes('ride')) {
+        playNoise(0.65, 5000, 'highpass', 0.12);
+        playOsc(420, 380, 0.45, 'sine', 0.05);
+      } 
+      else if (type.includes('tom') || type.includes('floor')) {
+        const startF = type.includes('floor') ? 110 : type.includes('1') ? 180 : 140;
+        const endF = type.includes('floor') ? 65 : type.includes('1') ? 110 : 85;
+        playOsc(startF, endF, 0.32, 'sine', 0.4);
+      }
     } catch (e) {
       console.warn("Audio error:", e);
     }
