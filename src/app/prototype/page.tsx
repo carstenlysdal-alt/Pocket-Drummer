@@ -81,6 +81,7 @@ interface TabBarProps {
   onTab: (tab: string) => void;
   t: ThemeTokens;
   dark: boolean;
+  isMobile: boolean;
 }
 
 
@@ -445,7 +446,10 @@ function OnboardingScreen({ t, dark, onStart }: { t: ThemeTokens; dark: boolean;
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 200, background: t.bg,
-      color: t.text, fontFamily: t.font, padding: '90px 28px 32px',
+      color: t.text, fontFamily: t.font,
+      paddingTop: 'calc(var(--safe-top, 62px) + 28px)',
+      paddingBottom: 'calc(var(--safe-bottom, 0px) + 32px)',
+      paddingLeft: 28, paddingRight: 28,
       display: 'flex', flexDirection: 'column', }}>
       <div>
         <div style={{
@@ -744,7 +748,7 @@ function TrackDetail({ t, dark, trackId, onClose, onOpenLesson, onOpenCoach }: T
       display: 'flex', flexDirection: 'column', color: t.text, fontFamily: t.font,
       animation: 'slideUp 0.3s ease-out', overflow: 'hidden',
     }}>
-      <div style={{ height: 62 }} />
+      <div style={{ height: 'var(--safe-top, 62px)' }} />
 
       <div style={{ padding: '0 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button onClick={onClose} style={{
@@ -890,7 +894,7 @@ function LessonDetail({ t, dark, lessonId, onClose, onOpenCoach }: LessonDetailP
       display: 'flex', flexDirection: 'column', color: t.text, fontFamily: t.font,
       animation: 'slideUp 0.3s ease-out', overflow: 'hidden',
     }}>
-      <div style={{ height: 62 }} />
+      <div style={{ height: 'var(--safe-top, 62px)' }} />
 
       <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button onClick={onClose} style={{
@@ -1168,6 +1172,7 @@ const pads = [
 ];
 
 interface CustomWindow extends Window {
+  AudioContext?: typeof AudioContext;
   webkitAudioContext?: typeof AudioContext;
   __kitAudio?: AudioContext;
 }
@@ -1230,7 +1235,7 @@ function KitPadView({ t, dark, onClose }: KitPadViewProps) {
       display: 'flex', flexDirection: 'column', color: t.text, fontFamily: t.font,
       animation: 'slideUp 0.3s ease-out', overflow: 'hidden',
     }}>
-      <div style={{ height: 62 }} />
+      <div style={{ height: 'var(--safe-top, 62px)' }} />
 
       <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button onClick={onClose} style={{
@@ -1351,7 +1356,7 @@ function CoachScreen({ t, onClose }: CoachScreenProps) {
       display: 'flex', flexDirection: 'column', color: t.text, fontFamily: t.font,
       animation: 'slideUp 0.3s ease-out', overflow: 'hidden',
     }}>
-      <div style={{ height: 62 }} />
+      <div style={{ height: 'var(--safe-top, 62px)' }} />
 
       <div style={{ padding: '4px 16px 14px', borderBottom: `1px solid ${t.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1582,7 +1587,7 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
 // ─────────────────────────────────────────────────────────────
 // App Tab bar & Shell Wrapper
 // ─────────────────────────────────────────────────────────────
-function TabBar({ tab, onTab, t, dark }: TabBarProps) {
+function TabBar({ tab, onTab, t, dark, isMobile }: TabBarProps) {
   const tabs = [
     { id: 'home', label: 'Hjem', icon: TabHome },
     { id: 'practice', label: 'Øvelser', icon: TabPractice },
@@ -1593,7 +1598,8 @@ function TabBar({ tab, onTab, t, dark }: TabBarProps) {
   return (
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 50,
-      paddingBottom: 24, paddingTop: 14, paddingLeft: 0, paddingRight: 0,
+      paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 8px)' : 24,
+      paddingTop: 14, paddingLeft: 0, paddingRight: 0,
       background: dark
         ? 'linear-gradient(to top, rgba(10,10,10,1) 50%, rgba(10,10,10,0.85) 80%, rgba(10,10,10,0))'
         : 'linear-gradient(to top, rgba(244,241,236,1) 50%, rgba(244,241,236,0.85) 80%, rgba(244,241,236,0))',
@@ -1649,6 +1655,16 @@ export default function MobilePrototype() {
   const [coachOpen, setCoachOpen] = useState(false);
   const [padsOpen, setPadsOpen] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Initialize onboarded status from localStorage client-side
   useEffect(() => {
@@ -1690,12 +1706,24 @@ export default function MobilePrototype() {
     setOnboarded(false);
   };
 
+  const safeVars = {
+    '--safe-top': isMobile ? 'calc(env(safe-area-inset-top) + 12px)' : '62px',
+    '--safe-bottom': isMobile ? 'env(safe-area-inset-bottom)' : '0px',
+  } as React.CSSProperties;
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#050505' }}>
       <Header />
 
       {/* Main Studio Frame container */}
-      <div style={{
+      <div style={isMobile ? {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        background: t.bg,
+        overflow: 'hidden'
+      } : {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
@@ -1727,8 +1755,33 @@ export default function MobilePrototype() {
         </button>
 
         {/* Scaled Device Shell */}
-        <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center', width: 402, height: 874 }}>
-          <div style={{
+        <div style={isMobile ? {
+          width: '100%',
+          height: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 100,
+          ...safeVars
+        } : {
+          transform: `scale(${scale})`,
+          transformOrigin: 'center center',
+          width: 402,
+          height: 874,
+          ...safeVars
+        }}>
+          <div style={isMobile ? {
+            width: '100%',
+            height: '100%',
+            position: 'relative',
+            background: t.bg,
+            fontFamily: t.font,
+            WebkitFontSmoothing: 'antialiased',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          } : {
             width: 402,
             height: 874,
             borderRadius: 48,
@@ -1740,10 +1793,12 @@ export default function MobilePrototype() {
             WebkitFontSmoothing: 'antialiased'
           }}>
             {/* Dynamic island */}
-            <div style={{
-              position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
-              width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 180,
-            }} />
+            {!isMobile && (
+              <div style={{
+                position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+                width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 180,
+              }} />
+            )}
 
             {/* Page background */}
             <div style={{
@@ -1751,14 +1806,18 @@ export default function MobilePrototype() {
             }} />
 
             {/* Status bar */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 170 }}>
-              <IOSStatusBar dark={dark} />
-            </div>
+            {!isMobile && (
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 170 }}>
+                <IOSStatusBar dark={dark} />
+              </div>
+            )}
 
             {/* Content area */}
             <div ref={contentRef} style={{
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              overflow: 'auto', paddingTop: STATUS_BAR, paddingBottom: 100,
+              overflow: 'auto',
+              paddingTop: 'var(--safe-top)',
+              paddingBottom: 'calc(var(--safe-bottom) + 100px)',
             }}>
               {tab === 'home' && (
                 <HomeScreen t={t} dark={dark} setDark={setDark}
@@ -1778,7 +1837,7 @@ export default function MobilePrototype() {
             </div>
 
             {/* Tab bar */}
-            <TabBar tab={tab} onTab={setTab} t={t} dark={dark} />
+            <TabBar tab={tab} onTab={setTab} t={t} dark={dark} isMobile={isMobile} />
 
             {/* Track detail overlay */}
             {trackId && (
@@ -1811,16 +1870,18 @@ export default function MobilePrototype() {
             )}
 
             {/* Home indicator */}
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 160,
-              height: 34, display: 'flex', alignItems: 'flex-end',
-              paddingBottom: 8, pointerEvents: 'none',
-            }}>
+            {!isMobile && (
               <div style={{
-                width: 139, height: 5, borderRadius: 100,
-                background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.3)',
-              }} />
-            </div>
+                position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 160,
+                height: 34, display: 'flex', alignItems: 'flex-end',
+                paddingBottom: 8, pointerEvents: 'none',
+              }}>
+                <div style={{
+                  width: 139, height: 5, borderRadius: 100,
+                  background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.3)',
+                }} />
+              </div>
+            )}
           </div>
         </div>
       </div>

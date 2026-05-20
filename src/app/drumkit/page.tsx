@@ -20,12 +20,12 @@ export default function DrumkitPage() {
 
   // Synthesizers
   interface ToneSynth {
-    triggerAttackRelease?: (note: string, duration: string) => void;
-    triggerAttack?: () => void;
+    triggerAttackRelease?: (note: any, duration: any) => void;
+    triggerAttack?: (note?: any, time?: any, velocity?: any) => void;
     disconnect?: () => void;
-    connect?: (node: unknown) => void;
-    oscillator?: { type: string };
-    envelope?: { decay: number };
+    connect?: (node: any) => void;
+    oscillator?: any;
+    envelope?: any;
   }
 
   // Synthesizers
