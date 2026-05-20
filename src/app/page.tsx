@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   IcHome, IcBook, IcSpark, IcUser, IcPlay, IcBack, IcChev, IcCheck, IcLock,
   IcSun, IcMoon, IcSend, IcFlame, IcClock, IcTrophy, IcBell,
-  TabKit, RadialProgress, IllSnare, IllKit, IllSticks, DrumNotation,
+  TabKit, TabPractice, RadialProgress, IllSnare, IllKit, IllSticks, DrumNotation,
   IcMetro, IcLoop, IcMin, IcPlus,
 } from '@/components/DesktopIcons';
 import {
@@ -125,7 +125,7 @@ type ViewId = 'home' | 'academy' | 'exercises' | 'studio' | 'profile';
 const NAV_ITEMS: { id: ViewId; label: string; icon: React.FC<any> }[] = [
   { id: 'home', label: 'Hjem', icon: IcHome },
   { id: 'academy', label: 'Akademi', icon: IcBook },
-  { id: 'exercises', label: 'Øvelser', icon: TabKit },
+  { id: 'exercises', label: 'Øvelser', icon: TabPractice },
   { id: 'studio', label: 'Studio Kit', icon: ({ size, color, sw }: any) => <TabKit size={size} color={color} sw={sw} /> },
   { id: 'profile', label: 'Profil', icon: IcUser },
 ];
@@ -144,7 +144,7 @@ function Sidebar({ t, view, onView, dark, isPremium, onUpgrade }: { t: T; view: 
       {/* Search */}
       <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 10, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={t.textDim} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <input placeholder="Søg øvelser, genrer…" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontFamily: t.font, fontSize: 12 }} />
+        <input placeholder="Søg øvelser, genrer…" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontFamily: t.font, fontSize: 12, padding: 0, margin: 0 }} />
         <span style={{ fontFamily: t.mono, fontSize: 9, color: t.textDim, padding: '1px 5px', borderRadius: 4, border: `1px solid ${t.border}` }}>⌘K</span>
       </div>
 
@@ -700,11 +700,11 @@ function ExercisesView({ t, exercises, isPremium, onUpgrade, completedIds }: { t
 // ─── STUDIO VIEW ─────────────────────────────────────────────
 function StudioView({ t, dark }: { t: T; dark: boolean }) {
   const pads = [
-    { label: 'Hi-hat', sub: 'Closed', freq: 800 }, { label: 'Hi-hat', sub: 'Open', freq: 700 },
-    { label: 'Crash', sub: '16"', freq: 600 }, { label: 'Snare', sub: 'Center', freq: 200 },
-    { label: 'Tom 1', sub: '10"', freq: 350 }, { label: 'Tom 2', sub: '12"', freq: 280 },
-    { label: 'Floor', sub: '14"', freq: 180 }, { label: 'Ride', sub: '20"', freq: 500 },
-    { label: 'Kick', sub: 'Bass', freq: 60 },
+    { label: 'Hi-hat', sub: 'Closed', freq: 800, key: 'H' }, { label: 'Hi-hat', sub: 'Open', freq: 700, key: 'G' },
+    { label: 'Crash', sub: '16"', freq: 600, key: 'C' }, { label: 'Snare', sub: 'Center', freq: 200, key: 'S' },
+    { label: 'Tom 1', sub: '10"', freq: 350, key: 'T' }, { label: 'Tom 2', sub: '12"', freq: 280, key: 'Y' },
+    { label: 'Floor', sub: '14"', freq: 180, key: 'F' }, { label: 'Ride', sub: '20"', freq: 500, key: 'R' },
+    { label: 'Kick', sub: 'Bass', freq: 60, key: 'K' },
   ];
   const [active, setActive] = useState<Record<number, number>>({});
   const [bpm, setBpm] = useState(92);
@@ -712,19 +712,116 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
   const [vols, setVols] = useState<Record<string, number>>({ kick: 80, snare: 70, hihat: 65, toms: 60, cymbals: 55 });
   const [rec, setRec] = useState(false);
 
+  // Shared AudioContext (reused across hits to avoid Safari limits)
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const getCtx = () => {
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+    return audioCtxRef.current;
+  };
+
   const hit = (i: number) => {
     setActive(a => ({ ...a, [i]: Date.now() }));
     setTimeout(() => setActive(a => { const n = { ...a }; delete n[i]; return n; }), 220);
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type = pads[i].label === 'Kick' ? 'sine' : pads[i].label === 'Snare' ? 'triangle' : 'square';
-      o.frequency.value = pads[i].freq; g.gain.value = 0.06;
-      o.connect(g); g.connect(ctx.destination); o.start();
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (pads[i].label === 'Kick' ? 0.18 : 0.08));
-      o.stop(ctx.currentTime + 0.2);
+      const ctx = getCtx();
+      const now = ctx.currentTime;
+      const label = pads[i].label;
+
+      if (label === 'Kick') {
+        // Pitch-swept sine — stortromme
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+        gain.gain.setValueAtTime(1.0, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now); osc.stop(now + 0.4);
+
+      } else if (label === 'Snare') {
+        // Noise burst (overtoner) + body tone (lilletromme)
+        const bufSize = ctx.sampleRate * 0.2;
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let j = 0; j < bufSize; j++) data[j] = (Math.random() * 2 - 1);
+        const noise = ctx.createBufferSource();
+        noise.buffer = buf;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.7, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        noise.connect(noiseGain); noiseGain.connect(ctx.destination);
+        noise.start(now); noise.stop(now + 0.2);
+
+        const body = ctx.createOscillator();
+        const bodyGain = ctx.createGain();
+        body.type = 'triangle';
+        body.frequency.setValueAtTime(220, now);
+        body.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+        bodyGain.gain.setValueAtTime(0.5, now);
+        bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        body.connect(bodyGain); bodyGain.connect(ctx.destination);
+        body.start(now); body.stop(now + 0.12);
+
+      } else if (label === 'Hi-hat') {
+        // Bandpass-filtreret white noise
+        const bufSize = ctx.sampleRate * 0.06;
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let j = 0; j < bufSize; j++) data[j] = (Math.random() * 2 - 1);
+        const noise = ctx.createBufferSource();
+        noise.buffer = buf;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = pads[i].sub === 'Open' ? 8000 : 10000;
+        filter.Q.value = 0.8;
+        const gain = ctx.createGain();
+        const decay = pads[i].sub === 'Open' ? 0.25 : 0.06;
+        gain.gain.setValueAtTime(0.55, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
+        noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        noise.start(now); noise.stop(now + decay + 0.01);
+
+      } else if (label === 'Crash' || label === 'Ride') {
+        // Metallic filtered noise — cymbal
+        const bufSize = ctx.sampleRate * 0.8;
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let j = 0; j < bufSize; j++) data[j] = (Math.random() * 2 - 1);
+        const noise = ctx.createBufferSource();
+        noise.buffer = buf;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.value = label === 'Crash' ? 6000 : 4500;
+        const gain = ctx.createGain();
+        const decay = label === 'Crash' ? 0.7 : 0.4;
+        gain.gain.setValueAtTime(0.45, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
+        noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        noise.start(now); noise.stop(now + decay + 0.01);
+
+      } else {
+        // Toms — pitch-swept sine ved varierende frekvenser
+        const freqMap: Record<string, [number, number]> = {
+          'Tom 1': [280, 100], 'Tom 2': [220, 80], 'Floor': [170, 60],
+        };
+        const [start, end] = freqMap[label] ?? [200, 70];
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(start, now);
+        osc.frequency.exponentialRampToValueAtTime(end, now + 0.18);
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now); osc.stop(now + 0.32);
+      }
     } catch { }
   };
+
 
   useEffect(() => {
     const keys: Record<string, number> = { 'h': 0, 'g': 1, 'c': 2, 's': 3, 't': 4, 'y': 5, 'f': 6, 'r': 7, 'k': 8 };
@@ -775,12 +872,16 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {pads.map((pad, i) => (
               <button key={i} onClick={() => hit(i)} style={{
-                padding: '20px 12px', borderRadius: 14, border: `1.5px solid ${active[i] ? t.accent : t.border}`,
+                padding: '24px 12px 18px', borderRadius: 14, border: `1.5px solid ${active[i] ? t.accent : t.border}`,
                 background: active[i] ? t.accentSoft : t.surface,
                 cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                 transition: 'all 0.05s', transform: active[i] ? 'scale(0.96)' : 'scale(1)',
                 boxShadow: active[i] ? `0 0 20px ${t.accentSoft}` : 'none',
+                position: 'relative',
               }}>
+                <div style={{ position: 'absolute', top: 6, right: 8, fontSize: 8.5, fontFamily: t.mono, fontWeight: 700, color: active[i] ? t.accent : t.textDim, padding: '1px 4.5px', background: active[i] ? t.surface : t.surface2, borderRadius: 4, border: `1px solid ${t.borderStrong}` }}>
+                  {pad.key}
+                </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: active[i] ? t.accent : t.text }}>{pad.label}</div>
                 <div style={{ fontSize: 10, fontFamily: t.mono, color: t.textDim }}>{pad.sub}</div>
               </button>
@@ -959,7 +1060,7 @@ function CheckoutModal({ t, onClose, onSuccess }: { t: T; onClose: () => void; o
                   <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 18, fontFamily: t.mono }}>{plan.period}</div>
                   <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, flex: 1 }}>
                     {plan.features.map((f, fi) => (
-                      <li key={fi} style={{ display: 'flex', gap: 8, fontSize: 12, color: plan.highlight ? t.text : t.textMuted }}>
+                      <li key={fi} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: plan.highlight ? t.text : t.textMuted }}>
                         <IcCheck size={13} color={plan.highlight ? t.accent : t.textDim} />
                         {f}
                       </li>
@@ -1133,9 +1234,12 @@ export default function App() {
         fontFamily: t.font, display: 'flex', flexDirection: 'column',
       }}>
         {/* Title bar */}
-        <div style={{ height: 44, flexShrink: 0, background: t.sidebar, borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 14, position: 'relative' }}>
+        <div style={{ height: 44, flexShrink: 0, background: t.sidebar, borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', padding: '0 16px', position: 'relative' }}>
           <TrafficLights />
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginRight: -60 }}>
+          <div style={{
+            position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+            display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'auto',
+          }}>
             <span style={{ fontFamily: t.font, fontSize: 13, fontWeight: 600, color: t.textMuted, letterSpacing: 0.3 }}>DrumLab Academy</span>
             {isPremium ? (
               <span style={{ fontSize: 9, fontWeight: 800, background: t.goodSoft, color: t.good, padding: '2px 8px', borderRadius: 4, letterSpacing: 0.8, textTransform: 'uppercase' }}>PRO</span>
@@ -1145,7 +1249,6 @@ export default function App() {
               </button>
             )}
           </div>
-          <div style={{ width: 60 }} />
         </div>
 
         {/* Body */}
