@@ -8,12 +8,11 @@ import {
   Settings, 
   Upload, 
   CheckCircle2, 
-  AlertCircle, 
-  Play, 
   Eye, 
   Code,
   FileCode,
-  Save
+  Save,
+  Lock
 } from 'lucide-react';
 import { 
   getSavedExercises, 
@@ -21,12 +20,19 @@ import {
   getStandardDrumMusicXML,
   Exercise 
 } from '@/lib/mockData';
+import { useAuth } from '@/lib/authContext';
+import Link from 'next/link';
 
 // Hent OsmdRenderer dynamisk uden SSR
 const OsmdRenderer = dynamic(() => import('@/components/OsmdRenderer'), { ssr: false });
 
 export default function AdminPage() {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const { user, login, logout, loading: authLoadingState } = useAuth();
+  const [adminEmail, setAdminEmail] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  
+  const [, setExercises] = useState<Exercise[]>([]);
   
   // DeepSeek / AI generation state
   const [title, setTitle] = useState("Moderne Paradiddle Groove");
@@ -79,6 +85,110 @@ Vigtige regler:
       setExercises(getSavedExercises());
     }, 0);
   }, []);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEmail || !adminEmail.includes('@')) {
+      setAuthError('Indtast venligst en gyldig e-mailadresse');
+      return;
+    }
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      await login(adminEmail);
+    } catch {
+      setAuthError('Fejl under login. Prøv igen.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  if (authLoadingState) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a', color: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 40, height: 40, border: '3px solid rgba(239, 90, 58, 0.2)', borderTopColor: '#ef5a3a', borderRadius: '50%', margin: '0 auto 16px auto', animation: 'spin 1s linear infinite' }} />
+          <p style={{ fontSize: 14, color: '#9ca3af', letterSpacing: '0.05em' }}>KONTROLLERER ADGANG...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isAdmin = user && (user.role === 'admin' || user.email.toLowerCase() === 'carstenlysdal@gmail.com');
+
+  if (!isAdmin) {
+    return (
+      <div className="grid-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', fontFamily: 'var(--font-sans)' }}>
+        <Header />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div className="glass-card" style={{ maxWidth: '440px', width: '100%', padding: '2.5rem', textAlign: 'center', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '20px', background: 'rgba(20, 20, 22, 0.6)', backdropFilter: 'blur(20px)', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 90, 58, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+              <Lock size={28} style={{ color: '#ef5a3a' }} />
+            </div>
+            
+            {!user ? (
+              <>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: '#FAF8F5', fontFamily: 'var(--font-title)' }}>Admin Login</h2>
+                <p style={{ fontSize: '0.9rem', color: '#9ca3af', lineHeight: 1.6, marginBottom: '2rem' }}>
+                  Indtast din administrator-email for at få adgang til indholdspipelinen og AI-nodegenereringen.
+                </p>
+                
+                <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="form-group" style={{ textAlign: 'left' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: '0.5rem', display: 'block' }}>Administrator e-mail</label>
+                    <input 
+                      type="email" 
+                      className="form-control" 
+                      placeholder="admin@drumlab.dk"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      style={{ background: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#FAF8F5' }}
+                    />
+                  </div>
+                  {authError && (
+                    <div style={{ color: '#f43f5e', fontSize: '0.85rem', fontWeight: 500, textAlign: 'left' }}>
+                      {authError}
+                    </div>
+                  )}
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary w-full"
+                    disabled={authLoading}
+                    style={{ background: '#ef5a3a', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    {authLoading ? 'Verificerer...' : 'Log ind som admin'}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: '#FAF8F5', fontFamily: 'var(--font-title)' }}>Adgang Nægtet</h2>
+                <p style={{ fontSize: '0.9rem', color: '#9ca3af', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                  Du er logget ind som <strong style={{ color: '#FAF8F5' }}>{user.email}</strong>, men denne konto har ikke administratorrettigheder.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
+                  <button 
+                    onClick={() => logout()}
+                    className="btn btn-secondary w-full"
+                    style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#FAF8F5', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Log ud af denne konto
+                  </button>
+                  <Link 
+                    href="/" 
+                    className="btn btn-primary w-full"
+                    style={{ background: '#ef5a3a', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, textDecoration: 'none', display: 'block', textAlign: 'center' }}
+                  >
+                    Gå til forsiden
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);

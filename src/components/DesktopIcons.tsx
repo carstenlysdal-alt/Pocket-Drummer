@@ -5,6 +5,7 @@ interface IconProps {
   color?: string;
   fill?: boolean;
   sw?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -219,7 +220,7 @@ interface RadialProgressProps {
   sw?: number;
   label?: string;
   sublabel?: string;
-  t?: any;
+  t?: { text?: string };
 }
 
 export const RadialProgress: React.FC<RadialProgressProps> = ({ size = 110, pct = 75, color = '#ef5a3a', track = 'rgba(255,255,255,0.08)', sw = 8, label, t }) => {

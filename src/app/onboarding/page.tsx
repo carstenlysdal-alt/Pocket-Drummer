@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Calendar, ArrowRight, ArrowLeft, Target, Shield } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, Shield } from 'lucide-react';
 import { saveUserGoal, saveUserPlan, setPremiumStatus } from '@/lib/mockData';
 
 const GOAL_TAGS = [

@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
-  IcHome, IcBook, IcSpark, IcUser, IcPlay, IcBack, IcChev, IcCheck, IcLock,
+  IcHome, IcSpark, IcUser, IcPlay, IcBack, IcChev, IcCheck, IcLock,
   IcSun, IcMoon, IcSend, IcFlame, IcClock, IcTrophy, IcBell,
-  TabKit, TabPractice, RadialProgress, IllSnare, IllKit, IllSticks, DrumNotation,
-  IcMetro, IcLoop, IcMin, IcPlus,
+  TabKit, TabPractice, IllSnare, IllKit, IllSticks, DrumNotation,
+  IcMetro, IcLoop, IcMin,
 } from '@/components/DesktopIcons';
 import {
   getUserPlan, getCompletedExercises,
@@ -16,8 +15,8 @@ import {
 } from '@/lib/mockData';
 import {
   LEVELS, MODULES, PILLARS,
-  CurriculumLevel, CurriculumModule, CurriculumLesson,
 } from '@/lib/curriculum';
+import { useAuth } from '@/lib/authContext';
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────
 interface T {
@@ -28,20 +27,20 @@ interface T {
   good: string; goodSoft: string; mono: string; font: string; serif: string;
 }
 const mkT = (dark = true): T => ({
-  bg: dark ? '#0a0a0a' : '#f4f1ec',
-  sidebar: dark ? '#0e0e10' : '#e8e4dd',
+  bg: dark ? '#0a0a0a' : '#FAF8F5',
+  sidebar: dark ? '#0e0e10' : '#F3EFE7',
   surface: dark ? '#141416' : '#ffffff',
-  surface2: dark ? '#1c1c1f' : '#ebe7e0',
+  surface2: dark ? '#1c1c1f' : '#EBE6DC',
   surfaceElev: dark ? '#212124' : '#ffffff',
-  border: dark ? 'rgba(255,255,255,0.06)' : 'rgba(20,20,28,0.08)',
-  borderStrong: dark ? 'rgba(255,255,255,0.13)' : 'rgba(20,20,28,0.14)',
-  text: dark ? '#f4f1ec' : '#16161a',
-  textMuted: dark ? '#8a8580' : '#6e6a62',
-  textDim: dark ? '#56524c' : '#a8a39a',
-  accent: '#ef5a3a',
-  accentDeep: '#d94527',
-  accentSoft: dark ? 'rgba(239,90,58,0.13)' : 'rgba(239,90,58,0.10)',
-  accentText: dark ? '#f5b8a8' : '#a83419',
+  border: dark ? 'rgba(255,255,255,0.06)' : 'rgba(37,37,37,0.08)',
+  borderStrong: dark ? 'rgba(255,255,255,0.13)' : 'rgba(37,37,37,0.14)',
+  text: dark ? '#FAF8F5' : '#252525',
+  textMuted: dark ? '#8a8580' : '#77716B',
+  textDim: dark ? '#56524c' : '#A39C94',
+  accent: '#F25545',
+  accentDeep: '#C43425',
+  accentSoft: dark ? 'rgba(242,85,69,0.13)' : 'rgba(242,85,69,0.08)',
+  accentText: dark ? '#f5b8a8' : '#C43425',
   good: '#5dd39e',
   goodSoft: dark ? 'rgba(93,211,158,0.14)' : 'rgba(93,211,158,0.14)',
   mono: 'ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace',
@@ -121,16 +120,27 @@ function useFitScale(w: number, h: number, mg = 0) {
 }
 
 // ─── SIDEBAR ──────────────────────────────────────────────────
-type ViewId = 'home' | 'academy' | 'exercises' | 'studio' | 'profile';
-const NAV_ITEMS: { id: ViewId; label: string; icon: React.FC<any> }[] = [
+type ViewId = 'home' | 'category' | 'exercises' | 'studio' | 'profile';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const NAV_ITEMS: { id: ViewId; label: string; icon: React.FC<any>; category?: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong' }[] = [
   { id: 'home', label: 'Hjem', icon: IcHome },
-  { id: 'academy', label: 'Akademi', icon: IcBook },
+  { id: 'category', label: 'Play-along', icon: IcPlay, category: 'playalong' },
   { id: 'exercises', label: 'Øvelser', icon: TabPractice },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { id: 'studio', label: 'Studio Kit', icon: ({ size, color, sw }: any) => <TabKit size={size} color={color} sw={sw} /> },
   { id: 'profile', label: 'Profil', icon: IcUser },
 ];
 
-function Sidebar({ t, view, onView, dark, isPremium, onUpgrade }: { t: T; view: ViewId; onView: (v: ViewId) => void; dark: boolean; isPremium: boolean; onUpgrade: () => void }) {
+function Sidebar({ t, view, onView, selectedCategory, setSelectedCategory, isPremium, onUpgrade }: {
+  t: T;
+  view: ViewId;
+  onView: (v: ViewId) => void;
+  selectedCategory: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong' | null;
+  setSelectedCategory: (cat: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong' | null) => void;
+  dark: boolean;
+  isPremium: boolean;
+  onUpgrade: () => void;
+}) {
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -160,9 +170,18 @@ function Sidebar({ t, view, onView, dark, isPremium, onUpgrade }: { t: T; view: 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Sect t={t} style={{ marginBottom: 8 }}>Naviger</Sect>
         {NAV_ITEMS.map(it => {
-          const active = view === it.id;
+          const active = it.id === 'category'
+            ? (view === 'category' && selectedCategory === it.category)
+            : (view === it.id);
           return (
-            <button key={it.id} onClick={() => onView(it.id)} aria-current={active ? 'page' : undefined} style={{
+            <button key={it.label} onClick={() => {
+              if (it.id === 'category' && it.category) {
+                setSelectedCategory(it.category);
+              } else {
+                setSelectedCategory(null);
+              }
+              onView(it.id);
+            }} aria-current={active ? 'page' : undefined} style={{
               display: 'flex', alignItems: 'center', gap: 11, padding: '10px 11px',
               background: active ? t.accentSoft : 'transparent',
               border: 'none', borderRadius: 10, cursor: 'pointer',
@@ -224,7 +243,7 @@ function Sidebar({ t, view, onView, dark, isPremium, onUpgrade }: { t: T; view: 
 
 // ─── AI COACH PANEL ───────────────────────────────────────────
 interface ChatMessage { id: number; role: 'ai' | 'user'; text: string }
-function CoachPanel({ t, dark, open, onToggle, isPremium, onUpgrade }: { t: T; dark: boolean; open: boolean; onToggle: () => void; isPremium: boolean; onUpgrade: () => void }) {
+function CoachPanel({ t, open, onToggle, isPremium, onUpgrade }: { t: T; dark: boolean; open: boolean; onToggle: () => void; isPremium: boolean; onUpgrade: () => void }) {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([
@@ -349,24 +368,28 @@ function CoachPanel({ t, dark, open, onToggle, isPremium, onUpgrade }: { t: T; d
 }
 
 // ─── HOME VIEW ────────────────────────────────────────────────
-function HomeView({ t, dark, setDark, onView, isPremium, onUpgrade }: { t: T; dark: boolean; setDark: (d: boolean) => void; onView: (v: ViewId) => void; isPremium: boolean; onUpgrade: () => void }) {
+function HomeView({ t, dark, setDark, onSelectCategory }: {
+  t: T;
+  dark: boolean;
+  setDark: (d: boolean) => void;
+  onView: (v: ViewId) => void;
+  isPremium: boolean;
+  onUpgrade: () => void;
+  onSelectCategory: (cat: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong') => void;
+}) {
+  const { user } = useAuth();
   const today = new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
-  const stats = [
-    { label: 'Streak', value: '7', sub: 'dage', icon: <IcFlame size={15} color="#ef5a3a" /> },
-    { label: 'Uge', value: '2t 14m', sub: '4/7 dage', icon: <IcClock size={15} color={t.textMuted} /> },
-    { label: 'Niveau', value: 'Niv. 1', sub: '120 / 200 XP', icon: <IcTrophy size={15} color={t.textMuted} /> },
-    { label: 'Lektioner', value: '8', sub: 'gennemført', icon: <IcCheck size={15} color={t.good} /> },
-  ];
+  const displayName = user ? user.displayName : 'Anders';
 
   return (
     <div style={{ padding: '36px 44px 60px', color: t.text, fontFamily: t.font, maxWidth: 1100 }}>
       {/* Greeting */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 36 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: t.textMuted, marginBottom: 10 }}>
             {today.charAt(0).toUpperCase() + today.slice(1)}
           </div>
-          <Display t={t} size={52}>God øvelse, Anders</Display>
+          <Display t={t} size={48}>Hej, {displayName}</Display>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setDark(!dark)} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -380,241 +403,544 @@ function HomeView({ t, dark, setDark, onView, isPremium, onUpgrade }: { t: T; da
       </div>
 
       {/* Hero grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 16, marginBottom: 24 }}>
-        {/* Daily goal */}
-        <Card t={t} pad={24} style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <RadialProgress size={120} pct={40} color={t.accent} track={dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'} sw={9} label="40%" t={t} />
-          <div style={{ flex: 1 }}>
-            <Sect t={t}>Daglig mål</Sect>
-            <div style={{ fontFamily: t.mono, fontSize: 15, fontWeight: 600 }}>8 <span style={{ color: t.textMuted, fontWeight: 500 }}>/ 20 min</span></div>
-            <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 16, marginTop: 8, color: t.text, lineHeight: 1.25 }}>Bliv ved — du er godt i gang!</div>
-            <div style={{ marginTop: 14 }}><Prog pct={40} t={t} /></div>
-          </div>
-        </Card>
-
-        {/* Continue lesson */}
-        <Card t={t} pad={0} style={{ overflow: 'hidden', display: 'flex' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, marginBottom: 36 }}>
+        {/* Recommended Daily Exercise */}
+        <Card t={t} pad={0} style={{ overflow: 'hidden', display: 'flex', borderLeft: `4px solid ${t.accent}` }}>
           <div style={{ padding: 28, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
-              <Sect t={t}>Fortsæt hvor du slap</Sect>
-              <Display t={t} size={26} style={{ marginBottom: 6 }}>Single Stroke Roll</Display>
-              <div style={{ fontSize: 11.5, color: t.textMuted, fontFamily: t.mono, letterSpacing: 0.5 }}>MODUL 2 · LEKTION 1 · 10 MIN</div>
+              <Sect t={t} color={t.accent}>Dagens anbefaling</Sect>
+              <Display t={t} size={30} style={{ marginBottom: 8 }}>Paradiddle Grooves</Display>
+              <div style={{ fontSize: 11, color: t.textMuted, fontFamily: t.mono, letterSpacing: 0.5, marginBottom: 12 }}>12 MIN · LET ØVET</div>
+              <p style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.5, margin: '0 0 16px' }}>
+                Styrk din koordination, fingerkontrol og balance på trommerne med dagens fokuserede paradiddle-grooves.
+              </p>
             </div>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.textMuted, marginBottom: 6, fontFamily: t.mono, fontWeight: 600, letterSpacing: 0.5 }}>
-                <span>FREMSKRIDT</span><span>30%</span>
-              </div>
-              <Prog pct={30} t={t} h={4} />
-              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                <Btn t={t} icon={<IcPlay size={11} />}>Fortsæt</Btn>
-                <Btn t={t} variant="ghost">Detaljer</Btn>
-              </div>
+              <Btn t={t} onClick={() => onSelectCategory('grooves')} icon={<IcPlay size={11} />}>Start dagens øvelse</Btn>
             </div>
           </div>
-          <div style={{ width: 200, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dark ? '#101012' : '#ebe7e0', borderLeft: `1px solid ${t.border}` }}>
-            <div style={{ position: 'absolute', width: 200, height: 200, background: `radial-gradient(circle, ${t.accentSoft} 0%, transparent 65%)` }} />
-            <div style={{ position: 'relative' }}><IllSnare size={160} color={t.accent} sw={1.4} /></div>
+          <div style={{ width: 180, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dark ? '#101012' : '#F3EFE7', borderLeft: `1px solid ${t.border}`, flexShrink: 0 }}>
+            <div style={{ position: 'absolute', width: 140, height: 140, background: `radial-gradient(circle, ${t.accentSoft} 0%, transparent 65%)` }} />
+            <div style={{ position: 'relative' }}><IllSnare size={130} color={t.accent} sw={1.4} /></div>
+          </div>
+        </Card>
+
+        {/* Weekly Progression */}
+        <Card t={t} pad={24} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <Sect t={t}>Din progression</Sect>
+            <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', marginBottom: 6 }}>Denne uge</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 12 }}>
+              3 øvedage · 72 min · Niveau 2
+            </div>
+            <p style={{ fontSize: 12, color: t.textMuted, lineHeight: 1.4, marginBottom: 14 }}>
+              Du er 72% af vejen mod dit ugentlige øvemål på 100 minutter.
+            </p>
+          </div>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.textMuted, marginBottom: 6, fontFamily: t.mono, fontWeight: 600, letterSpacing: 0.5 }}>
+              <span>UGEMÅL STATUS</span><span>72%</span>
+            </div>
+            <Prog pct={72} t={t} h={5} />
+            <div style={{ marginTop: 10, fontSize: 11, color: t.textDim, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>🔥 7 dages streak · Fortsæt timingen!</span>
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* Stats strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 36 }}>
-        {stats.map((s, i) => (
-          <Card key={i} t={t} pad={18}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: `1px solid ${t.borderStrong}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{s.icon}</div>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: t.textMuted }}>{s.label}</span>
-            </div>
-            <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 34, lineHeight: 1, color: t.text }}>{s.value}</div>
-            <div style={{ fontSize: 10.5, color: t.textDim, fontFamily: t.mono, marginTop: 4 }}>{s.sub}</div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Anbefalet i dag */}
-      <Sect t={t}>Anbefalet i dag</Sect>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 36 }}>
+      {/* Choose practice category */}
+      <Sect t={t} style={{ marginBottom: 18 }}>Vælg øvespor</Sect>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
         {[
-          { title: 'Double Strokes', mod: 'Modul 2', dur: '10 min', tag: 'TEKNIK', premium: false },
-          { title: 'Basic Rockbeat', mod: 'Modul 3', dur: '12 min', tag: 'GROOVE', premium: false },
-          { title: 'Fill uden tempo-tab', mod: 'Modul 6', dur: '10 min', tag: 'TIMING', premium: true },
-        ].map((item, i) => (
-          <Card key={i} t={t} pad={20} onClick={item.premium && !isPremium ? onUpgrade : undefined} style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
-            {item.premium && !isPremium && (
-              <div style={{ position: 'absolute', top: 14, right: 14 }}><IcLock size={13} color={t.textDim} /></div>
-            )}
-            <Sect t={t} color={t.accent} style={{ marginBottom: 6 }}>{item.tag}</Sect>
-            <Display t={t} size={18} style={{ marginBottom: 6 }}>{item.title}</Display>
-            <div style={{ fontSize: 11, color: t.textMuted, fontFamily: t.mono }}>{item.mod} · {item.dur}</div>
-            {item.premium && !isPremium && (
-              <div style={{ marginTop: 12 }}><Badge t={t} tone="accent">Premium</Badge></div>
-            )}
+          { id: 'opvarmning' as const, title: 'Opvarmning', desc: 'Start med hænder, fødder, kontrol og timing.', icon: <IllSticks size={52} color={t.accent} /> },
+          { id: 'nodelære' as const, title: 'Nodelære', desc: 'Forstå rytmer, taktarter og trommenotation.', icon: <div style={{ transform: 'scale(0.8)', marginTop: -20, marginBottom: -10 }}><DrumNotation color={t.text} width={140} accent={t.accent} active={2} /></div> },
+          { id: 'grooves' as const, title: 'Grooves & Fills', desc: 'Spil beats, fills, overgange og genrer.', icon: <IllSnare size={62} color={t.accent} /> },
+          { id: 'playalong' as const, title: 'Play-along', desc: 'Spil med musik, backing tracks og form.', icon: <div style={{ width: 42, height: 42, borderRadius: '50%', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.accent }}><IcPlay size={20} fill color={t.accent} /></div> },
+        ].map((cat, i) => (
+          <Card key={i} t={t} pad={24} onClick={() => onSelectCategory(cat.id)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 20, transition: 'transform 0.15s ease, border-color 0.15s ease' }}>
+            <div style={{ width: 80, height: 80, borderRadius: 14, background: t.sidebar, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: `1px solid ${t.border}` }}>
+              {cat.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              <Display t={t} size={22} style={{ marginBottom: 6 }}>{cat.title}</Display>
+              <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.4 }}>{cat.desc}</div>
+            </div>
+            <IcChev size={16} color={t.textDim} />
           </Card>
         ))}
       </div>
-
-      {/* Dagens node */}
-      <Sect t={t}>Dagens nodevisning</Sect>
-      <Card t={t} pad={0} style={{ overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'stretch' }}>
-          <div style={{ padding: '24px 28px', flex: 1 }}>
-            <Display t={t} size={22} style={{ marginBottom: 6 }}>Basic Rock Groove</Display>
-            <div style={{ fontSize: 11, color: t.textMuted, fontFamily: t.mono, marginBottom: 20 }}>4/4 · 90 BPM · BEGYNDER</div>
-            <DrumNotation color={dark ? '#f4f1ec' : '#16161a'} width={400} accent={t.accent} active={2} />
-          </div>
-          <div style={{ width: 200, background: dark ? '#101012' : '#f0ece6', borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
-            <Btn t={t} icon={<IcPlay size={11} />} size="sm">Afspil</Btn>
-            <Btn t={t} variant="secondary" size="sm">PDF</Btn>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }
 
-// ─── ACADEMY VIEW ─────────────────────────────────────────────
-function AcademyView({ t, dark, isPremium, onUpgrade, completedIds }: { t: T; dark: boolean; isPremium: boolean; onUpgrade: () => void; completedIds: string[] }) {
-  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
-  const [selectedModule, setSelectedModule] = useState<string | null>(null);
+// ─── CATEGORY DETAIL VIEW ──────────────────────────────────────
+interface CategoryDetailViewProps {
+  t: T;
+  category: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong';
+  onBack: () => void;
+  isPremium: boolean;
+  onUpgrade: () => void;
+}
 
-  const userXP = 120; // mock
-  const currentLevel = LEVELS.findIndex((l, i) => {
-    const next = LEVELS[i + 1];
-    return userXP >= l.xpRequired && (!next || userXP < next.xpRequired);
+function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
+  const [activeChip, setActiveChip] = useState('Alle');
+  const [bpm, setBpm] = useState(90);
+  const [metroPlaying, setMetroPlaying] = useState(false);
+  const [subdivision, setSubdivision] = useState<'quarter' | 'eighth'>('quarter');
+  const [currentBeat, setCurrentBeat] = useState(0);
+
+  // Play-along states
+  const [playalongPlaying, setPlayalongPlaying] = useState(false);
+  const [playalongSpeed, setPlayalongSpeed] = useState<80 | 90 | 100 | 110>(100);
+  const [mixerVols, setMixerVols] = useState({ drums: 70, music: 60 });
+  const [playalongBeat, setPlayalongBeat] = useState(0);
+
+  // Audio Context Ref
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const getAudioCtx = () => {
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  };
+
+  // Metronome Sound loop
+  useEffect(() => {
+    if (!metroPlaying) return;
+    const intervalTime = (60 / bpm) * (subdivision === 'eighth' ? 500 : 1000);
+    const intervalId = setInterval(() => {
+      setCurrentBeat(prev => {
+        const nextBeat = subdivision === 'eighth' ? (prev + 1) % 8 : (prev + 1) % 4;
+        try {
+          const ctx = getAudioCtx();
+          // Synthesize tick
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          const isDownbeat = nextBeat === 0;
+          const isSub = subdivision === 'eighth' && nextBeat % 2 !== 0;
+          
+          osc.frequency.setValueAtTime(isDownbeat ? 1000 : isSub ? 450 : 600, ctx.currentTime);
+          gain.gain.setValueAtTime(isDownbeat ? 0.2 : isSub ? 0.04 : 0.09, ctx.currentTime);
+          
+          osc.start();
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+          osc.stop(ctx.currentTime + 0.06);
+        } catch {}
+        return nextBeat;
+      });
+    }, intervalTime);
+
+    return () => clearInterval(intervalId);
+  }, [metroPlaying, bpm, subdivision]);
+
+  // Backing Track Synthesizer loop
+  useEffect(() => {
+    if (!playalongPlaying) return;
+    
+    // Base tempo is 105 BPM, speed alters it
+    const actualBpm = 105 * (playalongSpeed / 100);
+    const intervalTime = (60 / actualBpm) * 500; // eighth notes
+    
+    const intervalId = setInterval(() => {
+      setPlayalongBeat(prev => {
+        const nextBeat = (prev + 1) % 32; // 4 measures of 8 eighth notes (32 clicks total)
+        
+        let section = 'Intro';
+        if (nextBeat >= 8 && nextBeat < 24) section = 'Verse';
+        else if (nextBeat >= 24 && nextBeat < 28) section = 'Chorus';
+        else if (nextBeat >= 28 && nextBeat < 30) section = 'Fill Cue';
+        else section = 'Outro';
+        
+        try {
+          const ctx = getAudioCtx();
+          const now = ctx.currentTime;
+          
+          // Drums synthesis
+          if (mixerVols.drums > 0) {
+            const subBeat = nextBeat % 8;
+            if (subBeat === 0 || subBeat === 4) {
+              const kick = ctx.createOscillator();
+              const kickGain = ctx.createGain();
+              kick.connect(kickGain);
+              kickGain.connect(ctx.destination);
+              kick.frequency.setValueAtTime(140, now);
+              kick.frequency.exponentialRampToValueAtTime(45, now + 0.08);
+              kickGain.gain.setValueAtTime((mixerVols.drums / 100) * 0.35, now);
+              kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+              kick.start();
+              kick.stop(now + 0.2);
+            }
+            
+            if (subBeat === 4) {
+              const snare = ctx.createOscillator();
+              const snareGain = ctx.createGain();
+              snare.connect(snareGain);
+              snareGain.connect(ctx.destination);
+              snare.type = 'triangle';
+              snare.frequency.setValueAtTime(240, now);
+              snareGain.gain.setValueAtTime((mixerVols.drums / 100) * 0.22, now);
+              snareGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+              snare.start();
+              snare.stop(now + 0.1);
+            }
+            
+            const hh = ctx.createOscillator();
+            const hhGain = ctx.createGain();
+            hh.connect(hhGain);
+            hhGain.connect(ctx.destination);
+            hh.type = 'sine';
+            hh.frequency.setValueAtTime(8000, now);
+            hhGain.gain.setValueAtTime((mixerVols.drums / 100) * 0.02, now);
+            hhGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+            hh.start();
+            hh.stop(now + 0.04);
+          }
+          
+          // Music synth backing chords
+          if (mixerVols.music > 0 && nextBeat % 2 === 0) {
+            const synth = ctx.createOscillator();
+            const synthGain = ctx.createGain();
+            synth.connect(synthGain);
+            synthGain.connect(ctx.destination);
+            synth.type = 'sine';
+            
+            let baseFreq = 130.81; // C3
+            if (section === 'Verse') baseFreq = 146.83; // D3
+            else if (section === 'Chorus') baseFreq = 164.81; // E3
+            else if (section === 'Fill Cue') baseFreq = 196.00; // G3
+            else if (section === 'Outro') baseFreq = 130.81; // C3
+            
+            const harmony = ctx.createOscillator();
+            harmony.connect(synthGain);
+            harmony.type = 'sine';
+            harmony.frequency.setValueAtTime(baseFreq * 1.5, now); // fifth
+            
+            synth.frequency.setValueAtTime(baseFreq, now);
+            synthGain.gain.setValueAtTime((mixerVols.music / 100) * 0.06, now);
+            synthGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            
+            synth.start();
+            harmony.start();
+            synth.stop(now + 0.45);
+            harmony.stop(now + 0.45);
+          }
+        } catch {}
+        return nextBeat;
+      });
+    }, intervalTime);
+
+    return () => clearInterval(intervalId);
+  }, [playalongPlaying, playalongSpeed, mixerVols]);
+
+  useEffect(() => {
+    return () => {
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close();
+      }
+    };
+  }, []);
+
+  const categoryChips = {
+    opvarmning: ['Alle', '5 min', '10 min', 'Hænder', 'Fødder', 'Single strokes', 'Double strokes', 'Paradiddles', 'Accenter', 'Dynamik', 'Tempo-ladder', 'Venstre hånd', 'Stortrommekontrol'],
+    nodelære: ['Alle', 'Fjerdedele', 'Ottendedele', 'Sekstendedele', 'Pauser', 'Accenter', 'Ghost notes', 'Taktarter', '4/4', '3/4', '6/8', 'Shuffle-notation', 'Charts', 'Prima vista', 'Læs og spil', 'Nodequiz'],
+    grooves: ['Alle', 'Basic rock', 'Pop', 'Funk', 'Jazz', 'Blues', 'Shuffle', 'Samba', 'Songo', 'Latin', 'Reggae', 'Hip-hop', 'Metal', 'Brushes', 'Ghost notes', 'Linear grooves', 'Fills', 'Overgange', 'Odd meters', 'Koordination'],
+    playalong: ['Alle', 'Rock tracks', 'Pop tracks', 'Funk tracks', 'Blues tracks', 'Jazz tracks', 'Latin tracks', 'No-drums tracks', 'Guided play-alongs', 'Call and response', 'Begyndertracks', 'Mellemtracks', 'Øvede tracks', 'Formtræning', 'Vers/omkvæd', 'Fill cues']
+  }[category];
+
+  const categoryExercises = {
+    opvarmning: [
+      { id: 1, title: '5 minutters teknik-start', sub: 'Single strokes og håndkontrol', dur: '5 min', bpm: 80, tags: ['5 min', 'Single strokes'], level: 'Begynder' },
+      { id: 2, title: 'Hånd-hastighed & kontrol', sub: 'Dobbelt slag og paradiddle kontrol', dur: '10 min', bpm: 100, tags: ['10 min', 'Hænder', 'Double strokes', 'Paradiddles'], level: 'Mellemniveau' },
+      { id: 3, title: 'Stortromme styrke & kontrol', sub: 'Fodkontrol og udholdenhed', dur: '12 min', bpm: 90, tags: ['Fødder', 'Stortrommekontrol'], level: 'Øvet' },
+      { id: 4, title: 'Tempo-ladder udfordring', sub: 'Øg tempoet gradvist', dur: '15 min', bpm: '80-140', tags: ['Tempo-ladder', 'Dynamik'], level: 'Øvet' },
+    ],
+    nodelære: [
+      { id: 1, title: 'Læs fjerdedele & pauser', sub: 'Grundlæggende nodelæsning', dur: '5 min', bpm: 80, tags: ['Fjerdedele', 'Pauser'], level: 'Begynder' },
+      { id: 2, title: 'Ottendedele syncopation', sub: 'Udfordr din timing', dur: '8 min', bpm: 90, tags: ['Ottendedele', 'Accenter'], level: 'Mellemniveau' },
+      { id: 3, title: 'Sekstendedele ghost notes', sub: 'Avanceret nodeforståelse', dur: '12 min', bpm: 96, tags: ['Sekstendedele', 'Ghost notes'], level: 'Øvet' },
+      { id: 4, title: 'Taktartsskift (4/4 til 3/4)', sub: 'Leg med taktarter', dur: '10 min', bpm: 100, tags: ['Taktarter', '3/4'], level: 'Øvet' },
+    ],
+    grooves: [
+      { id: 1, title: 'Basic Rock Beat', sub: 'Klassisk 8.-dels groove', dur: '6 min', bpm: 90, tags: ['Basic rock', 'Pop'], level: 'Begynder' },
+      { id: 2, title: 'Funk Pocket Groove', sub: 'Syncoperet 16.-dels hi-hat groove', dur: '10 min', bpm: 95, tags: ['Funk', 'Ghost notes'], level: 'Mellemniveau' },
+      { id: 3, title: 'Jazz Swing comping', sub: 'Swing-feel og ride bækken mønster', dur: '12 min', bpm: 120, tags: ['Jazz', 'Brushes'], level: 'Øvet' },
+      { id: 4, title: 'Linear Funk Pattern', sub: 'Linear timing uden overlappende slag', dur: '15 min', bpm: 100, tags: ['Funk', 'Linear grooves'], level: 'Øvet' },
+    ],
+    playalong: [
+      { id: 1, title: 'Classic Rock 4/4 Beat', sub: 'Spil med et stærkt rock backing track', dur: '3 min', bpm: 92, tags: ['Rock tracks', 'Begyndertracks'], level: 'Begynder', nodrums: true },
+      { id: 2, title: 'Funk Groove Odyssey', sub: 'Super funky synth-backing track', dur: '4 min', bpm: 105, tags: ['Funk tracks', 'Mellemtracks', 'Formtræning'], level: 'Mellemniveau', nodrums: true },
+      { id: 3, title: 'Modern Jazz swing along', sub: 'Swing med bas og piano', dur: '5 min', bpm: 130, tags: ['Jazz tracks', 'Øvede tracks'], level: 'Øvet', nodrums: true },
+    ]
+  }[category];
+
+  const categoryTitle = {
+    opvarmning: 'Opvarmning & Teknik',
+    nodelære: 'Rytmer & Nodelære',
+    grooves: 'Grooves & Fills',
+    playalong: 'Play-along & Form'
+  }[category];
+
+  const categoryBlurb = {
+    opvarmning: 'Start med hænder, fødder, kontrol og timing. Skab et solidt fundament for dit trommespil.',
+    nodelære: 'Forstå rytmer, taktarter og trommenotation. Lær at læse og spille noder flydende.',
+    grooves: 'Spil beats, fills, overgange og genrer. Udvid dit rytmiske ordforråd på tværs af musikstile.',
+    playalong: 'Spil med musik, backing tracks og form. Anvend dine øvelser direkte i musikalske formforløb.'
+  }[category];
+
+  const filteredExercises = categoryExercises.filter(ex => {
+    if (activeChip === 'Alle') return true;
+    return ex.tags.some(tag => tag.toLowerCase().includes(activeChip.toLowerCase()));
   });
 
   return (
-    <div style={{ padding: '36px 44px 60px', color: t.text, fontFamily: t.font }}>
-      <Display t={t} size={48} style={{ marginBottom: 6 }}>DrumLab Akademi</Display>
-      <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 36, maxWidth: 580, lineHeight: 1.6 }}>
-        Et komplet undervisningsprogram fra begynder til avanceret. Følg din personlige læringssti gennem 6 niveauer og 10 moduler.
-      </p>
+    <div style={{ padding: '36px 44px 60px', color: t.text, fontFamily: t.font, maxWidth: 1100 }}>
+      {/* Back button and Category Header */}
+      <button onClick={onBack} style={{
+        background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600,
+        textTransform: 'uppercase', letterSpacing: 1.2, padding: '4px 0', marginBottom: 20
+      }}>
+        <IcBack size={15} color={t.textMuted} /> Tilbage til Hjem
+      </button>
 
-      {/* Level selector */}
-      <Sect t={t}>Dit læringsforløb</Sect>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 36, flexWrap: 'wrap' }}>
-        {LEVELS.map((lv, i) => {
-          const unlocked = userXP >= lv.xpRequired;
-          const active = i === currentLevel;
-          const selected = selectedLevel === i;
+      <div style={{ marginBottom: 32 }}>
+        <Display t={t} size={48} style={{ marginBottom: 12 }}>{categoryTitle}</Display>
+        <p style={{ fontSize: 14, color: t.textMuted, lineHeight: 1.6, maxWidth: 650 }}>{categoryBlurb}</p>
+      </div>
+
+      {/* Filter chips */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 16, marginBottom: 28, flexWrap: 'wrap', scrollbarWidth: 'none' }}>
+        {categoryChips.map(chip => {
+          const active = activeChip === chip;
           return (
-            <button key={lv.id} onClick={() => setSelectedLevel(selected ? null : i)} style={{
-              padding: '10px 18px', borderRadius: 999, cursor: unlocked ? 'pointer' : 'default',
-              background: selected ? lv.color : active ? t.accentSoft : t.surface2,
-              color: selected ? '#fff' : active ? t.accent : unlocked ? t.text : t.textDim,
-              border: active ? `1px solid ${t.accent}` : `1px solid ${selected ? 'transparent' : t.border}`,
-              fontFamily: t.font, fontSize: 12, fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: 7, opacity: unlocked ? 1 : 0.5,
-              transition: 'all 0.2s',
-            }}>
-              {!unlocked && <IcLock size={11} />}
-              {active && <span style={{ fontSize: 8, background: t.accent, color: '#fff', padding: '2px 5px', borderRadius: 4, fontWeight: 800, letterSpacing: 0.5 }}>AKTIV</span>}
-              Niv. {i} — {lv.name}
-            </button>
+            <button key={chip} onClick={() => setActiveChip(chip)} style={{
+              padding: '8px 16px', borderRadius: 999, border: `1px solid ${active ? t.accent : t.border}`,
+              background: active ? t.accentSoft : t.surface, color: active ? t.accent : t.textMuted,
+              fontFamily: t.font, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              whiteSpace: 'nowrap', transition: 'all 0.15s ease'
+            }}>{chip}</button>
           );
         })}
       </div>
 
-      {/* Selected level detail */}
-      {selectedLevel !== null && (
-        <Card t={t} pad={28} style={{ marginBottom: 36, border: `1px solid ${LEVELS[selectedLevel].color}33` }}>
-          <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 12, height: 12, borderRadius: '50%', background: LEVELS[selectedLevel].color }} />
-                <Sect t={t} color={LEVELS[selectedLevel].color} style={{ marginBottom: 0 }}>{LEVELS[selectedLevel].subtitle}</Sect>
-                <span style={{ fontSize: 11, color: t.textDim, fontFamily: t.mono }}>· {LEVELS[selectedLevel].duration}</span>
-              </div>
-              <Display t={t} size={30} style={{ marginBottom: 14 }}>Niveau {selectedLevel}: {LEVELS[selectedLevel].name}</Display>
-              <p style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.6, marginBottom: 18, maxWidth: 500 }}>{LEVELS[selectedLevel].description}</p>
-              <Sect t={t} style={{ marginBottom: 8 }}>Du lærer</Sect>
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {LEVELS[selectedLevel].objectives.map((obj, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 12.5, color: t.textMuted }}>
-                    <IcCheck size={14} color={LEVELS[selectedLevel].color} />
-                    {obj}
-                  </li>
-                ))}
-              </ul>
+      {/* Interactive metronome widget for Nodelære */}
+      {category === 'nodelære' && (
+        <Card t={t} pad={24} style={{ marginBottom: 36, borderLeft: `4px solid ${t.accent}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: t.accent, marginBottom: 4 }}>Interaktiv Nodelæser</div>
+              <Display t={t} size={24}>Metronom & Node-øvebænk</Display>
             </div>
-            <div style={{ width: 220, padding: '16px 20px', background: t.surface2, borderRadius: 14, flexShrink: 0 }}>
-              <Sect t={t} style={{ marginBottom: 10 }}>Slutmål</Sect>
-              <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.6, fontStyle: 'italic' }}>{LEVELS[selectedLevel].finalGoal}</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setSubdivision('quarter'); setCurrentBeat(0); }} style={{
+                padding: '6px 12px', borderRadius: 6, border: `1.5px solid ${subdivision === 'quarter' ? t.accent : t.border}`,
+                background: subdivision === 'quarter' ? t.accentSoft : 'transparent', color: subdivision === 'quarter' ? t.accent : t.textMuted,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: t.font
+              }}>Fjerdedele</button>
+              <button onClick={() => { setSubdivision('eighth'); setCurrentBeat(0); }} style={{
+                padding: '6px 12px', borderRadius: 6, border: `1.5px solid ${subdivision === 'eighth' ? t.accent : t.border}`,
+                background: subdivision === 'eighth' ? t.accentSoft : 'transparent', color: subdivision === 'eighth' ? t.accent : t.textMuted,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: t.font
+              }}>Ottendedele</button>
+            </div>
+          </div>
+
+          <div style={{ background: '#FAF8F5', border: `1px solid ${t.border}`, borderRadius: 16, padding: '24px 16px', position: 'relative', marginBottom: 24, overflow: 'hidden' }}>
+            {/* Playhead SVG overlay */}
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, pointerEvents: 'none' }}>
+              <svg width="100%" height="100%">
+                {(() => {
+                  const beatsCount = subdivision === 'eighth' ? 8 : 4;
+                  const startX = 64;
+                  const step = (800 - startX) / beatsCount;
+                  const x = startX + step * (currentBeat + 0.5);
+                  if (!metroPlaying) return null;
+                  return (
+                    <line x1={x} y1="0" x2={x} y2="100%" stroke={t.accent} strokeWidth="2.5" opacity="0.85" />
+                  );
+                })()}
+              </svg>
+            </div>
+
+            {/* Static Drum Notation Rendering */}
+            <div style={{ color: '#16161a' }}>
+              <DrumNotation color="#16161a" width={800} accent={t.accent} active={metroPlaying ? currentBeat : -1} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <button onClick={() => setMetroPlaying(!metroPlaying)} style={{
+                width: 52, height: 52, borderRadius: '50%', background: t.accent, border: 'none', color: '#fff',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(242,85,69,0.35)', transition: 'all 0.15s ease'
+              }}>
+                {metroPlaying ? <span style={{ fontSize: 16 }}>◼</span> : <IcPlay size={16} fill color="#fff" />}
+              </button>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{metroPlaying ? 'Spiller…' : 'Start metronom'}</div>
+                <div style={{ fontSize: 11, color: t.textMuted }}>Mål timing på subdivisioner</div>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, maxWidth: 350, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: t.textMuted }}>BPM:</span>
+              <button onClick={() => setBpm(Math.max(40, bpm - 5))} style={{ width: 28, height: 28, borderRadius: '50%', background: t.surface2, border: 'none', color: t.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>-</button>
+              <input type="range" min={40} max={220} value={bpm} onChange={e => setBpm(+e.target.value)} style={{ flex: 1, accentColor: t.accent }} />
+              <button onClick={() => setBpm(Math.min(220, bpm + 5))} style={{ width: 28, height: 28, borderRadius: '50%', background: t.surface2, border: 'none', color: t.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>+</button>
+              <span style={{ fontFamily: t.mono, fontSize: 14, fontWeight: 700, width: 60, textAlign: 'right' }}>{bpm} BPM</span>
             </div>
           </div>
         </Card>
       )}
 
-      {/* Modules grid */}
-      <Sect t={t}>Moduler ({MODULES.length} i alt · {MODULES.reduce((a, m) => a + m.lessons.length, 0)} lektioner)</Sect>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-        {MODULES.map(mod => {
-          const pillar = PILLARS.find(p => p.id === mod.pillarId);
-          const completedInMod = mod.lessons.filter(l => completedIds.includes(l.id)).length;
-          const pct = Math.round((completedInMod / mod.lessons.length) * 100);
-          const expanded = selectedModule === mod.id;
-          return (
-            <div key={mod.id}>
-              <Card t={t} pad={22} onClick={() => setSelectedModule(expanded ? null : mod.id)} style={{ cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-                    {pillar?.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 10, fontFamily: t.mono, color: t.textDim }}>MOD. {mod.number.toString().padStart(2, '0')}</span>
-                      <span style={{ fontSize: 10, fontFamily: t.mono, color: t.textMuted }}>Niv. {mod.levelMin}{mod.levelMax !== mod.levelMin ? `–${mod.levelMax}` : ''}</span>
-                    </div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 4 }}>{mod.name}</div>
-                    <div style={{ fontSize: 11.5, color: t.textMuted, marginBottom: 12 }}>{mod.description}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Prog pct={pct} t={t} h={3} />
-                      <span style={{ fontSize: 10, fontFamily: t.mono, color: t.textDim, flexShrink: 0 }}>{completedInMod}/{mod.lessons.length}</span>
-                    </div>
-                  </div>
-                  <IcChev size={16} color={t.textDim} style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-                </div>
-              </Card>
+      {/* Interactive Backing Track Player for Play-along */}
+      {category === 'playalong' && (
+        <Card t={t} pad={24} style={{ marginBottom: 36, borderLeft: `4px solid ${t.accent}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: t.accent, marginBottom: 4 }}>Tromme Backing Track Player</div>
+              <Display t={t} size={24}>Funk Groove Odyssey</Display>
+              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>105 BPM · Let øvet · Modalt loop</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {([80, 90, 100, 110] as const).map(speed => (
+                <button key={speed} onClick={() => setPlayalongSpeed(speed)} style={{
+                  padding: '5px 10px', borderRadius: 4, border: `1.5px solid ${playalongSpeed === speed ? t.accent : t.border}`,
+                  background: playalongSpeed === speed ? t.accentSoft : 'transparent', color: playalongSpeed === speed ? t.accent : t.textMuted,
+                  fontSize: 10.5, fontFamily: t.mono, fontWeight: 700, cursor: 'pointer'
+                }}>{speed}%</button>
+              ))}
+            </div>
+          </div>
 
-              {/* Expanded lesson list */}
-              {expanded && (
-                <div style={{ marginTop: 2, background: t.surface2, borderRadius: '0 0 16px 16px', padding: '8px 0', border: `1px solid ${t.border}`, borderTop: 'none' }}>
-                  {mod.lessons.map((lesson, li) => {
-                    const done = completedIds.includes(lesson.id);
-                    const locked = lesson.premium && !isPremium;
-                    return (
-                      <div key={lesson.id} onClick={locked ? onUpgrade : undefined} style={{
-                        display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px',
-                        cursor: 'pointer', borderBottom: li < mod.lessons.length - 1 ? `1px solid ${t.border}` : 'none',
-                        opacity: locked ? 0.6 : 1,
-                      }}>
-                        <div style={{ width: 22, height: 22, borderRadius: '50%', border: `1.5px solid ${done ? t.good : t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? t.goodSoft : 'transparent', flexShrink: 0 }}>
-                          {done && <IcCheck size={12} color={t.good} />}
-                          {locked && <IcLock size={11} color={t.textDim} />}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 12.5, fontWeight: done ? 500 : 600, color: done ? t.textMuted : t.text }}>{lesson.title}</div>
-                          <div style={{ fontSize: 10.5, color: t.textDim, fontFamily: t.mono, marginTop: 2 }}>
-                            {lesson.duration} min
-                            {lesson.bpm && ` · ${lesson.bpm.min}–${lesson.bpm.max} BPM`}
-                            {' · '}{lesson.format.join(', ')}
-                          </div>
-                        </div>
-                        {!locked && !done && <IcPlay size={13} color={t.accent} />}
-                        {locked && <Badge t={t} tone="accent">PRO</Badge>}
-                      </div>
-                    );
-                  })}
-                </div>
+          {/* Form timeline visualizer */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: t.textMuted, marginBottom: 8 }}>
+              <span>FORM FORLØB TIMELINE</span>
+              <span style={{ color: playalongBeat >= 28 && playalongBeat < 30 ? t.accent : t.textMuted }}>
+                {playalongBeat >= 28 && playalongBeat < 30 ? '⚠️ GØR KLAR TIL FILL CUE!' : 'Næste sektion: Chorus'}
+              </span>
+            </div>
+
+            {/* Timeline bars */}
+            <div style={{ display: 'flex', height: 28, borderRadius: 8, overflow: 'hidden', background: t.surface2, border: `1px solid ${t.border}`, position: 'relative' }}>
+              <div style={{ width: '25%', background: playalongBeat < 8 ? t.accentSoft : 'rgba(0,0,0,0.03)', borderRight: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 600 }}>Intro (1)</div>
+              <div style={{ width: '50%', background: playalongBeat >= 8 && playalongBeat < 24 ? t.accentSoft : 'rgba(0,0,0,0.03)', borderRight: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 600 }}>Verse (2)</div>
+              <div style={{ width: '12.5%', background: playalongBeat >= 24 && playalongBeat < 28 ? t.accentSoft : 'rgba(0,0,0,0.03)', borderRight: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 600 }}>Chorus</div>
+              <div style={{ width: '6.25%', background: playalongBeat >= 28 && playalongBeat < 30 ? '#F2554533' : 'rgba(0,0,0,0.03)', borderRight: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700, color: t.accent }}>Fill</div>
+              <div style={{ width: '6.25%', background: playalongBeat >= 30 ? t.accentSoft : 'rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 600 }}>Outro</div>
+
+              {/* Progress marker */}
+              {playalongPlaying && (
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0,
+                  left: `${(playalongBeat / 32) * 100}%`, width: 3, background: t.accent,
+                  boxShadow: '0 0 10px #F25545', transition: 'left 0.15s linear'
+                }} />
               )}
             </div>
+
+            {/* Prompt banner */}
+            <div style={{
+              marginTop: 12, padding: '10px 14px', borderRadius: 8,
+              background: playalongBeat >= 28 && playalongBeat < 30 ? t.accentSoft : t.surface,
+              border: `1px solid ${playalongBeat >= 28 && playalongBeat < 30 ? t.accent : t.border}`,
+              textAlign: 'center', fontSize: 13.5, fontWeight: 700,
+              color: playalongBeat >= 28 && playalongBeat < 30 ? t.accent : t.text
+            }}>
+              {playalongBeat < 8 && 'AKTIV: INTRO — Lyt til timingen og start roligt med fjerdedele.'}
+              {playalongBeat >= 8 && playalongBeat < 24 && 'AKTIV: VERS — Spil en stabil basic funk beat med ghost notes.'}
+              {playalongBeat >= 24 && playalongBeat < 28 && 'AKTIV: OMKVÆD (CHORUS) — Mere energi! Åbn hi-hatten.'}
+              {playalongBeat >= 28 && playalongBeat < 30 && 'FILL CUE — Spil et 16.-dels snare roll fill med et crash på 1!'}
+              {playalongBeat >= 30 && 'AKTIV: OUTRO — Dæmp energien og spil grooves mod slutningen.'}
+            </div>
+          </div>
+
+          {/* Controls Panel */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: 24, alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <button onClick={() => setPlayalongPlaying(!playalongPlaying)} style={{
+                width: 52, height: 52, borderRadius: '50%', background: t.accent, border: 'none', color: '#fff',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(242,85,69,0.35)'
+              }}>
+                {playalongPlaying ? <span style={{ fontSize: 16 }}>◼</span> : <IcPlay size={16} fill color="#fff" />}
+              </button>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{playalongPlaying ? 'Backing track spiller…' : 'Afspil backing track'}</div>
+                <div style={{ fontSize: 11, color: t.textMuted }}>BPM: {Math.round(105 * (playalongSpeed / 100))} (mål: 105)</div>
+              </div>
+            </div>
+
+            {/* Mixer drums volume */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: t.textMuted, marginBottom: 4 }}>
+                <span>GUIDE TROMMER</span>
+                <span style={{ fontFamily: t.mono }}>{mixerVols.drums}%</span>
+              </div>
+              <input type="range" min={0} max={100} value={mixerVols.drums} onChange={e => setMixerVols(prev => ({ ...prev, drums: +e.target.value }))} style={{ width: '100%', accentColor: t.accent }} />
+            </div>
+
+            {/* Mixer music volume */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: t.textMuted, marginBottom: 4 }}>
+                <span>BACKING TRACK</span>
+                <span style={{ fontFamily: t.mono }}>{mixerVols.music}%</span>
+              </div>
+              <input type="range" min={0} max={100} value={mixerVols.music} onChange={e => setMixerVols(prev => ({ ...prev, music: +e.target.value }))} style={{ width: '100%', accentColor: t.accent }} />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Grid of exercises */}
+      <Sect t={t}>Undervisning & Lektioner ({filteredExercises.length})</Sect>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+        {filteredExercises.map(ex => {
+          return (
+            <Card key={ex.id} t={t} pad={20} style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 140 }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <Badge t={t} tone={ex.level === 'Begynder' ? 'good' : ex.level === 'Mellemniveau' ? 'default' : 'accent'}>{ex.level}</Badge>
+                  <span style={{ fontFamily: t.mono, fontSize: 11, color: t.textDim }}>{ex.dur} · {ex.bpm} BPM</span>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>{ex.title}</div>
+                <div style={{ fontSize: 12.5, color: t.textMuted }}>{ex.sub}</div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 14 }}>
+                {ex.tags.map(tag => (
+                  <span key={tag} style={{
+                    padding: '3px 8px', borderRadius: 4, background: t.surface2, fontSize: 10,
+                    fontFamily: t.mono, color: t.textMuted
+                  }}>{tag}</span>
+                ))}
+              </div>
+            </Card>
           );
         })}
       </div>
+
+      {filteredExercises.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textMuted }}>
+          <div style={{ fontSize: 24, marginBottom: 8 }}>🔍</div>
+          <div style={{ fontSize: 13 }}>Ingen lektioner matcher filteret &quot;{activeChip}&quot;.</div>
+        </div>
+      )}
     </div>
   );
 }
+
+
 
 // ─── EXERCISES VIEW ───────────────────────────────────────────
 function ExercisesView({ t, isPremium, onUpgrade, completedIds }: { t: T; isPremium: boolean; onUpgrade: () => void; completedIds: string[] }) {
@@ -706,7 +1032,7 @@ function ExercisesView({ t, isPremium, onUpgrade, completedIds }: { t: T; isPrem
 }
 
 // ─── STUDIO VIEW ─────────────────────────────────────────────
-function StudioView({ t, dark }: { t: T; dark: boolean }) {
+function StudioView({ t }: { t: T; dark: boolean }) {
   const pads = [
     { label: 'Hi-hat', sub: 'Closed', freq: 800, key: 'H' }, { label: 'Hi-hat', sub: 'Open', freq: 700, key: 'G' },
     { label: 'Crash', sub: '16"', freq: 600, key: 'C' }, { label: 'Snare', sub: 'Center', freq: 200, key: 'S' },
@@ -724,11 +1050,11 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const channelGainsRef = useRef<Record<string, GainNode>>({});
   const volsRef = useRef(vols);
-  volsRef.current = vols;
+  useEffect(() => { volsRef.current = vols; }, [vols]);
 
   const getCtx = () => {
     if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioCtxRef.current = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
       channelGainsRef.current = {};
     }
     if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
@@ -843,7 +1169,7 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
   }, []);
 
   const hitRef = useRef(hit);
-  hitRef.current = hit;
+  useEffect(() => { hitRef.current = hit; }, [hit]);
 
   useEffect(() => {
     const keys: Record<string, number> = { 'h': 0, 'g': 1, 'c': 2, 's': 3, 't': 4, 'y': 5, 'f': 6, 'r': 7, 'k': 8 };
@@ -954,31 +1280,128 @@ function StudioView({ t, dark }: { t: T; dark: boolean }) {
 
 // ─── PROFILE VIEW ─────────────────────────────────────────────
 function ProfileView({ t, dark, setDark, isPremium, onUpgrade, completedIds, onReset }: { t: T; dark: boolean; setDark: (d: boolean) => void; isPremium: boolean; onUpgrade: () => void; completedIds: string[]; onReset: () => void }) {
+  const { user, login, logout } = useAuth();
+  const [emailInput, setEmailInput] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput || !emailInput.includes('@')) {
+      setErrorMsg('Indtast venligst en gyldig e-mailadresse');
+      return;
+    }
+    setErrorMsg('');
+    setLoginLoading(true);
+    try {
+      await login(emailInput);
+    } catch {
+      setErrorMsg('Fejl under login. Prøv igen.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
+
   return (
     <div style={{ padding: '36px 44px 60px', color: t.text, fontFamily: t.font }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginBottom: 40 }}>
-        <div style={{ width: 110, height: 110, borderRadius: '50%', background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: t.serif, fontStyle: 'italic', fontSize: 42, boxShadow: '0 16px 40px rgba(239,90,58,0.4)' }}>AL</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <Sect t={t} color={t.accent} style={{ marginBottom: 0 }}>Niveau 1 · {isPremium ? 'PRO' : 'Gratis'}</Sect>
-            {isPremium ? <Badge t={t} tone="good">✦ Premium</Badge> : <Badge t={t} tone="accent">Gratis plan</Badge>}
-          </div>
-          <Display t={t} size={52}>Anders Lind</Display>
-          <div style={{ marginTop: 16, maxWidth: 380 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.textMuted, marginBottom: 6, fontFamily: t.mono, fontWeight: 600, letterSpacing: 0.5 }}>
-              <span>Niv. 1</span><span>120 / 200 XP</span><span>Niv. 2</span>
+      {/* User profile / Login form */}
+      {!user ? (
+        <div style={{ display: 'flex', gap: 40, marginBottom: 40, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, maxWidth: 460 }}>
+            <Sect t={t} color={t.accent}>Brugerstyring</Sect>
+            <Display t={t} size={36} style={{ marginBottom: 14 }}>Log ind eller opret profil</Display>
+            <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
+              Log ind med din e-mailadresse for at gemme dine øvelser, fremskridt og skræddersyede AI-træningsplaner i skyen, så du kan tilgå dem fra enhver enhed.
             </div>
-            <Prog pct={60} t={t} h={6} />
+            
+            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <input
+                  type="email"
+                  placeholder="Indtast din e-mailadresse..."
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: t.surface,
+                    border: `1px solid ${t.borderStrong}`,
+                    borderRadius: 12,
+                    padding: '12px 16px',
+                    color: t.text,
+                    fontSize: 14,
+                    fontFamily: t.font,
+                    outline: 'none',
+                  }}
+                />
+                <Btn t={t} onClick={() => {}} disabled={loginLoading}>
+                  {loginLoading ? 'Logger ind...' : 'Fortsæt'}
+                </Btn>
+              </div>
+              {errorMsg && (
+                <div style={{ color: t.accent, fontSize: 12, fontWeight: 500 }}>{errorMsg}</div>
+              )}
+            </form>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', marginTop: 24 }}>
+            <Btn t={t} variant="secondary" onClick={() => setDark(!dark)} icon={dark ? <IcSun size={14} /> : <IcMoon size={14} />}>
+              {dark ? 'Lys tilstand' : 'Mørk tilstand'}
+            </Btn>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {!isPremium && <Btn t={t} onClick={onUpgrade}>Køb Premium</Btn>}
-          <Btn t={t} variant="secondary" onClick={() => setDark(!dark)} icon={dark ? <IcSun size={14} /> : <IcMoon size={14} />}>
-            {dark ? 'Lys tilstand' : 'Mørk tilstand'}
-          </Btn>
+      ) : (
+        /* Logged in state */
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginBottom: 40 }}>
+          <div style={{ 
+            width: 110, height: 110, borderRadius: '50%', background: t.accent, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            color: '#fff', fontFamily: t.serif, fontStyle: 'italic', fontSize: 42, 
+            boxShadow: '0 16px 40px rgba(239,90,58,0.4)' 
+          }}>
+            {getInitials(user.displayName)}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <Sect t={t} color={t.accent} style={{ marginBottom: 0 }}>
+                {user.role === 'admin' ? 'Administrator' : `Niveau 1 · ${isPremium ? 'PRO' : 'Gratis'}`}
+              </Sect>
+              {isPremium ? <Badge t={t} tone="good">✦ Premium</Badge> : <Badge t={t} tone="accent">Gratis plan</Badge>}
+            </div>
+            <Display t={t} size={52}>{user.displayName}</Display>
+            <div style={{ fontSize: 13, color: t.textMuted, marginTop: 4 }}>{user.email}</div>
+            
+            {user.role === 'admin' && (
+              <div style={{ marginTop: 12 }}>
+                <a href="/admin" style={{ 
+                  color: t.accent, textDecoration: 'none', fontSize: 13, 
+                  fontWeight: 600, borderBottom: `1px solid ${t.accent}` 
+                }}>
+                  Gå til Admin-panel →
+                </a>
+              </div>
+            )}
+            
+            <div style={{ marginTop: 16, maxWidth: 380 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.textMuted, marginBottom: 6, fontFamily: t.mono, fontWeight: 600, letterSpacing: 0.5 }}>
+                <span>Niv. 1</span><span>120 / 200 XP</span><span>Niv. 2</span>
+              </div>
+              <Prog pct={60} t={t} h={6} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {!isPremium && <Btn t={t} onClick={onUpgrade}>Køb Premium</Btn>}
+            <Btn t={t} variant="secondary" onClick={logout}>Log ud</Btn>
+            <Btn t={t} variant="secondary" onClick={() => setDark(!dark)} icon={dark ? <IcSun size={14} /> : <IcMoon size={14} />}>
+              {dark ? 'Lys tilstand' : 'Mørk tilstand'}
+            </Btn>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 40 }}>
@@ -1188,47 +1611,77 @@ function CheckoutModal({ t, onClose, onSuccess }: { t: T; onClose: () => void; o
 // ─── MAIN APP ─────────────────────────────────────────────────
 export default function App() {
   const router = useRouter();
+  const { user, syncCompletedExercises, syncPremiumStatus } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(false); // Default to Light mode
+  const [selectedCategory, setSelectedCategory] = useState<'opvarmning' | 'nodelære' | 'grooves' | 'playalong' | null>(null);
   const [view, setView] = useState<ViewId>('home');
   const [coachOpen, setCoachOpen] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [plan, setPlan] = useState<UserPlan | null>(null);
+  const [, setPlan] = useState<UserPlan | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
 
   const t = useMemo(() => mkT(dark), [dark]);
   const scale = useFitScale(1440, 900, 0);
 
+  // Sync state with user profile
   useEffect(() => {
-    setMounted(true);
-    // Mobile redirect
-    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-    setIsMobile(mobile);
-    if (mobile) { router.replace('/prototype'); return; }
+    const timer = setTimeout(() => {
+      if (user) {
+        setCompletedIds(user.completedExercises || []);
+        setIsPremium(user.isPremium || false);
+      } else {
+        setCompletedIds(getCompletedExercises());
+        setIsPremium(getPremiumStatus());
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [user]);
 
-    // Load data
-    setPlan(getUserPlan());
-    setCompletedIds(getCompletedExercises());
-    setIsPremium(getPremiumStatus());
-  }, [router]);
+  useEffect(() => {
+    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    if (mobile) {
+      router.replace('/prototype');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setMounted(true);
+      setIsMobile(mobile);
+      setPlan(getUserPlan());
+      if (!user) {
+        setCompletedIds(getCompletedExercises());
+        setIsPremium(getPremiumStatus());
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [router, user]);
 
   const openCheckout = () => setShowCheckout(true);
-  const handlePremiumSuccess = () => { setIsPremium(true); };
+  const handlePremiumSuccess = () => {
+    setIsPremium(true);
+    syncPremiumStatus(true);
+  };
   const handleReset = () => {
     resetMockDatabase();
     setIsPremium(false);
     setCompletedIds([]);
     setPlan(null);
+    if (user) {
+      syncCompletedExercises([]);
+      syncPremiumStatus(false);
+    }
   };
 
   // Loading / redirect state
   if (!mounted || isMobile) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontFamily: '"DM Serif Display", Georgia, serif', fontStyle: 'italic', fontSize: 28, color: '#f4f1ec' }}>
-          DrumLab<span style={{ color: '#ef5a3a' }}>.</span>
+      <div style={{ minHeight: '100vh', background: '#FAF8F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontFamily: '"DM Serif Display", Georgia, serif', fontStyle: 'italic', fontSize: 28, color: '#252525' }}>
+          DrumLab<span style={{ color: '#F25545' }}>.</span>
         </div>
       </div>
     );
@@ -1236,8 +1689,33 @@ export default function App() {
 
   // Render current view
   let content: React.ReactNode;
-  if (view === 'home') content = <HomeView t={t} dark={dark} setDark={setDark} onView={setView} isPremium={isPremium} onUpgrade={openCheckout} />;
-  else if (view === 'academy') content = <AcademyView t={t} dark={dark} isPremium={isPremium} onUpgrade={openCheckout} completedIds={completedIds} />;
+  if (view === 'home') {
+    content = (
+      <HomeView
+        t={t}
+        dark={dark}
+        setDark={setDark}
+        onView={setView}
+        isPremium={isPremium}
+        onUpgrade={openCheckout}
+        onSelectCategory={(cat) => {
+          setSelectedCategory(cat);
+          setView('category');
+        }}
+      />
+    );
+  }
+  else if (view === 'category') {
+    content = (
+      <CategoryDetailView
+        t={t}
+        category={selectedCategory || 'opvarmning'}
+        onBack={() => { setView('home'); setSelectedCategory(null); }}
+        isPremium={isPremium}
+        onUpgrade={openCheckout}
+      />
+    );
+  }
   else if (view === 'exercises') content = <ExercisesView t={t} isPremium={isPremium} onUpgrade={openCheckout} completedIds={completedIds} />;
   else if (view === 'studio') content = <StudioView t={t} dark={dark} />;
   else if (view === 'profile') content = <ProfileView t={t} dark={dark} setDark={setDark} isPremium={isPremium} onUpgrade={openCheckout} completedIds={completedIds} onReset={handleReset} />;
@@ -1274,7 +1752,16 @@ export default function App() {
 
         {/* Body */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
-          <Sidebar t={t} view={view} onView={setView} dark={dark} isPremium={isPremium} onUpgrade={openCheckout} />
+          <Sidebar
+            t={t}
+            view={view}
+            onView={setView}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            dark={dark}
+            isPremium={isPremium}
+            onUpgrade={openCheckout}
+          />
           <div style={{ flex: 1, overflow: 'auto', background: t.bg, position: 'relative' }}>
             {content}
           </div>

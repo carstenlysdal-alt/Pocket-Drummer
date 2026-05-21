@@ -13,10 +13,7 @@ import {
   Volume2, 
   Sparkles, 
   CheckCircle,
-  HelpCircle,
-  AlertTriangle,
-  RotateCcw,
-  SkipForward
+  AlertTriangle
 } from 'lucide-react';
 import { 
   getSavedExercises, 
@@ -47,7 +44,7 @@ export default function ExercisePage({ params }: PageProps) {
   
   // Player states
   const [videoPlaying, setVideoPlaying] = useState(false);
-  const [videoTime, setVideoTime] = useState(0);
+  const [, setVideoTime] = useState(0);
   const [zoom, setZoom] = useState(1.0);
   const [currentMeasure, setCurrentMeasure] = useState(1);
   

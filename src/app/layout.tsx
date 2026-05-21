@@ -15,6 +15,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+import { AuthProvider } from "@/lib/authContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,7 +25,9 @@ export default function RootLayout({
   return (
     <html lang="da" className="h-full">
       <body className="h-full flex flex-col">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import { useRouter } from 'next/navigation';
-import { Play, Square, Download, Volume2, ArrowLeft, Disc, Music, Drum, Home, BookOpen, User, Bell } from 'lucide-react';
+import { Play, Download, Volume2, ArrowLeft, Disc, Drum, Home, BookOpen, User } from 'lucide-react';
 
 export default function DrumkitPage() {
   const router = useRouter();
@@ -19,26 +19,22 @@ export default function DrumkitPage() {
   const playbackTimers = useRef<NodeJS.Timeout[]>([]);
 
   // Synthesizers
-  interface ToneSynth {
-    triggerAttackRelease?: (note: any, duration: any) => void;
-    triggerAttack?: (note?: any, time?: any, velocity?: any) => void;
-    disconnect?: () => void;
-    connect?: (node: any) => void;
-    oscillator?: any;
-    envelope?: any;
-  }
-
-  // Synthesizers
-  const kickSynth = useRef<ToneSynth | null>(null);
-  const snareSynth = useRef<ToneSynth | null>(null);
-  const hihatSynth = useRef<ToneSynth | null>(null);
-  const tomSynth = useRef<ToneSynth | null>(null);
-  const cymbalSynth = useRef<ToneSynth | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const kickSynth = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const snareSynth = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hihatSynth = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tomSynth = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cymbalSynth = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const volumeNodeRef = useRef<any>(null);
   const audioContextStarted = useRef(false);
 
   const updateVolumes = () => {
-    import('tone').then((Tone) => {
+    import('tone').then(() => {
       if (volumeNodeRef.current) {
         volumeNodeRef.current.volume.value = volume;
       }
