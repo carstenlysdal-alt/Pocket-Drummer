@@ -16,6 +16,16 @@ const standalonePath = './.next/standalone/server.js';
 let targetBin = './node_modules/next/dist/bin/next';
 let args = ['start'];
 
+if (fs.existsSync('.')) {
+  log(`Root directory contents: ${fs.readdirSync('.').join(', ')}`);
+}
+if (fs.existsSync('.next')) {
+  log(`.next directory contents: ${fs.readdirSync('.next').join(', ')}`);
+  if (fs.existsSync('.next/standalone')) {
+    log(`.next/standalone contents: ${fs.readdirSync('.next/standalone').join(', ')}`);
+  }
+}
+
 if (fs.existsSync(standalonePath)) {
   log('Found Next.js standalone server, using it.');
   targetBin = standalonePath;
