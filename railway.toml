@@ -1,5 +1,5 @@
 [deploy]
-startCommand = "next start -H 0.0.0.0 -p $PORT"
+startCommand = "npm start"
 healthcheckPath = "/"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
