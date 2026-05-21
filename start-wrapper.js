@@ -11,14 +11,26 @@ function log(msg) {
 
 log('Starting Next.js production server...');
 
-const nextBin = './node_modules/.bin/next';
-log(`Executing: ${nextBin} start`);
+const port = process.env.PORT || '3000';
+const standalonePath = './.next/standalone/server.js';
+let targetBin = './node_modules/next/dist/bin/next';
+let args = ['start'];
 
-const nextProc = cp.spawn(nextBin, ['start'], {
+if (fs.existsSync(standalonePath)) {
+  log('Found Next.js standalone server, using it.');
+  targetBin = standalonePath;
+  args = [];
+} else {
+  log('Standalone server not found, falling back to next start.');
+}
+
+log(`Executing: node ${targetBin} ${args.join(' ')} on port ${port}`);
+
+const nextProc = cp.spawn('node', [targetBin, ...args], {
   env: {
     ...process.env,
     HOSTNAME: '0.0.0.0',
-    PORT: '3000'
+    PORT: port
   }
 });
 
@@ -41,13 +53,11 @@ nextProc.on('error', (err) => {
 
 nextProc.on('exit', (code, signal) => {
   log(`Next.js exited with code ${code} and signal ${signal}`);
-  if (code !== 0) {
-    startFallbackServer(`Next.js exited with code ${code} (signal: ${signal})`, code);
-  }
+  startFallbackServer(`Next.js exited with code ${code} (signal: ${signal})`, code);
 });
 
 function startFallbackServer(reason, code) {
-  log(`Starting fallback server on port 3000 due to: ${reason}`);
+  log(`Starting fallback server on port ${port} due to: ${reason}`);
   try {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -59,10 +69,11 @@ function startFallbackServer(reason, code) {
       res.end();
     });
 
-    server.listen(3000, '0.0.0.0', () => {
-      log('Fallback server successfully listening on 0.0.0.0:3000');
+    server.listen(parseInt(port), '0.0.0.0', () => {
+      log(`Fallback server successfully listening on 0.0.0.0:${port}`);
     });
   } catch (err) {
     console.error('Failed to start fallback server:', err);
   }
 }
+

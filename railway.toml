@@ -1,5 +1,5 @@
 [deploy]
-startCommand = "npm start"
+startCommand = "node start-wrapper.js"
 healthcheckPath = "/"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
