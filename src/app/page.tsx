@@ -124,7 +124,7 @@ type ViewId = 'home' | 'category' | 'exercises' | 'studio' | 'profile';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const NAV_ITEMS: { id: ViewId; label: string; icon: React.FC<any>; category?: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong' }[] = [
   { id: 'home', label: 'Hjem', icon: IcHome },
-  { id: 'category', label: 'Pocket Play-along', icon: IcPlay, category: 'playalong' },
+  { id: 'category', label: 'Play-along', icon: IcPlay, category: 'playalong' },
   { id: 'exercises', label: 'Øvelser', icon: TabPractice },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { id: 'studio', label: 'Studio Kit', icon: ({ size, color, sw }: any) => <TabKit size={size} color={color} sw={sw} /> },
@@ -242,12 +242,24 @@ function Sidebar({ t, view, onView, selectedCategory, setSelectedCategory, isPre
 }
 
 // ─── AI COACH PANEL ───────────────────────────────────────────
-interface ChatMessage { id: number; role: 'ai' | 'user'; text: string }
-function CoachPanel({ t, open, onToggle, isPremium, onUpgrade }: { t: T; dark: boolean; open: boolean; onToggle: () => void; isPremium: boolean; onUpgrade: () => void }) {
+interface CoachAction {
+  category: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong' | 'exercises' | 'studio';
+  label: string;
+  description: string;
+}
+interface ChatMessage { id: number; role: 'ai' | 'user'; text: string; action?: CoachAction }
+
+type CategoryId = 'opvarmning' | 'nodelære' | 'grooves' | 'playalong';
+
+function CoachPanel({ t, open, onToggle, isPremium, onUpgrade, onNavigate }: {
+  t: T; dark: boolean; open: boolean; onToggle: () => void;
+  isPremium: boolean; onUpgrade: () => void;
+  onNavigate: (view: ViewId, category?: CategoryId) => void;
+}) {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([
-    { id: 0, role: 'ai', text: 'Hej 👋 Jeg er din AI-trommerlærer.\n\nHvad øver du dig på i dag?' },
+    { id: 0, role: 'ai', text: 'Hej! Jeg er din personlige trommelærer.\n\nHvordan gik øvningen sidst — og hvad vil du arbejde med i dag?' },
   ]);
   const msgIdRef = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -256,25 +268,39 @@ function CoachPanel({ t, open, onToggle, isPremium, onUpgrade }: { t: T; dark: b
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, typing]);
 
-  const send = () => {
+  const send = async () => {
     if (!input.trim()) return;
     if (!isPremium && msgs.filter(m => m.role === 'user').length >= 2) { onUpgrade(); return; }
     const q = input.trim();
     setInput('');
-    setMsgs(prev => [...prev, { id: msgIdRef.current++, role: 'user', text: q }]);
+    const userMsg: ChatMessage = { id: msgIdRef.current++, role: 'user', text: q };
+    setMsgs(prev => [...prev, userMsg]);
     setTyping(true);
-    setTimeout(() => {
-      const replies: Record<string, string> = {
-        timing: 'Prøv: Sæt metronomen til 60 BPM og spil kun fjerdedele i 2 minutter. Øg 5 BPM ad gangen.',
-        fills: 'Begynd enkelt: én takt fill med ottendedele på lilletrommen. Tilføj gradvist tammerne.',
-        ghost: 'Ghost notes kræver tålmodighed. Spil dem på dynamik pp — næsten uhørlige. Start på 60 BPM.',
-        shuffle: 'Shuffle-feel: tænk "trioli-trioli" i ottendedele. Midterslaget fjedles.',
-      };
-      const match = Object.keys(replies).find(k => q.toLowerCase().includes(k));
-      const reply = match ? replies[match] : 'Godt spørgsmål! Hvad er dit nuværende niveau, og hvad øver du dig mest på?';
+
+    try {
+      const history = [...msgs, userMsg].slice(-12).map(m => ({
+        role: m.role === 'ai' ? 'assistant' : 'user',
+        content: m.text,
+      }));
+      const res = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
       setTyping(false);
-      setMsgs(prev => [...prev, { id: msgIdRef.current++, role: 'ai', text: reply }]);
-    }, 900);
+      setMsgs(prev => [...prev, { id: msgIdRef.current++, role: 'ai', text: data.message, action: data.action }]);
+    } catch {
+      setTyping(false);
+      setMsgs(prev => [...prev, { id: msgIdRef.current++, role: 'ai', text: 'Beklager, der opstod en fejl. Prøv igen.' }]);
+    }
+  };
+
+  const handleAction = (action: CoachAction) => {
+    if (action.category === 'exercises') { onNavigate('exercises'); return; }
+    if (action.category === 'studio') { onNavigate('studio'); return; }
+    onNavigate('category', action.category as CategoryId);
   };
 
   if (!open) return (
@@ -297,7 +323,7 @@ function CoachPanel({ t, open, onToggle, isPremium, onUpgrade }: { t: T; dark: b
             <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>AI Coach</span>
             <Badge t={t} tone="accent">PRO</Badge>
           </div>
-          <div style={{ fontSize: 10.5, color: t.textMuted, marginTop: 2 }}>Personlig trommerlærer</div>
+          <div style={{ fontSize: 10.5, color: t.textMuted, marginTop: 2 }}>Personlig trommelærer</div>
         </div>
         <button onClick={onToggle} style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', padding: 4 }}>
           <IcMin size={18} />
@@ -307,7 +333,7 @@ function CoachPanel({ t, open, onToggle, isPremium, onUpgrade }: { t: T; dark: b
       {/* Messages */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {msgs.map((m) => (
-          <div key={m.id} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+          <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
             <div style={{
               maxWidth: '82%', padding: '10px 14px', borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
               background: m.role === 'user' ? t.accent : t.surface,
@@ -317,6 +343,24 @@ function CoachPanel({ t, open, onToggle, isPremium, onUpgrade }: { t: T; dark: b
             }}>
               {m.text}
             </div>
+            {m.role === 'ai' && m.action && (
+              <button
+                onClick={() => handleAction(m.action!)}
+                style={{
+                  marginTop: 6, maxWidth: '82%', width: '100%', padding: '9px 13px',
+                  borderRadius: 10, background: t.accentSoft,
+                  border: `1px solid ${t.accent}40`, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 9,
+                  fontFamily: t.font, textAlign: 'left',
+                }}
+              >
+                <IcPlay size={13} color={t.accent} />
+                <div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: t.accentText }}>{m.action.label}</div>
+                  <div style={{ fontSize: 10, color: t.textMuted, marginTop: 1 }}>{m.action.description}</div>
+                </div>
+              </button>
+            )}
           </div>
         ))}
         {typing && (
@@ -453,10 +497,10 @@ function HomeView({ t, dark, setDark, onSelectCategory }: {
       <Sect t={t} style={{ marginBottom: 18 }}>Vælg øvespor</Sect>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
         {[
-          { id: 'opvarmning' as const, title: 'Pocket Opvarmning', desc: 'Start med hænder, fødder, kontrol og timing.', icon: <IllSticks size={52} color={t.accent} /> },
-          { id: 'nodelære' as const, title: 'Pocket Nodelære', desc: 'Forstå rytmer, taktarter og trommenotation.', icon: <div style={{ transform: 'scale(0.8)', marginTop: -20, marginBottom: -10 }}><DrumNotation color={t.text} width={140} accent={t.accent} active={2} /></div> },
-          { id: 'grooves' as const, title: 'Pocket Groove', desc: 'Spil beats, fills, overgange og genrer.', icon: <IllSnare size={62} color={t.accent} /> },
-          { id: 'playalong' as const, title: 'Pocket Play-along', desc: 'Spil med musik, backing tracks og form.', icon: <div style={{ width: 42, height: 42, borderRadius: '50%', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.accent }}><IcPlay size={20} fill color={t.accent} /></div> },
+          { id: 'opvarmning' as const, title: 'Opvarmning', desc: 'Start med hænder, fødder, kontrol og timing.', icon: <IllSticks size={52} color={t.accent} /> },
+          { id: 'nodelære' as const, title: 'Nodelære', desc: 'Forstå rytmer, taktarter og trommenotation.', icon: <div style={{ transform: 'scale(0.8)', marginTop: -20, marginBottom: -10 }}><DrumNotation color={t.text} width={140} accent={t.accent} active={2} /></div> },
+          { id: 'grooves' as const, title: 'Groove', desc: 'Spil beats, fills, overgange og genrer.', icon: <IllSnare size={62} color={t.accent} /> },
+          { id: 'playalong' as const, title: 'Play-along', desc: 'Spil med musik, backing tracks og form.', icon: <div style={{ width: 42, height: 42, borderRadius: '50%', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.accent }}><IcPlay size={20} fill color={t.accent} /></div> },
         ].map((cat, i) => (
           <Card key={i} t={t} pad={24} onClick={() => onSelectCategory(cat.id)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 20, transition: 'transform 0.15s ease, border-color 0.15s ease' }}>
             <div style={{ width: 80, height: 80, borderRadius: 14, background: t.sidebar, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: `1px solid ${t.border}` }}>
@@ -682,10 +726,10 @@ function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
   }[category];
 
   const categoryTitle = {
-    opvarmning: 'Pocket Opvarmning',
-    nodelære: 'Pocket Nodelære',
-    grooves: 'Pocket Groove',
-    playalong: 'Pocket Play-along'
+    opvarmning: 'Opvarmning',
+    nodelære: 'Nodelære',
+    grooves: 'Groove',
+    playalong: 'Play-along'
   }[category];
 
   const categoryBlurb = {
@@ -1739,7 +1783,7 @@ export default function App() {
             position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
             display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'auto',
           }}>
-            <span style={{ fontFamily: t.font, fontSize: 13, fontWeight: 600, color: t.textMuted, letterSpacing: 0.3 }}>Pocket Drummer Academy</span>
+            <span style={{ fontFamily: t.font, fontSize: 13, fontWeight: 600, color: t.textMuted, letterSpacing: 0.3 }}>Pocket Drummer</span>
             {isPremium ? (
               <span style={{ fontSize: 9, fontWeight: 800, background: t.goodSoft, color: t.good, padding: '2px 8px', borderRadius: 4, letterSpacing: 0.8, textTransform: 'uppercase' }}>PRO</span>
             ) : (
@@ -1766,7 +1810,19 @@ export default function App() {
             {content}
           </div>
           {!hideCoach && (
-            <CoachPanel t={t} dark={dark} open={coachOpen} onToggle={() => setCoachOpen(!coachOpen)} isPremium={isPremium} onUpgrade={openCheckout} />
+            <CoachPanel
+              t={t}
+              dark={dark}
+              open={coachOpen}
+              onToggle={() => setCoachOpen(!coachOpen)}
+              isPremium={isPremium}
+              onUpgrade={openCheckout}
+              onNavigate={(v, cat) => {
+                if (cat) { setSelectedCategory(cat); setView('category'); }
+                else setView(v);
+                setCoachOpen(false);
+              }}
+            />
           )}
         </div>
       </div>
