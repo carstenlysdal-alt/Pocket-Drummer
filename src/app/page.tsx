@@ -43,9 +43,9 @@ const mkT = (dark = true): T => ({
   accentText: dark ? '#f5b8a8' : '#C43425',
   good: '#5dd39e',
   goodSoft: dark ? 'rgba(93,211,158,0.14)' : 'rgba(93,211,158,0.14)',
-  mono: 'ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace',
-  font: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
-  serif: '"DM Serif Display", "Playfair Display", Georgia, serif',
+  mono: 'var(--font-mono, monospace)',
+  font: 'var(--font-sans, sans-serif)',
+  serif: 'var(--font-serif, Georgia, serif)',
 });
 
 // ─── PRIMITIVE COMPONENTS ─────────────────────────────────────
@@ -321,7 +321,7 @@ function CoachPanel({ t, open, onToggle, isPremium, onUpgrade }: { t: T; dark: b
         ))}
         {typing && (
           <div style={{ display: 'flex', gap: 4, padding: '10px 14px', background: t.surface, borderRadius: 14, width: 'fit-content', border: `1px solid ${t.border}` }}>
-            {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: t.textMuted, animation: `bounce 0.8s ${i * 0.15}s infinite alternate` }} />)}
+            {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: t.textMuted, animation: `dotPulse 0.8s ${i * 0.2}s infinite ease-in-out` }} />)}
           </div>
         )}
       </div>

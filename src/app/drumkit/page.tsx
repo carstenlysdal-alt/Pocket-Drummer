@@ -285,56 +285,52 @@ export default function DrumkitPage() {
           </div>
 
           {/* Virtual drum kit pads area */}
-          <div className="drumkit-container">
-            
-            {/* Crash Cymbal */}
-            <button onClick={() => triggerDrum('crash')} className={getPadClass('crash')}>
+          <div className="drumkit-container" role="group" aria-label="Virtuelt trommesæt">
+
+            <button onClick={() => triggerDrum('crash')} className={getPadClass('crash')} aria-label="Crash cymbal (tast Q)" aria-pressed={activePad === 'crash'}>
               <div className="pad-label">CRASH</div>
               <div className="pad-key">Q</div>
             </button>
 
-            {/* Ride Cymbal */}
-            <button onClick={() => triggerDrum('ride')} className={getPadClass('ride')}>
+            <button onClick={() => triggerDrum('ride')} className={getPadClass('ride')} aria-label="Ride cymbal (tast R)" aria-pressed={activePad === 'ride'}>
               <div className="pad-label">RIDE</div>
               <div className="pad-key">R</div>
             </button>
 
-            {/* Hi-Hat */}
-            <button onClick={() => triggerDrum('hihat')} className={getPadClass('hihat')}>
+            <button onClick={() => triggerDrum('hihat')} className={getPadClass('hihat')} aria-label="Hi-hat (tast A)" aria-pressed={activePad === 'hihat'}>
               <div className="pad-label">HI-HAT</div>
               <div className="pad-key">A</div>
             </button>
 
-            {/* Tom 1 */}
-            <button onClick={() => triggerDrum('tom1')} className={getPadClass('tom1')}>
+            <button onClick={() => triggerDrum('tom1')} className={getPadClass('tom1')} aria-label="Tom 1 (tast W)" aria-pressed={activePad === 'tom1'}>
               <div className="pad-label">TOM 1</div>
               <div className="pad-key">W</div>
             </button>
 
-            {/* Tom 2 */}
-            <button onClick={() => triggerDrum('tom2')} className={getPadClass('tom2')}>
+            <button onClick={() => triggerDrum('tom2')} className={getPadClass('tom2')} aria-label="Tom 2 (tast E)" aria-pressed={activePad === 'tom2'}>
               <div className="pad-label">TOM 2</div>
               <div className="pad-key">E</div>
             </button>
 
-            {/* Floor Tom */}
-            <button onClick={() => triggerDrum('floor')} className={getPadClass('floor')}>
+            <button onClick={() => triggerDrum('floor')} className={getPadClass('floor')} aria-label="Floor tom (tast D)" aria-pressed={activePad === 'floor'}>
               <div className="pad-label">FLOOR</div>
               <div className="pad-key">D</div>
             </button>
 
-            {/* Snare Drum */}
-            <button onClick={() => triggerDrum('snare')} className={getPadClass('snare')}>
+            <button onClick={() => triggerDrum('snare')} className={getPadClass('snare')} aria-label="Lilletromme (tast S)" aria-pressed={activePad === 'snare'}>
               <div className="pad-label">SNARE</div>
               <div className="pad-key">S</div>
             </button>
 
-            {/* Bass Drum */}
-            <button onClick={() => triggerDrum('kick')} className={getPadClass('kick')}>
+            <button onClick={() => triggerDrum('kick')} className={getPadClass('kick')} aria-label="Stortromme (tast Space)" aria-pressed={activePad === 'kick'}>
               <div className="pad-label">BASS</div>
               <div className="pad-key">SPACE</div>
             </button>
 
+          </div>
+
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+            {isRecording ? 'Optagelse startet' : isPlayingBack ? 'Afspiller beat' : ''}
           </div>
 
           {/* Recording & Session Controller */}

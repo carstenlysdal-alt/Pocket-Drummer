@@ -136,7 +136,14 @@ export default function OnboardingPage() {
           ) : (
             <div>
               {/* Progress dots */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
+              <div
+                role="progressbar"
+                aria-valuenow={step}
+                aria-valuemin={0}
+                aria-valuemax={3}
+                aria-label={`Trin ${step + 1} af 4`}
+                style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}
+              >
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: (step === 0 || step === 1) ? 'var(--accent-purple)' : 'rgba(255,255,255,0.2)' }}></span>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: step === 2 ? 'var(--accent-purple)' : 'rgba(255,255,255,0.2)' }}></span>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: step === 3 ? 'var(--accent-purple)' : 'rgba(255,255,255,0.2)' }}></span>
@@ -145,10 +152,10 @@ export default function OnboardingPage() {
               {/* Step 0: Splash Screen */}
               {step === 0 && (
                 <div className="text-center">
-                  <div className="logo-brand" style={{ fontSize: '3.5rem', marginBottom: '0.1rem' }}>
-                    DRUMM<span style={{ color: 'var(--accent-purple)' }}>.</span>
+                  <div className="logo-brand" style={{ fontSize: '2.8rem', marginBottom: '0.1rem' }}>
+                    Pocket Drummer<span style={{ color: 'var(--color-accent)', fontStyle: 'normal' }}>.</span>
                   </div>
-                  <div className="text-serif-italic mb-3" style={{ fontSize: '1.25rem', color: 'var(--accent-purple)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  <div className="text-serif-italic mb-3" style={{ fontSize: '1.25rem', color: 'var(--color-accent)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                     Spil. Øv. Udvikl dig.
                   </div>
                   
@@ -214,12 +221,13 @@ export default function OnboardingPage() {
                     Vælg et eller flere fokusområder eller skriv dit eget mål.
                   </p>
                   
-                  <div className="tag-select mb-3">
+                  <div className="tag-select mb-3" role="group" aria-label="Fokusområder">
                     {GOAL_TAGS.map((tag) => (
-                      <button 
+                      <button
                         key={tag}
                         onClick={() => toggleTag(tag)}
                         className={`tag-btn ${selectedTags.includes(tag) ? 'active' : ''}`}
+                        aria-pressed={selectedTags.includes(tag)}
                       >
                         {tag}
                       </button>
@@ -227,13 +235,15 @@ export default function OnboardingPage() {
                   </div>
 
                   <div className="form-group mt-3">
-                    <label className="form-label">Eget mål (valgfrit)</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
+                    <label className="form-label" htmlFor="free-text-goal">Eget mål (valgfrit)</label>
+                    <input
+                      id="free-text-goal"
+                      type="text"
+                      className="form-control"
                       placeholder="F.eks. Lære at spille sangen 'In The Air Tonight'..."
                       value={freeTextGoal}
                       onChange={(e) => setFreeTextGoal(e.target.value)}
+                      aria-label="Skriv dit eget mål"
                     />
                   </div>
 
@@ -260,37 +270,34 @@ export default function OnboardingPage() {
                     Dette afgør sværhedsgraden af de øvelser Claude vælger.
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: '2rem 0' }}>
-                    <label 
+                  <div role="radiogroup" aria-label="Vælg dit niveau" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: '2rem 0' }}>
+                    <label
                       className="glass-card flex align-center gap-2 cursor-pointer"
-                      style={{ borderLeft: level === 'begynder' ? '4px solid var(--accent-cyan)' : '1px solid var(--border-color)', padding: '1.25rem' }}
-                      onClick={() => setLevel('begynder')}
+                      style={{ borderColor: level === 'begynder' ? 'var(--accent-cyan)' : 'var(--border-color)', padding: '1.25rem' }}
                     >
-                      <input type="radio" checked={level === 'begynder'} onChange={() => {}} style={{ display: 'none' }} />
+                      <input type="radio" name="level" value="begynder" checked={level === 'begynder'} onChange={() => setLevel('begynder')} className="sr-only" />
                       <div>
                         <h4 className="text-cyan">Begynder</h4>
                         <p style={{ fontSize: '0.85rem' }}>Jeg har spillet 0-2 år, øver grundlæggende rytmer og skal opbygge stikteknik.</p>
                       </div>
                     </label>
 
-                    <label 
+                    <label
                       className="glass-card flex align-center gap-2 cursor-pointer"
-                      style={{ borderLeft: level === 'mellemniveau' ? '4px solid var(--accent-purple)' : '1px solid var(--border-color)', padding: '1.25rem' }}
-                      onClick={() => setLevel('mellemniveau')}
+                      style={{ borderColor: level === 'mellemniveau' ? 'var(--accent-purple)' : 'var(--border-color)', padding: '1.25rem' }}
                     >
-                      <input type="radio" checked={level === 'mellemniveau'} onChange={() => {}} style={{ display: 'none' }} />
+                      <input type="radio" name="level" value="mellemniveau" checked={level === 'mellemniveau'} onChange={() => setLevel('mellemniveau')} className="sr-only" />
                       <div>
                         <h4 className="text-purple">Mellemniveau</h4>
                         <p style={{ fontSize: '0.85rem' }}>Jeg har spillet 2-5 år, spiller måske i band og vil udfordres på dynamik og fills.</p>
                       </div>
                     </label>
 
-                    <label 
+                    <label
                       className="glass-card flex align-center gap-2 cursor-pointer"
-                      style={{ borderLeft: level === 'øvet' ? '4px solid var(--accent-emerald)' : '1px solid var(--border-color)', padding: '1.25rem' }}
-                      onClick={() => setLevel('øvet')}
+                      style={{ borderColor: level === 'øvet' ? 'var(--accent-emerald)' : 'var(--border-color)', padding: '1.25rem' }}
                     >
-                      <input type="radio" checked={level === 'øvet'} onChange={() => {}} style={{ display: 'none' }} />
+                      <input type="radio" name="level" value="øvet" checked={level === 'øvet'} onChange={() => setLevel('øvet')} className="sr-only" />
                       <div>
                         <h4 className="text-emerald">Øvet</h4>
                         <p style={{ fontSize: '0.85rem' }}>Jeg har spillet 5+ år, kan mine rudiments og vil mestre uafhængighed og stilarter.</p>
