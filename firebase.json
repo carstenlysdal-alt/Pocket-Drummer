@@ -3,7 +3,7 @@
     "source": "functions"
   },
   "hosting": {
-    "site": "pocket-drummer",
+    "site": "drumlab",
     "source": ".",
     "ignore": [
       "firebase.json",
@@ -21,4 +21,3 @@
     "indexes": "firestore.indexes.json"
   }
 }
-
