@@ -1,4 +1,4 @@
-# DrumLab 🥁
+# Pocket Drummer 🥁
 
 > **Trommeøve-platform med AI-drevet læringsplan, interaktiv nodevisning og digitalt trommesæt.**  
 > *Dansk marked · Web + iOS · Udviklet med Next.js, Tone.js, OSMD og Claude API.*
@@ -7,7 +7,7 @@
 
 ## 🌟 Executive Summary
 
-**DrumLab** er en abonnementsbaseret læringsplatform for trommespillere på alle niveauer – fra grundskoleelever til øvede musikere. Platformen kombinerer et struktureret øvelsesbibliotek med avancerede AI-funktioner for at gøre det sjovere og mere effektivt at øve sig på trommer.
+**Pocket Drummer** er en abonnementsbaseret læringsplatform for trommespillere på alle niveauer – fra grundskoleelever til øvede musikere. Platformen kombinerer et struktureret øvelsesbibliotek med avancerede AI-funktioner for at gøre det sjovere og mere effektivt at øve sig på trommer.
 
 ---
 
@@ -51,8 +51,8 @@
 
 ### 1. Klon og installer afhængigheder
 ```bash
-git clone https://github.com/carstenlysdal-alt/Drumlab.git
-cd Drumlab
+git clone https://github.com/carstenlysdal-alt/pocket-drummer.git
+cd pocket-drummer
 npm install
 ```
 

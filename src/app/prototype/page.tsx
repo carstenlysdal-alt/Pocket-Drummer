@@ -24,9 +24,9 @@ const tokens = (dark: boolean) => ({
   accentText: dark ? '#f5b8a8' : '#C43425',
   good: '#5dd39e',
   goodSoft: dark ? 'rgba(93,211,158,0.13)' : 'rgba(93,211,158,0.14)',
-  mono: 'ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace',
-  font: '-apple-system, "SF Pro Text", system-ui, sans-serif',
-  serif: '"DM Serif Display", "Playfair Display", Georgia, serif',
+  mono: 'var(--font-mono, monospace)',
+  font: 'var(--font-sans, sans-serif)',
+  serif: 'var(--font-serif, Georgia, serif)',
 });
 
 type ThemeTokens = ReturnType<typeof tokens>;

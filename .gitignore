@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+functions/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -47,4 +48,3 @@ temp-npm-cache/
 temp_extracted/
 scratch_design.html
 .firebase/
-

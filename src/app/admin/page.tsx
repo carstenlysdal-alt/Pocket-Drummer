@@ -14,11 +14,10 @@ import {
   Save,
   Lock
 } from 'lucide-react';
-import { 
-  getSavedExercises, 
-  saveExercise, 
-  getStandardDrumMusicXML,
-  Exercise 
+import {
+  getSavedExercises,
+  saveExercise,
+  Exercise
 } from '@/lib/mockData';
 import { useAuth } from '@/lib/authContext';
 import Link from 'next/link';
@@ -63,11 +62,6 @@ Vigtige regler:
   const [genre, setGenre] = useState("Rock");
   const [scanDescription, setScanDescription] = useState("");
   
-  // Klangio simulation state
-  const [audioUrl, setAudioUrl] = useState("");
-  const [klangioLoading, setKlangioLoading] = useState(false);
-  const [klangioLog, setKlangioLog] = useState<string[]>([]);
-
   // Gemini OMR scan state
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
@@ -194,10 +188,6 @@ Vigtige regler:
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
   };
 
-  const addKlangioLog = (msg: string) => {
-    setKlangioLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
-  };
-
   const handleGenerateAI = async () => {
     setLoading(true);
     setSuccessMsg("");
@@ -321,36 +311,6 @@ Vigtige regler:
     }
   };
 
-  const handleKlangioSimulate = () => {
-    if (!audioUrl) {
-      alert("Indtast venligst en lydfil URL eller YouTube link.");
-      return;
-    }
-
-    setKlangioLoading(true);
-    setKlangioLog([]);
-    setSuccessMsg("");
-    setXmlData("");
-
-    addKlangioLog("Uploader lydfil til Klangio Drum2Notes API proxy...");
-    
-    // Simuler den fulde klangio transskription pipeline
-    setTimeout(() => addKlangioLog("Uddrager trommespor (AI separation)..."), 1000);
-    setTimeout(() => addKlangioLog("Detekterer anslagstider & MIDI-noter..."), 2000);
-    setTimeout(() => addKlangioLog("Kvantiserer rytmer til 4/4 grid..."), 3500);
-    setTimeout(() => {
-      addKlangioLog("Transskription færdig! Omdanner MIDI til MusicXML...");
-      const simulatedXml = getStandardDrumMusicXML(
-        `Klangio: ${audioUrl.split('/').pop() || 'Trommelyd'}`, 
-        110, 
-        'fill'
-      );
-      setXmlData(simulatedXml);
-      addKlangioLog("MusicXML succesfuldt hentet til admin-panelet.");
-      setKlangioLoading(false);
-    }, 5000);
-  };
-
   const handlePublish = () => {
     if (!xmlData) return;
 
@@ -389,7 +349,7 @@ Vigtige regler:
             <h1 style={{ fontSize: '2.0rem' }}>Admin Indholdspipeline (Pocket Drummer Owner)</h1>
           </div>
           <p className="text-muted-color" style={{ fontSize: '0.95rem' }}>
-            Brug dette panel til at berige øvelsesbiblioteket via DeepSeek V3 nodegenerering, Gemini 2.5 Flash node-scanning eller transskribere noder via Klangio Drum2Notes.
+            Brug dette panel til at berige øvelsesbiblioteket via DeepSeek V3 nodegenerering eller Gemini 2.5 Flash node-scanning.
           </p>
         </section>
 
@@ -627,44 +587,6 @@ Vigtige regler:
               )}
             </div>
 
-            {/* 3. Klangio Transcription Sim */}
-            <div className="glass-card">
-              <div className="flex align-center gap-2 mb-2">
-                <Upload size={20} className="text-cyan" />
-                <h3 style={{ fontSize: '1.2rem' }}>Klangio Drum2Notes Pipeline (Admin-only)</h3>
-              </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} className="mb-2">
-                Upload lydoptagelse af tromme-patterns og transskriber til redigerbart MusicXML format.
-              </p>
-
-              <div className="form-group">
-                <label className="form-label">MP3 / WAV Lydfil eller YouTube URL</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="https://eksempel.com/audio/drumloop.mp3"
-                  value={audioUrl}
-                  onChange={(e) => setAudioUrl(e.target.value)}
-                />
-              </div>
-
-              <button 
-                onClick={handleKlangioSimulate} 
-                className="btn btn-secondary w-full"
-                disabled={klangioLoading}
-              >
-                {klangioLoading ? 'Klangio analyserer lyd...' : 'Start Lyd-til-Node Transskription'}
-              </button>
-
-              {klangioLog.length > 0 && (
-                <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.75rem', marginTop: '1rem', maxHeight: '120px', overflowY: 'auto' }}>
-                  {klangioLog.map((log, i) => (
-                    <div key={i} style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--accent-cyan)', margin: '0.15rem 0' }}>{log}</div>
-                  ))}
-                </div>
-              )}
-            </div>
-
           </div>
 
           {/* Right: Validation Logs and OSMD Preview */}
@@ -721,7 +643,7 @@ Vigtige regler:
                   <div className="text-center text-muted-color">
                     <FileCode size={48} className="m-auto mb-2" />
                     <p>Intet nodedata indlæst.</p>
-                    <p style={{ fontSize: '0.8rem' }}>Generér noder med DeepSeek, scan noder med Gemini eller kør Klangio simulationen til venstre for at se preview her.</p>
+                    <p style={{ fontSize: '0.8rem' }}>Generér noder med DeepSeek eller scan noder med Gemini for at se preview her.</p>
                   </div>
                 )}
               </div>

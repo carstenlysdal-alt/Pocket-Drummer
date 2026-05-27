@@ -28,9 +28,9 @@ export default function Header() {
 
   return (
     <header className="app-header">
-      <Link href="/" className="logo logo-brand">
-        <Drum size={28} className="text-purple" />
-        <span>DRUMM<span style={{ color: 'var(--accent-purple)' }}>.</span></span>
+      <Link href="/" className="logo logo-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Drum size={28} style={{ color: 'var(--color-accent)' }} />
+        <span>Pocket Drummer<span style={{ color: 'var(--color-accent)', fontStyle: 'normal' }}>.</span></span>
       </Link>
       
       <nav className="nav-links">
