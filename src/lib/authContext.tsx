@@ -1,13 +1,15 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { auth, googleProvider } from './firebase';
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { firestoreService, UserProfile } from './firestoreService';
 import { UserPlan, getCompletedExercises, getUserPlan, saveUserPlan, setPremiumStatus } from './mockData';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
-  login: (email: string) => Promise<void>;
+  login: (email?: string) => Promise<void>;
   logout: () => Promise<void>;
   syncCompletedExercises: (completedIds: string[]) => Promise<void>;
   syncLearningPlan: (plan: UserPlan) => Promise<void>;
@@ -20,89 +22,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize and load user from localStorage
+  // Monitor real Firebase Authentication status (Lenny Learning style)
   useEffect(() => {
-    async function initAuth() {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true);
       try {
-        if (typeof window !== 'undefined') {
-          const savedEmail = localStorage.getItem('pocketdrummer_logged_in_email');
-          if (savedEmail) {
-            const profile = await firestoreService.getUserProfile(savedEmail);
-            if (profile) {
-              setUser(profile);
-              
-              // Sync Firestore data down to localStorage to keep them aligned
-              if (profile.completedExercises) {
-                localStorage.setItem('pocketdrummer_completed', JSON.stringify(profile.completedExercises));
-              }
-              if (profile.isPremium !== undefined) {
-                localStorage.setItem('pocketdrummer_premium_active', profile.isPremium ? 'true' : 'false');
-              }
-              const dbPlan = await firestoreService.getLearningPlan(savedEmail);
-              if (dbPlan) {
-                localStorage.setItem('pocketdrummer_user_plan', JSON.stringify(dbPlan));
-              }
-            } else {
-              // If profile doesn't exist in DB anymore, clear local session
-              localStorage.removeItem('pocketdrummer_logged_in_email');
+        if (firebaseUser) {
+          const email = firebaseUser.email || '';
+          const uid = firebaseUser.uid;
+          const displayName = firebaseUser.displayName || email.split('@')[0] || 'Trommeslager';
+          const photoURL = firebaseUser.photoURL;
+
+          // Fetch profile from db (under /users/{uid}) or create it
+          const profile = await firestoreService.createUserProfile(uid, email, displayName, photoURL);
+          
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('pocketdrummer_logged_in_email', email);
+            localStorage.setItem('pocketdrummer_logged_in_uid', uid);
+
+            // Merge local storage data into Firestore (so exercises completed logged-out aren't lost)
+            const localCompleted = getCompletedExercises();
+            const dbCompleted = profile.completedExercises || [];
+            const mergedCompleted = Array.from(new Set([...localCompleted, ...dbCompleted]));
+
+            const localPlan = getUserPlan();
+            const dbPlan = await firestoreService.getLearningPlan(uid);
+            const finalPlan = dbPlan || localPlan;
+
+            const isPremiumLocal = localStorage.getItem('pocketdrummer_premium_active') === 'true';
+            const finalPremium = profile.isPremium || isPremiumLocal;
+
+            // Sync to Firestore
+            await firestoreService.saveUserProfile(uid, {
+              completedExercises: mergedCompleted,
+              isPremium: finalPremium
+            });
+
+            if (finalPlan) {
+              await firestoreService.saveLearningPlan(uid, finalPlan);
+              saveUserPlan(finalPlan);
             }
+
+            // Sync back to localStorage
+            localStorage.setItem('pocketdrummer_completed', JSON.stringify(mergedCompleted));
+            localStorage.setItem('pocketdrummer_premium_active', finalPremium ? 'true' : 'false');
+
+            setUser({
+              ...profile,
+              completedExercises: mergedCompleted,
+              isPremium: finalPremium
+            });
+          }
+        } else {
+          // Explicit sign-out
+          setUser(null);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('pocketdrummer_logged_in_email');
+            localStorage.removeItem('pocketdrummer_logged_in_uid');
+            localStorage.removeItem('pocketdrummer_completed');
+            localStorage.removeItem('pocketdrummer_user_plan');
+            localStorage.setItem('pocketdrummer_premium_active', 'false');
           }
         }
       } catch (err) {
-        console.error('Error initializing auth:', err);
+        console.error('Error during Auth state change handler:', err);
       } finally {
         setLoading(false);
       }
-    }
-    initAuth();
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // Login using email
-  const login = async (email: string) => {
+  // Login using Google popup
+  const login = async (email?: string) => {
     setLoading(true);
     try {
-      const cleanEmail = email.toLowerCase().trim();
-      const profile = await firestoreService.createUserProfile(cleanEmail);
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('pocketdrummer_logged_in_email', cleanEmail);
-
-        // Merge local data to Firestore if they exist
-        const localCompleted = getCompletedExercises();
-        const dbCompleted = profile.completedExercises || [];
-        const mergedCompleted = Array.from(new Set([...localCompleted, ...dbCompleted]));
-
-        const localPlan = getUserPlan();
-        const dbPlan = await firestoreService.getLearningPlan(cleanEmail);
-        const finalPlan = dbPlan || localPlan;
-
-        const isPremiumLocal = localStorage.getItem('pocketdrummer_premium_active') === 'true';
-        const finalPremium = profile.isPremium || isPremiumLocal;
-
-        // Save merged data to Firestore
-        await firestoreService.saveUserProfile(cleanEmail, {
-          completedExercises: mergedCompleted,
-          isPremium: finalPremium
-        });
-
-        if (finalPlan) {
-          await firestoreService.saveLearningPlan(cleanEmail, finalPlan);
-          saveUserPlan(finalPlan);
-        }
-
-        // Save merged data back to localStorage
-        localStorage.setItem('pocketdrummer_completed', JSON.stringify(mergedCompleted));
-        localStorage.setItem('pocketdrummer_premium_active', finalPremium ? 'true' : 'false');
-
-        // Update state
-        setUser({
-          ...profile,
-          completedExercises: mergedCompleted,
-          isPremium: finalPremium
-        });
-      }
+      await signInWithPopup(auth, googleProvider);
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Google sign-in popup error:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -111,13 +109,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Logout
   const logout = async () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('pocketdrummer_logged_in_email');
-      localStorage.removeItem('pocketdrummer_completed');
-      localStorage.removeItem('pocketdrummer_user_plan');
-      localStorage.setItem('pocketdrummer_premium_active', 'false');
+    setLoading(true);
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error('Sign-out error:', err);
+    } finally {
+      setLoading(false);
     }
-    setUser(null);
   };
 
   // Sync completed exercises list
@@ -127,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     if (user) {
       try {
-        await firestoreService.saveUserProfile(user.email, {
+        await firestoreService.saveUserProfile(user.uid, {
           completedExercises: completedIds
         });
         setUser(prev => prev ? { ...prev, completedExercises: completedIds } : null);
@@ -144,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     if (user) {
       try {
-        await firestoreService.saveLearningPlan(user.email, plan);
+        await firestoreService.saveLearningPlan(user.uid, plan);
       } catch (err) {
         console.error('Error syncing learning plan:', err);
       }
@@ -156,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setPremiumStatus(isPremium);
     if (user) {
       try {
-        await firestoreService.saveUserProfile(user.email, {
+        await firestoreService.saveUserProfile(user.uid, {
           isPremium
         });
         setUser(prev => prev ? { ...prev, isPremium } : null);

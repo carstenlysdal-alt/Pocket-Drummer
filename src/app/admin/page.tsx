@@ -12,7 +12,10 @@ import {
   Code,
   FileCode,
   Save,
-  Lock
+  Lock,
+  Music,
+  Library,
+  Youtube
 } from 'lucide-react';
 import {
   getSavedExercises,
@@ -20,6 +23,7 @@ import {
   Exercise
 } from '@/lib/mockData';
 import { useAuth } from '@/lib/authContext';
+import { presetExercises, getPresetMusicXML } from '@/lib/presetExercises';
 import Link from 'next/link';
 
 // Hent OsmdRenderer dynamisk uden SSR
@@ -27,12 +31,14 @@ const OsmdRenderer = dynamic(() => import('@/components/OsmdRenderer'), { ssr: f
 
 export default function AdminPage() {
   const { user, login, logout, loading: authLoadingState } = useAuth();
-  const [adminEmail, setAdminEmail] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   
   const [, setExercises] = useState<Exercise[]>([]);
   
+  // Dashboard Tool Tab Selection
+  const [toolTab, setToolTab] = useState<'deepseek' | 'gemini' | 'transcribe' | 'presets'>('deepseek');
+
   // DeepSeek / AI generation state
   const [title, setTitle] = useState("Moderne Paradiddle Groove");
   const [category, setCategory] = useState<'rudiments' | 'groove' | 'fills' | 'timing' | 'koordination' | 'stilarter'>('groove');
@@ -40,8 +46,10 @@ export default function AdminPage() {
   const [tempo, setTempo] = useState(100);
   const [measures, setMeasures] = useState(2);
   const [focus, setFocus] = useState("Ghost notes og svage snare beats");
+  const [genre, setGenre] = useState("Rock");
+  const [scanDescription, setScanDescription] = useState("");
   
-  // Custom Prompts & Genres
+  // Prompts
   const [systemPrompt, setSystemPrompt] = useState(`Du er Pocket Drummer AI, en ekspert i trommenotering og MusicXML 4.0-struktur.
 Du skal generere en syntaktisk komplet og valid MusicXML-fil for en tromme-øvelse.
 Regler for noteringen:
@@ -59,15 +67,18 @@ Vigtige regler:
 2. Noderne skal være skrevet i percussion clef i 4/4 takt.
 3. Brug standard General MIDI trommenotations-standarder.`);
 
-  const [genre, setGenre] = useState("Rock");
-  const [scanDescription, setScanDescription] = useState("");
-  
   // Gemini OMR scan state
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanLog, setScanLog] = useState<string[]>([]);
   
-  // Common states
+  // Audio & YouTube Transcribe state
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [transcribeLoading, setTranscribeLoading] = useState(false);
+  const [transcribeLog, setTranscribeLog] = useState<string[]>([]);
+
+  // Common preview states
   const [xmlData, setXmlData] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
@@ -82,107 +93,16 @@ Vigtige regler:
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminEmail || !adminEmail.includes('@')) {
-      setAuthError('Indtast venligst en gyldig e-mailadresse');
-      return;
-    }
     setAuthError('');
     setAuthLoading(true);
     try {
-      await login(adminEmail);
+      await login();
     } catch {
-      setAuthError('Fejl under login. Prøv igen.');
+      setAuthError('Fejl under login med Google. Prøv igen.');
     } finally {
       setAuthLoading(false);
     }
   };
-
-  if (authLoadingState) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a', color: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 40, height: 40, border: '3px solid rgba(239, 90, 58, 0.2)', borderTopColor: '#ef5a3a', borderRadius: '50%', margin: '0 auto 16px auto', animation: 'spin 1s linear infinite' }} />
-          <p style={{ fontSize: 14, color: '#9ca3af', letterSpacing: '0.05em' }}>KONTROLLERER ADGANG...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const isAdmin = user && (user.role === 'admin' || user.email.toLowerCase() === 'carstenlysdal@gmail.com');
-
-  if (!isAdmin) {
-    return (
-      <div className="grid-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', fontFamily: 'var(--font-sans)' }}>
-        <Header />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <div className="glass-card" style={{ maxWidth: '440px', width: '100%', padding: '2.5rem', textAlign: 'center', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '20px', background: 'rgba(20, 20, 22, 0.6)', backdropFilter: 'blur(20px)', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 90, 58, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-              <Lock size={28} style={{ color: '#ef5a3a' }} />
-            </div>
-            
-            {!user ? (
-              <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: '#FAF8F5', fontFamily: 'var(--font-title)' }}>Admin Login</h2>
-                <p style={{ fontSize: '0.9rem', color: '#9ca3af', lineHeight: 1.6, marginBottom: '2rem' }}>
-                  Indtast din administrator-email for at få adgang til indholdspipelinen og AI-nodegenereringen.
-                </p>
-                
-                <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div className="form-group" style={{ textAlign: 'left' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: '0.5rem', display: 'block' }}>Administrator e-mail</label>
-                    <input 
-                      type="email" 
-                      className="form-control" 
-                      placeholder="admin@pocketdrummer.dk"
-                      value={adminEmail}
-                      onChange={(e) => setAdminEmail(e.target.value)}
-                      style={{ background: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#FAF8F5' }}
-                    />
-                  </div>
-                  {authError && (
-                    <div style={{ color: '#f43f5e', fontSize: '0.85rem', fontWeight: 500, textAlign: 'left' }}>
-                      {authError}
-                    </div>
-                  )}
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary w-full"
-                    disabled={authLoading}
-                    style={{ background: '#ef5a3a', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  >
-                    {authLoading ? 'Verificerer...' : 'Log ind som admin'}
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: '#FAF8F5', fontFamily: 'var(--font-title)' }}>Adgang Nægtet</h2>
-                <p style={{ fontSize: '0.9rem', color: '#9ca3af', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                  Du er logget ind som <strong style={{ color: '#FAF8F5' }}>{user.email}</strong>, men denne konto har ikke administratorrettigheder.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
-                  <button 
-                    onClick={() => logout()}
-                    className="btn btn-secondary w-full"
-                    style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#FAF8F5', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Log ud af denne konto
-                  </button>
-                  <Link 
-                    href="/" 
-                    className="btn btn-primary w-full"
-                    style={{ background: '#ef5a3a', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, textDecoration: 'none', display: 'block', textAlign: 'center' }}
-                  >
-                    Gå til forsiden
-                  </Link>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -195,7 +115,6 @@ Vigtige regler:
     setXmlData("");
     addLog("Opretter forbindelse til DeepSeek V3 API...");
     
-    // Simuler lidt forsinkelse til valideringstesten (server-side validering)
     const logTimers = [
       setTimeout(() => addLog("Sender prompts og parametre..."), 1000),
       setTimeout(() => addLog("DeepSeek analyserer sværhedsgrad og taktarter..."), 2200),
@@ -224,7 +143,6 @@ Vigtige regler:
 
       const data = await response.json();
       
-      // Valider MusicXML overordnet
       if (!data.xml || !data.xml.includes('<score-partwise>')) {
         throw new Error("Ugyldigt MusicXML modtaget fra API: Mangler rod-elementer");
       }
@@ -311,6 +229,98 @@ Vigtige regler:
     }
   };
 
+  const addTranscribeLog = (msg: string) => {
+    setTranscribeLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+  };
+
+  const handleTranscribeAudio = async () => {
+    if (!audioFile && !youtubeUrl.trim()) {
+      alert("Vælg venligst en lydfil eller angiv en YouTube-url.");
+      return;
+    }
+
+    setTranscribeLoading(true);
+    setTranscribeLog([]);
+    setSuccessMsg("");
+    setXmlData("");
+
+    addTranscribeLog("Starter transskriberingspipeline...");
+    if (audioFile) {
+      addTranscribeLog(`Uploader lydfil: ${audioFile.name} (${(audioFile.size / 1024 / 1024).toFixed(2)} MB)`);
+    } else {
+      addTranscribeLog(`Forbinder til YouTube URL: ${youtubeUrl}`);
+    }
+
+    const logTimers = [
+      setTimeout(() => addTranscribeLog("Ekstraherer lydspor og frekvenser..."), 1000),
+      setTimeout(() => addTranscribeLog("Klangio AI genkender trommeslag (Bass, Snare, Hihat)..."), 2500),
+      setTimeout(() => addTranscribeLog("Konverterer anslagstider til MusicXML taktstruktur..."), 4500),
+      setTimeout(() => addTranscribeLog("Validerer rytme mod standard General MIDI layout..."), 6500)
+    ];
+
+    try {
+      const formData = new FormData();
+      if (audioFile) {
+        formData.append("file", audioFile);
+      } else {
+        formData.append("youtubeUrl", youtubeUrl);
+      }
+
+      const response = await fetch('/api/transcribe-audio', {
+        method: 'POST',
+        body: formData
+      });
+
+      logTimers.forEach(t => clearTimeout(t));
+
+      if (!response.ok) {
+        throw new Error("Fejl under lyd-transskribering");
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data.xml || !data.xml.includes('<score-partwise>')) {
+        throw new Error("Ugyldigt MusicXML modtaget fra transskription: Mangler rod-elementer");
+      }
+
+      addTranscribeLog("Transskription og OMR konvertering fuldført!");
+      addTranscribeLog("Indlæser node-preview...");
+      setXmlData(data.xml);
+      
+      const defaultTitle = audioFile 
+        ? `Lyd: ${audioFile.name.replace(/\.[^/.]+$/, "")}` 
+        : `YouTube: Transskriberet`;
+      setTitle(defaultTitle);
+      setActiveTab('preview');
+    } catch (e) {
+      console.error(e);
+      logTimers.forEach(t => clearTimeout(t));
+      const message = e instanceof Error ? e.message : String(e);
+      addTranscribeLog(`❌ FEJL under transskribering: ${message}`);
+    } finally {
+      setTranscribeLoading(false);
+    }
+  };
+
+  const handleLoadPreset = (preset: typeof presetExercises[0]) => {
+    setSuccessMsg("");
+    const xml = getPresetMusicXML(preset);
+    setXmlData(xml);
+    setTitle(preset.titel);
+    setCategory(preset.kategori);
+    setDifficulty(preset.sværhedsgrad);
+    setTempo(preset.tempo);
+    setMeasures(preset.takter);
+    setFocus(preset.beskrivelse);
+    setGenre(preset.genre);
+    setActiveTab('preview');
+    setSuccessMsg(`Preset '${preset.titel}' indlæst! Klik 'Gem & Publicér øvelse' til højre for at udgive den.`);
+  };
+
   const handlePublish = () => {
     if (!xmlData) return;
 
@@ -336,21 +346,113 @@ Vigtige regler:
     setSuccessMsg(`Øvelsen '${title}' er nu publiceret i databasen og synlig for alle Premium-brugere!`);
   };
 
+  if (authLoadingState) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a', color: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 40, height: 40, border: '3px solid rgba(239, 90, 58, 0.2)', borderTopColor: '#ef5a3a', borderRadius: '50%', margin: '0 auto 16px auto', animation: 'spin 1s linear infinite' }} />
+          <p style={{ fontSize: 14, color: '#9ca3af', letterSpacing: '0.05em' }}>KONTROLLERER ADGANG...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isAdmin = user && (user.role === 'admin' || user.email.toLowerCase() === 'carstenlysdal@gmail.com');
+
+  if (!isAdmin) {
+    return (
+      <div className="grid-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', fontFamily: 'var(--font-sans)' }}>
+        <Header />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div className="glass-card" style={{ maxWidth: '440px', width: '100%', padding: '2.5rem', textAlign: 'center', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '20px', background: 'rgba(20, 20, 22, 0.6)', backdropFilter: 'blur(20px)', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 90, 58, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+              <Lock size={28} style={{ color: '#ef5a3a' }} />
+            </div>
+            
+            {!user ? (
+              <>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: '#FAF8F5', fontFamily: 'var(--font-title)' }}>Admin Login</h2>
+                <p style={{ fontSize: '0.9rem', color: '#9ca3af', lineHeight: 1.6, marginBottom: '2rem' }}>
+                  Log ind med din administrator Google-konto for at få adgang til indholdspipelinen og AI-nodegenereringen.
+                </p>
+                
+                <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {authError && (
+                    <div style={{ color: '#f43f5e', fontSize: '0.85rem', fontWeight: 500, textAlign: 'left' }}>
+                      {authError}
+                    </div>
+                  )}
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary w-full"
+                    disabled={authLoading}
+                    style={{ background: '#ef5a3a', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 18 18">
+                      <path fill="#ffffff" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.24h2.9c1.7-1.56 2.69-3.86 2.69-6.57z"/>
+                      <path fill="#ffffff" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.24c-.8.54-1.84.87-3.06.87-2.35 0-4.33-1.58-5.04-3.71H.94v2.3C2.42 16.03 5.48 18 9 18z"/>
+                      <path fill="#ffffff" d="M3.96 10.74c-.18-.54-.28-1.12-.28-1.74s.1-1.2.28-1.74V4.96H.94A8.99 8.99 0 000 9c0 1.45.35 2.82.94 4.04l3.02-2.3z"/>
+                      <path fill="#ffffff" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.4C13.46.97 11.41 0 9 0 5.48 0 2.42 1.97.94 4.96l3.02 2.3c.71-2.13 2.69-3.71 5.04-3.71z"/>
+                    </svg>
+                    {authLoading ? 'Verificerer...' : 'Log ind med Google'}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: '#FAF8F5', fontFamily: 'var(--font-title)' }}>Adgang Nægtet</h2>
+                <p style={{ fontSize: '0.9rem', color: '#9ca3af', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                  Du er logget ind som <strong style={{ color: '#FAF8F5' }}>{user.email}</strong>, men denne konto har ikke administratorrettigheder.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
+                  <button 
+                    onClick={() => logout()}
+                    className="btn btn-secondary w-full"
+                    style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#FAF8F5', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Log ud af denne konto
+                  </button>
+                  <Link 
+                    href="/" 
+                    className="btn btn-primary w-full"
+                    style={{ background: '#ef5a3a', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '0.95rem', fontWeight: 600, textDecoration: 'none', display: 'block', textAlign: 'center' }}
+                  >
+                    Gå til forsiden
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
 
       <main style={{ flex: 1, padding: '2rem' }}>
         
-         {/* Admin Header */}
-        <section style={{ maxWidth: '1400px', margin: '0 auto 2rem auto' }}>
-          <div className="flex align-center gap-2 mb-1">
-            <Settings size={28} className="text-purple" />
-            <h1 style={{ fontSize: '2.0rem' }}>Admin Indholdspipeline (Pocket Drummer Owner)</h1>
+        {/* Admin Header */}
+        <section style={{ maxWidth: '1400px', margin: '0 auto 1.5rem auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div className="flex align-center gap-2 mb-1">
+              <Settings size={28} style={{ color: '#ef5a3a' }} />
+              <h1 style={{ fontSize: '2.0rem' }}>Admin Indholdspipeline (Pocket Drummer Owner)</h1>
+            </div>
+            <p className="text-muted-color" style={{ fontSize: '0.95rem' }}>
+              Tilføj og publicer nye trommeøvelser i databasen via AI, scanner eller præ-konfigurerede noder.
+            </p>
           </div>
-          <p className="text-muted-color" style={{ fontSize: '0.95rem' }}>
-            Brug dette panel til at berige øvelsesbiblioteket via DeepSeek V3 nodegenerering eller Gemini 2.5 Flash node-scanning.
-          </p>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => logout()}
+              style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#FAF8F5', borderRadius: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Log ud ({user.displayName})
+            </button>
+          </div>
         </section>
 
         {successMsg && (
@@ -363,232 +465,396 @@ Vigtige regler:
         {/* Form and Preview Grid */}
         <div className="admin-grid">
           
-          {/* Left: Configuration Form */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Left: Configuration Form and Tool Tabs */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
-            {/* 1. DeepSeek AI generation form */}
-            <div className="glass-card">
-              <div className="flex align-center gap-2 mb-2">
-                <Sparkles size={20} className="text-purple" />
-                <h3 style={{ fontSize: '1.2rem' }}>AI-Nodegenerering (DeepSeek-V3)</h3>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Titel på øvelse</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="form-label">Kategori</label>
-                  <select 
-                    className="form-control" 
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as 'rudiments' | 'groove' | 'fills' | 'timing' | 'koordination' | 'stilarter')}
-                  >
-                    <option value="groove">Groove</option>
-                    <option value="rudiments">Rudiments</option>
-                    <option value="fills">Fills</option>
-                    <option value="timing">Timing</option>
-                    <option value="koordination">Koordination</option>
-                    <option value="stilarter">Stilarter</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label">Sværhedsgrad</label>
-                  <select 
-                    className="form-control" 
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as 'begynder' | 'mellemniveau' | 'øvet')}
-                  >
-                    <option value="begynder">Begynder</option>
-                    <option value="mellemniveau">Mellemniveau</option>
-                    <option value="øvet">Øvet</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="form-label">Standard Tempo (BPM)</label>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    min="50" 
-                    max="180"
-                    value={tempo}
-                    onChange={(e) => setTempo(Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Antal takter</label>
-                  <select 
-                    className="form-control" 
-                    value={measures}
-                    onChange={(e) => setMeasures(Number(e.target.value))}
-                  >
-                    <option value="1">1 takt</option>
-                    <option value="2">2 takter</option>
-                    <option value="4">4 takter</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Fokusområde / AI prompt hint</label>
-                <textarea 
-                  className="form-control" 
-                  style={{ height: '70px', resize: 'none' }}
-                  value={focus}
-                  onChange={(e) => setFocus(e.target.value)}
-                  placeholder="F.eks. Stortromme syncoper på 2-og slagene..."
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">AI Model Systeminstruktioner (System Prompt)</label>
-                <textarea 
-                  className="form-control" 
-                  style={{ height: '90px', fontSize: '0.8rem', fontFamily: 'monospace' }}
-                  value={systemPrompt}
-                  onChange={(e) => setSystemPrompt(e.target.value)}
-                  placeholder="Systeminstruktioner til DeepSeek..."
-                />
-              </div>
-
+            {/* Tool Selection Tabs */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
               <button 
-                onClick={handleGenerateAI} 
-                className="btn btn-primary w-full"
-                disabled={loading}
+                onClick={() => setToolTab('deepseek')} 
+                style={{ 
+                  background: toolTab === 'deepseek' ? '#ef5a3a' : 'transparent', 
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 4px', 
+                  fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', 
+                  alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' 
+                }}
               >
-                {loading ? 'Genererer noder via AI...' : 'Generér MusicXML med DeepSeek'}
+                <Sparkles size={14} /> AI Gen
+              </button>
+              <button 
+                onClick={() => setToolTab('gemini')} 
+                style={{ 
+                  background: toolTab === 'gemini' ? '#ef5a3a' : 'transparent', 
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 4px', 
+                  fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', 
+                  alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' 
+                }}
+              >
+                <Upload size={14} /> Scan
+              </button>
+              <button 
+                onClick={() => setToolTab('transcribe')} 
+                style={{ 
+                  background: toolTab === 'transcribe' ? '#ef5a3a' : 'transparent', 
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 4px', 
+                  fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', 
+                  alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' 
+                }}
+              >
+                <Music size={14} /> Lyd
+              </button>
+              <button 
+                onClick={() => setToolTab('presets')} 
+                style={{ 
+                  background: toolTab === 'presets' ? '#ef5a3a' : 'transparent', 
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 4px', 
+                  fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', 
+                  alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' 
+                }}
+              >
+                <Library size={14} /> Presets
               </button>
             </div>
 
-            {/* 2. Gemini Flash Node-Scanner */}
-            <div className="glass-card">
-              <div className="flex align-center gap-2 mb-2">
-                <Upload size={20} className="text-purple" />
-                <h3 style={{ fontSize: '1.2rem' }}>AI Billede & PDF Node-Scanner (Gemini 2.5 Flash)</h3>
+            {/* Common Details Fields (rendered for AI / Scanner / Lyd tools to pre-populate public details) */}
+            {toolTab !== 'presets' && (
+              <div className="glass-card" style={{ padding: '1.25rem', marginBottom: '-0.5rem' }}>
+                <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: '#FAF8F5' }}>Offentlige detaljer (Til Databasen)</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '3px' }}>Titel</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '3px' }}>Genre</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                      value={genre}
+                      onChange={(e) => setGenre(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '3px' }}>Kategori</label>
+                    <select 
+                      className="form-control" 
+                      style={{ padding: '7px 10px', fontSize: '0.85rem' }}
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value as any)}
+                    >
+                      <option value="groove">Groove</option>
+                      <option value="rudiments">Rudiments</option>
+                      <option value="fills">Fills</option>
+                      <option value="timing">Timing</option>
+                      <option value="koordination">Koordination</option>
+                      <option value="stilarter">Stilarter</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '3px' }}>Sværhedsgrad</label>
+                    <select 
+                      className="form-control" 
+                      style={{ padding: '7px 10px', fontSize: '0.85rem' }}
+                      value={difficulty}
+                      onChange={(e) => setDifficulty(e.target.value as any)}
+                    >
+                      <option value="begynder">Begynder</option>
+                      <option value="mellemniveau">Mellemniveau</option>
+                      <option value="øvet">Øvet</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '3px' }}>Tempo (BPM)</label>
+                    <input 
+                      type="number" 
+                      className="form-control" 
+                      style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                      value={tempo}
+                      onChange={(e) => setTempo(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
               </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} className="mb-2">
-                Scan et billede (PNG/JPG) eller en PDF af en trommenode og omdan den direkte til spilbart MusicXML.
-              </p>
+            )}
 
-              <div className="form-group">
-                <label className="form-label">Upload Billede eller PDF</label>
-                <div style={{ 
-                  border: '2px dashed var(--border-color)', 
-                  borderRadius: '8px', 
-                  padding: '1.5rem', 
-                  textAlign: 'center',
-                  background: 'rgba(255,255,255,0.02)',
-                  cursor: 'pointer',
-                  position: 'relative'
-                }}
-                onClick={() => document.getElementById('sheet-upload-input')?.click()}
+            {/* TAB CONTENT: 1. DeepSeek AI generation form */}
+            {toolTab === 'deepseek' && (
+              <div className="glass-card">
+                <div className="flex align-center gap-2 mb-2">
+                  <Sparkles size={20} style={{ color: '#ef5a3a' }} />
+                  <h3 style={{ fontSize: '1.1rem' }}>AI-Nodegenerering (DeepSeek-V3)</h3>
+                </div>
+
+                <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                  <div>
+                    <label className="form-label">Antal takter</label>
+                    <select 
+                      className="form-control" 
+                      value={measures}
+                      onChange={(e) => setMeasures(Number(e.target.value))}
+                    >
+                      <option value="1">1 takt</option>
+                      <option value="2">2 takter</option>
+                      <option value="4">4 takter</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Fokusområde / AI prompt hint</label>
+                  <textarea 
+                    className="form-control" 
+                    style={{ height: '70px', resize: 'none' }}
+                    value={focus}
+                    onChange={(e) => setFocus(e.target.value)}
+                    placeholder="F.eks. Stortromme syncoper på 2-og slagene..."
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">AI Model Systeminstruktioner</label>
+                  <textarea 
+                    className="form-control" 
+                    style={{ height: '90px', fontSize: '0.8rem', fontFamily: 'monospace' }}
+                    value={systemPrompt}
+                    onChange={(e) => setSystemPrompt(e.target.value)}
+                  />
+                </div>
+
+                <button 
+                  onClick={handleGenerateAI} 
+                  className="btn btn-primary w-full"
+                  disabled={loading}
                 >
+                  {loading ? 'Genererer noder via AI...' : 'Generér MusicXML med DeepSeek'}
+                </button>
+              </div>
+            )}
+
+            {/* TAB CONTENT: 2. Gemini Flash Node-Scanner */}
+            {toolTab === 'gemini' && (
+              <div className="glass-card">
+                <div className="flex align-center gap-2 mb-2">
+                  <Upload size={20} style={{ color: '#ef5a3a' }} />
+                  <h3 style={{ fontSize: '1.1rem' }}>Billede & PDF Node-Scanner (Gemini 2.5 Flash)</h3>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} className="mb-3">
+                  Scan et billede (PNG/JPG) eller en PDF af en trommenode og omdan den direkte til spilbart MusicXML.
+                </p>
+
+                <div className="form-group">
+                  <div style={{ 
+                    border: '2px dashed var(--border-color)', 
+                    borderRadius: '8px', 
+                    padding: '1.5rem', 
+                    textAlign: 'center',
+                    background: 'rgba(255,255,255,0.02)',
+                    cursor: 'pointer',
+                    position: 'relative'
+                  }}
+                  onClick={() => document.getElementById('sheet-upload-input')?.click()}
+                  >
+                    <input 
+                      type="file" 
+                      id="sheet-upload-input"
+                      accept="image/*,application/pdf"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setScanFile(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    {scanFile ? (
+                      <div>
+                        <FileCode size={32} style={{ color: '#ef5a3a', margin: 'auto', marginBottom: '8px' }} />
+                        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ef5a3a' }}>
+                          {scanFile.name}
+                        </p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          Klik for at vælge en anden fil
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <Upload size={32} className="text-muted-color m-auto mb-1" />
+                        <p style={{ fontSize: '0.85rem' }}>
+                          Træk fil hertil eller klik for at vælge
+                        </p>
+                        <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          Understøtter JPG, PNG, PDF op til 20MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Scanner Systeminstruktioner (Gemini OMR)</label>
+                  <textarea 
+                    className="form-control" 
+                    style={{ height: '80px', fontSize: '0.8rem', fontFamily: 'monospace' }}
+                    value={scanSystemPrompt}
+                    onChange={(e) => setScanSystemPrompt(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Beskrivelse (vises til elever)</label>
+                  <textarea 
+                    className="form-control" 
+                    style={{ height: '60px', resize: 'none' }}
+                    value={scanDescription}
+                    onChange={(e) => setScanDescription(e.target.value)}
+                    placeholder="Beskriv denne uploadede trommeøvelse..."
+                  />
+                </div>
+
+                <button 
+                  onClick={handleScanSheetMusic} 
+                  className="btn btn-primary w-full"
+                  disabled={scanLoading || !scanFile}
+                >
+                  {scanLoading ? 'Scanner og analyserer noder...' : 'Start Node-Scanning med Gemini'}
+                </button>
+
+                {scanLog.length > 0 && (
+                  <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.75rem', marginTop: '1rem', maxHeight: '120px', overflowY: 'auto' }}>
+                    {scanLog.map((log, i) => (
+                      <div key={i} style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: log.includes('❌') ? 'var(--accent-rose)' : '#ef5a3a', margin: '0.15rem 0' }}>{log}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB CONTENT: 3. Audio & YouTube Transcriber */}
+            {toolTab === 'transcribe' && (
+              <div className="glass-card">
+                <div className="flex align-center gap-2 mb-2">
+                  <Music size={20} style={{ color: '#ef5a3a' }} />
+                  <h3 style={{ fontSize: '1.1rem' }}>Lyd & YouTube AI Transskription</h3>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} className="mb-3">
+                  Upload en MP3/WAV lydfil af en trommeoptagelse, eller paste et YouTube-link for at transskribere lyden direkte til MusicXML.
+                </p>
+
+                <div className="form-group">
+                  <label className="form-label">Valgmulighed A: Upload lydfil (MP3/WAV)</label>
                   <input 
                     type="file" 
-                    id="sheet-upload-input"
-                    accept="image/*,application/pdf"
-                    style={{ display: 'none' }}
+                    accept="audio/*" 
+                    className="form-control"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setScanFile(e.target.files[0]);
+                        setAudioFile(e.target.files[0]);
+                        setYoutubeUrl('');
                       }
                     }}
                   />
-                  {scanFile ? (
-                    <div>
-                      <FileCode size={32} className="text-purple m-auto mb-1" />
-                      <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-purple)' }}>
-                        {scanFile.name}
-                      </p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Klik for at vælge en anden fil
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <Upload size={32} className="text-muted-color m-auto mb-1" />
-                      <p style={{ fontSize: '0.85rem' }}>
-                        Træk fil hertil eller klik for at vælge
-                      </p>
-                      <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                        Understøtter JPG, PNG, PDF op til 20MB
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">Scanner Systeminstruktioner (Gemini OMR Prompt)</label>
-                <textarea 
-                  className="form-control" 
-                  style={{ height: '80px', fontSize: '0.8rem', fontFamily: 'monospace' }}
-                  value={scanSystemPrompt}
-                  onChange={(e) => setScanSystemPrompt(e.target.value)}
-                  placeholder="Instruktioner til Gemini OMR..."
-                />
-              </div>
+                <div style={{ textAlign: 'center', margin: '10px 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>— ELLER —</div>
 
-              <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                <div>
-                  <label className="form-label">Musikgenre (Upload-only)</label>
-                  <select 
+                <div className="form-group">
+                  <label className="form-label">Valgmulighed B: YouTube URL</label>
+                  <input 
+                    type="text" 
                     className="form-control" 
-                    value={genre}
-                    onChange={(e) => setGenre(e.target.value)}
-                  >
-                    <option value="Rock">Rock</option>
-                    <option value="Jazz">Jazz</option>
-                    <option value="Funk">Funk</option>
-                    <option value="Pop">Pop</option>
-                    <option value="Blues">Blues</option>
-                    <option value="Metal">Metal</option>
-                    <option value="Latinsk / Bossa Nova">Latinsk / Bossa Nova</option>
-                    <option value="Skæve taktarter">Skæve taktarter</option>
-                  </select>
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={youtubeUrl}
+                    onChange={(e) => {
+                      setYoutubeUrl(e.target.value);
+                      setAudioFile(null);
+                    }}
+                  />
                 </div>
+
+                <button 
+                  onClick={handleTranscribeAudio} 
+                  className="btn btn-primary w-full"
+                  disabled={transcribeLoading || (!audioFile && !youtubeUrl.trim())}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  {transcribeLoading ? 'Transskriberer lydsporet...' : 'Kør AI Lyd-Transskription'}
+                </button>
+
+                {transcribeLog.length > 0 && (
+                  <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.75rem', marginTop: '1rem', maxHeight: '120px', overflowY: 'auto' }}>
+                    {transcribeLog.map((log, i) => (
+                      <div key={i} style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: log.includes('❌') ? 'var(--accent-rose)' : '#ef5a3a', margin: '0.15rem 0' }}>{log}</div>
+                    ))}
+                  </div>
+                )}
               </div>
+            )}
 
-              <div className="form-group">
-                <label className="form-label">Beskrivelse (Upload-only, vises til elever)</label>
-                <textarea 
-                  className="form-control" 
-                  style={{ height: '60px', resize: 'none' }}
-                  value={scanDescription}
-                  onChange={(e) => setScanDescription(e.target.value)}
-                  placeholder="Beskriv denne uploadede trommeøvelse..."
-                />
-              </div>
+            {/* TAB CONTENT: 4. Presets Import */}
+            {toolTab === 'presets' && (
+              <div className="glass-card">
+                <div className="flex align-center gap-2 mb-2">
+                  <Library size={20} style={{ color: '#ef5a3a' }} />
+                  <h3 style={{ fontSize: '1.1rem' }}>Frie Nodedatabaser (Preset Import)</h3>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} className="mb-3">
+                  Importér øjeblikkeligt højopløselige noder for standardgrooves, rudiments og fills helt uden API-omkostninger.
+                </p>
 
-              <button 
-                onClick={handleScanSheetMusic} 
-                className="btn btn-primary w-full"
-                disabled={scanLoading || !scanFile}
-              >
-                {scanLoading ? 'Scanner og analyserer noder...' : 'Start Node-Scanning med Gemini'}
-              </button>
-
-              {scanLog.length > 0 && (
-                <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.75rem', marginTop: '1rem', maxHeight: '120px', overflowY: 'auto' }}>
-                  {scanLog.map((log, i) => (
-                    <div key={i} style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: log.includes('❌') ? 'var(--accent-rose)' : 'var(--accent-purple)', margin: '0.15rem 0' }}>{log}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
+                  {presetExercises.map((preset, idx) => (
+                    <div 
+                      key={idx} 
+                      onClick={() => handleLoadPreset(preset)}
+                      style={{ 
+                        background: 'rgba(255,255,255,0.03)', 
+                        border: '1px solid rgba(255,255,255,0.08)', 
+                        borderRadius: '10px', 
+                        padding: '12px', 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239,90,58,0.08)'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#FAF8F5' }}>{preset.titel}</span>
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          background: preset.sværhedsgrad === 'begynder' ? '#10b981' : preset.sværhedsgrad === 'mellemniveau' ? '#f59e0b' : '#ef4444', 
+                          color: '#fff', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px',
+                          textTransform: 'uppercase',
+                          fontWeight: 700
+                        }}>{preset.sværhedsgrad}</span>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>{preset.beskrivelse}</p>
+                      <div style={{ display: 'flex', gap: '12px', fontSize: '0.7rem', color: '#ef5a3a', fontWeight: 600, marginTop: '2px' }}>
+                        <span>Tempo: {preset.tempo} BPM</span>
+                        <span>Takter: {preset.takter}</span>
+                        <span>Genre: {preset.genre}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
           </div>
-
+          
           {/* Right: Validation Logs and OSMD Preview */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
@@ -615,8 +881,9 @@ Vigtige regler:
                   <button 
                     onClick={handlePublish} 
                     className="btn btn-accent btn-sm"
+                    style={{ background: '#10b981', borderColor: '#10b981' }}
                   >
-                    <Save size={14} /> Gem & Publicér øvelse
+                    <Save size={14} /> Gem & Publicer øvelse
                   </button>
                 )}
               </div>
@@ -634,16 +901,16 @@ Vigtige regler:
                   ) : (
                     <textarea 
                       className="form-control" 
-                      style={{ flex: 1, minHeight: '350px', fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre', overflowX: 'auto', background: 'rgba(0,0,0,0.4)' }}
+                      style={{ flex: 1, minHeight: '350px', fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre', overflowX: 'auto', background: 'rgba(0,0,0,0.4)', color: '#FAF8F5' }}
                       value={xmlData}
                       readOnly
                     />
                   )
                 ) : (
-                  <div className="text-center text-muted-color">
+                  <div className="text-center text-muted-color" style={{ padding: '40px 0' }}>
                     <FileCode size={48} className="m-auto mb-2" />
                     <p>Intet nodedata indlæst.</p>
-                    <p style={{ fontSize: '0.8rem' }}>Generér noder med DeepSeek eller scan noder med Gemini for at se preview her.</p>
+                    <p style={{ fontSize: '0.8rem' }}>Generér noder med DeepSeek, scan med Gemini, kør lydtransskription eller vælg en preset for at se noden her.</p>
                   </div>
                 )}
               </div>

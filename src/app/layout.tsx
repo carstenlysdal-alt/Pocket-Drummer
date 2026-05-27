@@ -14,6 +14,7 @@ export const viewport: Viewport = {
 };
 
 import { AuthProvider } from "@/lib/authContext";
+import { LanguageProvider } from "@/lib/languageContext";
 
 export default function RootLayout({
   children,
@@ -23,11 +24,14 @@ export default function RootLayout({
   return (
     <html lang="da" className="h-full">
       <body className="h-full flex flex-col">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
 }
+
 

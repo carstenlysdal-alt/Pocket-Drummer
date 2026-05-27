@@ -3,6 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import { useAuth } from '@/lib/authContext';
+import { useLanguage } from '@/lib/languageContext';
+import TiltCard from '@/components/TiltCard';
+import RhythmHero from '@/components/RhythmHero';
+
 
 // ─────────────────────────────────────────────────────────────
 // Tokens
@@ -40,10 +44,13 @@ interface HomeScreenProps extends ScreenProps {
   setDark: (dark: boolean) => void;
   onSelectCategory: (cat: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong') => void;
   onOpenCoach: () => void;
+  onPlayRhythmHero: () => void;
+  guestXp: number;
 }
 
 interface PracticeScreenProps extends ScreenProps {
   onSelectCategory: (cat: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong') => void;
+  onPlayRhythmHero: () => void;
 }
 
 interface TrackDetailProps extends ScreenProps {
@@ -73,6 +80,7 @@ interface CoachScreenProps extends ScreenProps {
 
 interface ProfileScreenProps extends ScreenProps {
   setDark: (dark: boolean) => void;
+  guestXp: number;
 }
 
 interface TabBarProps {
@@ -423,6 +431,7 @@ function IOSStatusBar({ dark = false, time = '9:41' }) {
 
 // 1. Onboarding Splash
 function OnboardingScreen({ t, onStart }: { t: ThemeTokens; dark: boolean; onStart: () => void }) {
+  const { language } = useLanguage();
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 200, background: t.bg,
@@ -441,7 +450,9 @@ function OnboardingScreen({ t, onStart }: { t: ThemeTokens; dark: boolean; onSta
         <div style={{
           fontFamily: t.font, fontSize: 12, fontWeight: 700, letterSpacing: 2.4,
           textTransform: 'uppercase', color: t.textMuted, marginTop: 6,
-        }}>Spil. Øv. Udvikl dig.</div>
+        }}>
+          {language === 'da' ? 'Spil. Øv. Udvikl dig.' : language === 'en' ? 'Play. Practice. Progress.' : language === 'de' ? 'Spielen. Üben. Fortschreiten.' : 'Tocar. Practicar. Progresar.'}
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', position: 'relative', flex: 1 }}>
@@ -460,23 +471,25 @@ function OnboardingScreen({ t, onStart }: { t: ThemeTokens; dark: boolean; onSta
 
       <div>
         <Display t={t} size={22} style={{ textAlign: 'center', marginBottom: 10 }}>
-          Din rejse begynder her
+          {language === 'da' ? 'Din rejse begynder her' : language === 'en' ? 'Your journey starts here' : language === 'de' ? 'Deine Reise beginnt hier' : 'Tu viaje comienza aquí'}
         </Display>
         <div style={{
           fontFamily: t.serif, fontStyle: 'italic', fontSize: 15, color: t.text, opacity: 0.7,
           textAlign: 'center', lineHeight: 1.4, marginBottom: 24, padding: '0 12px',
         }}>
-          Uanset dit niveau, hjælper vi dig med at blive en bedre trommeslager.
+          {language === 'da' ? 'Uanset dit niveau, hjælper vi dig med at blive en bedre trommeslager.' : language === 'en' ? 'No matter your level, we help you become a better drummer.' : language === 'de' ? 'Egal welches Niveau, wir helfen dir ein besserer Schlagzeuger zu werden.' : 'No importa tu nivel, te ayudamos a convertirte en un mejor baterista.'}
         </div>
 
-        <CTA t={t} onClick={onStart}>Kom i gang</CTA>
+        <CTA t={t} onClick={onStart}>{language === 'da' ? 'Kom i gang' : language === 'en' ? 'Get Started' : language === 'de' ? 'Loslegen' : 'Comenzar'}</CTA>
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <button onClick={onStart} style={{
             background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer',
             fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase',
             fontFamily: t.font,
-          }}>Har du allerede en konto? Log ind</button>
+          }}>
+            {language === 'da' ? 'Har du allerede en konto? Log ind' : language === 'en' ? 'Already have an account? Log in' : language === 'de' ? 'Hast du bereits ein Konto? Anmelden' : '¿Ya tienes una cuenta? Iniciar sesión'}
+          </button>
         </div>
       </div>
     </div>
@@ -484,9 +497,20 @@ function OnboardingScreen({ t, onStart }: { t: ThemeTokens; dark: boolean; onSta
 }
 
 // 2. Home Screen
-function HomeScreen({ t, dark, setDark, onSelectCategory, onOpenCoach }: HomeScreenProps) {
+function HomeScreen({ t, dark, setDark, onSelectCategory, onOpenCoach, onPlayRhythmHero, guestXp }: HomeScreenProps) {
   const { user } = useAuth();
   const displayName = user ? user.displayName : 'Astrid';
+  const { language, setLanguage, t: translate } = useLanguage();
+
+  const greeting = language === 'da' ? 'Hej' : language === 'en' ? 'Hello' : language === 'de' ? 'Hallo' : 'Hola';
+  const dateLang = language === 'da' ? 'da-DK' : language === 'en' ? 'en-US' : language === 'de' ? 'de-DE' : 'es-ES';
+  const todayRaw = new Date().toLocaleDateString(dateLang, { weekday: 'long', day: 'numeric', month: 'long' });
+  const todayStr = todayRaw.charAt(0).toUpperCase() + todayRaw.slice(1);
+
+  const xp = user?.xp !== undefined ? user.xp : guestXp;
+  const level = user ? (user.level || 1) : Math.floor(xp / 200) + 1;
+  const streak = user?.streak !== undefined ? user.streak : 7;
+  const xpPct = ((xp % 200) / 200) * 100;
 
   return (
     <div style={{ padding: '8px 20px 40px', color: t.text, fontFamily: t.font }}>
@@ -495,9 +519,36 @@ function HomeScreen({ t, dark, setDark, onSelectCategory, onOpenCoach }: HomeScr
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 24 }}>👋</span>
-            <span style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 24, fontWeight: 'normal' }}>Hej, {displayName}</span>
+            <span style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 24, fontWeight: 'normal' }}>{greeting}, {displayName}</span>
           </div>
-          <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>Torsdag, 21. maj</div>
+          <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>{todayStr}</div>
+          
+          {/* Flag language switcher */}
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            {[
+              { code: 'da', flag: '🇩🇰' },
+              { code: 'en', flag: '🇬🇧' },
+              { code: 'de', flag: '🇩🇪' },
+              { code: 'es', flag: '🇪🇸' }
+            ].map(l => (
+              <button 
+                key={l.code} 
+                onClick={() => setLanguage(l.code as any)}
+                style={{
+                  background: language === l.code ? t.accentSoft : 'transparent',
+                  border: `1px solid ${language === l.code ? t.accent : 'transparent'}`,
+                  borderRadius: 6,
+                  padding: '2px 5px',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  lineHeight: 1
+                }}
+              >
+                {l.flag}
+              </button>
+            ))}
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setDark(!dark)} style={{
@@ -519,63 +570,78 @@ function HomeScreen({ t, dark, setDark, onSelectCategory, onOpenCoach }: HomeScr
 
       {/* Dagens anbefaling */}
       <div style={{ marginBottom: 28 }}>
-        <SectionLabel t={t}>Dagens anbefaling</SectionLabel>
-        <Card t={t} padding={20} style={{ borderLeft: `4px solid ${t.accent}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-            <div>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: t.textMuted }}>DAGENS ØVELSE</span>
-              <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 20, marginTop: 2, color: t.text }}>Paradiddle Grooves</div>
-              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>12 min · Let øvet</div>
+        <SectionLabel t={t}>{language === 'da' ? 'Dagens anbefaling' : language === 'en' ? "Today's recommendation" : language === 'de' ? 'Tagesempfehlung' : 'Recomendación del día'}</SectionLabel>
+        <TiltCard style={{ borderRadius: '18px' }}>
+          <Card t={t} padding={20} style={{ borderLeft: `4px solid ${t.accent}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: t.textMuted }}>
+                  {language === 'da' ? 'DAGENS ØVELSE' : language === 'en' ? 'DAILY EXERCISE' : language === 'de' ? 'TÄGLICHE ÜBUNG' : 'EJERCICIO DIARIO'}
+                </span>
+                <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 20, marginTop: 2, color: t.text }}>Paradiddle Grooves</div>
+                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>
+                  12 min · {language === 'da' ? 'Let øvet' : language === 'en' ? 'Intermediate' : language === 'de' ? 'Mittelstufe' : 'Intermedio'}
+                </div>
+              </div>
             </div>
-          </div>
-          <CTA t={t} onClick={() => onSelectCategory('grooves')}>Fortsæt</CTA>
-        </Card>
+            <CTA t={t} onClick={() => onSelectCategory('grooves')}>
+              {language === 'da' ? 'Fortsæt' : language === 'en' ? 'Continue' : language === 'de' ? 'Weiter' : 'Continuar'}
+            </CTA>
+          </Card>
+        </TiltCard>
       </div>
 
       {/* Vælg øvespor */}
       <div style={{ marginBottom: 28 }}>
-        <SectionLabel t={t}>Vælg øvespor</SectionLabel>
+        <SectionLabel t={t}>{language === 'da' ? 'Vælg øvespor' : language === 'en' ? 'Choose Practice Path' : language === 'de' ? 'Übungspfad wählen' : 'Elegir ruta de práctica'}</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            { id: 'opvarmning' as const, title: 'Pocket Opvarmning', desc: 'Start med hænder, fødder, kontrol og timing.', icon: <IcWave size={20} /> },
-            { id: 'nodelære' as const, title: 'Pocket Nodelære', desc: 'Forstå rytmer, taktarter og trommenotation.', icon: <IcMetro size={20} /> },
-            { id: 'grooves' as const, title: 'Pocket Groove', desc: 'Spil beats, fills, overgange og genrer.', icon: <TabKit size={20} color={t.accent} /> },
-            { id: 'playalong' as const, title: 'Pocket Play-along', desc: 'Spil med musik, backing tracks og form.', icon: <TabPlayalong size={20} color={t.accent} /> }
+            { id: 'opvarmning' as const, title: translate('warmup'), desc: translate('warmupDesc'), icon: <IcWave size={20} /> },
+            { id: 'nodelære' as const, title: translate('musicTheory'), desc: translate('theoryDesc'), icon: <IcMetro size={20} /> },
+            { id: 'grooves' as const, title: translate('grooves'), desc: translate('groovesDesc'), icon: <TabKit size={20} color={t.accent} /> },
+            { id: 'playalong' as const, title: translate('playalong'), desc: translate('playalongDesc'), icon: <TabPlayalong size={20} color={t.accent} /> }
           ].map((cat) => (
-            <div key={cat.id} onClick={() => onSelectCategory(cat.id)} style={{
-              background: t.surface, border: `1px solid ${t.border}`,
-              borderRadius: 18, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16,
-              cursor: 'pointer', transition: 'border-color 0.2s',
-            }}>
+            <TiltCard key={cat.id} onClick={() => onSelectCategory(cat.id)} style={{ borderRadius: '18px' }}>
               <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: t.accentSoft, color: t.accent, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                background: t.surface, border: `1px solid ${t.border}`,
+                borderRadius: 18, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16,
+                cursor: 'pointer', transition: 'border-color 0.2s', height: '100%'
               }}>
-                {cat.icon}
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: t.accentSoft, color: t.accent, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  {cat.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 18, color: t.text }}>{cat.title}</div>
+                  <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2, lineHeight: 1.3 }}>{cat.desc}</div>
+                </div>
+                <IcChev size={16} color={t.textDim} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 18, color: t.text }}>{cat.title}</div>
-                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2, lineHeight: 1.3 }}>{cat.desc}</div>
-              </div>
-              <IcChev size={16} color={t.textDim} />
-            </div>
+            </TiltCard>
           ))}
         </div>
       </div>
 
       {/* Din progression */}
       <div>
-        <SectionLabel t={t}>Din progression</SectionLabel>
-        <div style={{
-          background: t.surface, border: `1px solid ${t.border}`,
-          borderRadius: 16, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ fontSize: 13, color: t.text }}>
-            Denne uge: <span style={{ fontWeight: 600 }}>3 øvedage</span> · <span style={{ fontWeight: 600 }}>72 min</span> · <span style={{ fontWeight: 600 }}>Niveau 2</span>
+        <SectionLabel t={t}>{language === 'da' ? 'Din progression' : language === 'en' ? 'Your Progression' : language === 'de' ? 'Dein Fortschritt' : 'Tu progresión'}</SectionLabel>
+        <TiltCard style={{ borderRadius: '16px' }}>
+          <div style={{
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: 16, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div style={{ fontSize: 13, color: t.text }}>
+              {language === 'da' ? 'Denne uge' : language === 'en' ? 'This week' : language === 'de' ? 'Diese Woche' : 'Esta semana'}:{' '}
+              <span style={{ fontWeight: 600 }}>3 {language === 'da' ? 'øvedage' : language === 'en' ? 'practice days' : language === 'de' ? 'Übungstage' : 'días de práctica'}</span> ·{' '}
+              <span style={{ fontWeight: 600 }}>72 min</span> ·{' '}
+              <span style={{ fontWeight: 600 }}>{translate('level')} {level}</span>
+            </div>
+            <div style={{ width: 60 }}><Progress pct={xpPct} t={t} h={6} /></div>
           </div>
-          <div style={{ width: 60 }}><Progress pct={72} t={t} h={6} /></div>
-        </div>
+        </TiltCard>
       </div>
     </div>
   );
@@ -625,46 +691,114 @@ const practiceTracks = [
   },
 ];
 
-function PracticeScreen({ t, onSelectCategory }: PracticeScreenProps) {
+function PracticeScreen({ t, onSelectCategory, onPlayRhythmHero }: PracticeScreenProps) {
   const [search, setSearch] = useState('');
-  const [activeChip, setActiveChip] = useState<'Alle' | 'Pocket Opvarmning' | 'Pocket Nodelære' | 'Pocket Groove' | 'Pocket Play-along'>('Alle');
+  const { language, t: translate } = useLanguage();
+  const [activeChip, setActiveChip] = useState<'Alle' | 'opvarmning' | 'nodelære' | 'grooves' | 'playalong'>('Alle');
 
   const allExercises = [
-    { id: 'warmup-1', cat: 'opvarmning' as const, title: '5 min teknik-start', sub: 'Single strokes og håndkontrol', dur: '5 min', bpm: '80', level: 'Begynder', tags: ['5 min', 'Single strokes'] },
-    { id: 'warmup-2', cat: 'opvarmning' as const, title: 'Hånd-hastighed & kontrol', sub: 'Dobbelt slag og paradiddle kontrol', dur: '10 min', bpm: '100', level: 'Mellemniveau', tags: ['10 min', 'Hænder', 'Double strokes', 'Paradiddles'] },
-    { id: 'warmup-3', cat: 'opvarmning' as const, title: 'Stortromme styrke', sub: 'Fodkontrol og udholdenhed', dur: '12 min', bpm: '90', level: 'Øvet', tags: ['Fødder', 'Stortrommekontrol'] },
-    { id: 'notes-1', cat: 'nodelære' as const, title: 'Læs fjerdedele & pauser', sub: 'Grundlæggende nodelæsning', dur: '5 min', bpm: '80', level: 'Begynder', tags: ['Fjerdedele', 'Pauser'] },
-    { id: 'notes-2', cat: 'nodelære' as const, title: 'Ottendedele syncopation', sub: 'Udfordr din timing', dur: '8 min', bpm: '90', level: 'Mellemniveau', tags: ['Ottendedele', 'Accenter'] },
-    { id: 'notes-3', cat: 'nodelære' as const, title: 'Sekstendedele ghost notes', sub: 'Avanceret nodeforståelse', dur: '12 min', bpm: '96', level: 'Øvet', tags: ['Sekstendedele', 'Ghost notes'] },
-    { id: 'grooves-1', cat: 'grooves' as const, title: 'Basic Rock Beat', sub: 'Klassisk 8.-dels groove', dur: '6 min', bpm: '90', level: 'Begynder', tags: ['Basic rock', 'Pop'] },
-    { id: 'grooves-2', cat: 'grooves' as const, title: 'Funk Pocket Groove', sub: 'Syncoperet 16.-dels hi-hat groove', dur: '10 min', bpm: '95', level: 'Mellemniveau', tags: ['Funk', 'Ghost notes'] },
-    { id: 'grooves-3', cat: 'grooves' as const, title: 'Linear Funk Pattern', sub: 'Linear timing uden overlappende slag', dur: '15 min', bpm: '100', level: 'Øvet', tags: ['Funk', 'Linear grooves'] },
-    { id: 'playalong-1', cat: 'playalong' as const, title: 'Classic Rock 4/4 Beat', sub: 'Spil med et stærkt rock backing track', dur: '3 min', bpm: '92', level: 'Begynder', tags: ['Rock tracks', 'Begyndertracks'] },
-    { id: 'playalong-2', cat: 'playalong' as const, title: 'Funk Groove Odyssey', sub: 'Super funky synth-backing track', dur: '4 min', bpm: '105', level: 'Mellemniveau', tags: ['Funk tracks', 'Formtræning'] },
+    { id: 'warmup-1', cat: 'opvarmning' as const, title: language === 'da' ? '5 min teknik-start' : language === 'en' ? '5 min tech startup' : language === 'de' ? '5 Min. Technik-Start' : 'Inicio técnico de 5 min', sub: language === 'da' ? 'Single strokes og håndkontrol' : language === 'en' ? 'Single strokes and hand control' : language === 'de' ? 'Single Strokes und Handkontrolle' : 'Single strokes y control de manos', dur: '5 min', bpm: '80', level: 'Begynder', tags: ['5 min', 'Single strokes'] },
+    { id: 'warmup-2', cat: 'opvarmning' as const, title: language === 'da' ? 'Hånd-hastighed & kontrol' : language === 'en' ? 'Hand Speed & Control' : language === 'de' ? 'Handgeschwindigkeit & Kontrolle' : 'Velocidad y control de manos', sub: language === 'da' ? 'Dobbelt slag og paradiddle kontrol' : language === 'en' ? 'Double strokes and paradiddle control' : language === 'de' ? 'Doppelschläge und Paradiddle-Kontrolle' : 'Golpes dobles y control de paradiddle', dur: '10 min', bpm: '100', level: 'Mellemniveau', tags: ['10 min', 'Hænder', 'Double strokes', 'Paradiddles'] },
+    { id: 'warmup-3', cat: 'opvarmning' as const, title: language === 'da' ? 'Stortromme styrke' : language === 'en' ? 'Bass Drum Power' : language === 'de' ? 'Bassdrum-Stärke' : 'Fuerza de bombo', sub: language === 'da' ? 'Fodkontrol og udholdenhed' : language === 'en' ? 'Foot control and endurance' : language === 'de' ? 'Fußkontrolle und Ausdauer' : 'Control de pie y resistencia', dur: '12 min', bpm: '90', level: 'Øvet', tags: ['Fødder', 'Stortrommekontrol'] },
+    { id: 'notes-1', cat: 'nodelære' as const, title: language === 'da' ? 'Læs fjerdedele & pauser' : language === 'en' ? 'Read Quarter Notes & Rests' : language === 'de' ? 'Viertelnoten & Pausen lesen' : 'Leer negras y silencios', sub: language === 'da' ? 'Grundlæggende nodelæsning' : language === 'en' ? 'Basic sheet music reading' : language === 'de' ? 'Grundlegendes Notenlesen' : 'Lectura básica de partituras', dur: '5 min', bpm: '80', level: 'Begynder', tags: ['Fjerdedele', 'Pauser'] },
+    { id: 'notes-2', cat: 'nodelære' as const, title: language === 'da' ? 'Ottendedele syncopation' : language === 'en' ? 'Eighth Note Syncopation' : language === 'de' ? 'Achtelnoten-Synkopen' : 'Síncopa de corcheas', sub: language === 'da' ? 'Udfordr din timing' : language === 'en' ? 'Challenge your timing' : language === 'de' ? 'Fordere dein Timing heraus' : 'Desafía tu tempo', dur: '8 min', bpm: '90', level: 'Mellemniveau', tags: ['Ottendedele', 'Accenter'] },
+    { id: 'notes-3', cat: 'nodelære' as const, title: language === 'da' ? 'Sekstendedele ghost notes' : language === 'en' ? 'Sixteenth Note Ghost Notes' : language === 'de' ? 'Sechzehntel-Ghostnotes' : 'Notas fantasma de semicorcheas', sub: language === 'da' ? 'Avanceret nodeforståelse' : language === 'en' ? 'Advanced notation comprehension' : language === 'de' ? 'Fortgeschrittenes Notenverständnis' : 'Comprensión avanzada de notación', dur: '12 min', bpm: '96', level: 'Øvet', tags: ['Sekstendedele', 'Ghost notes'] },
+    { id: 'grooves-1', cat: 'grooves' as const, title: 'Basic Rock Beat', sub: language === 'da' ? 'Klassisk 8.-dels groove' : language === 'en' ? 'Classic 8th note groove' : language === 'de' ? 'Klassischer Achtelgroove' : 'Groove clásico de corcheas', dur: '6 min', bpm: '90', level: 'Begynder', tags: ['Basic rock', 'Pop'] },
+    { id: 'grooves-2', cat: 'grooves' as const, title: 'Funk Pocket Groove', sub: language === 'da' ? 'Syncoperet 16.-dels hi-hat groove' : language === 'en' ? 'Syncopated 16th note hi-hat groove' : language === 'de' ? 'Synkopierter Sechzehntel-Hi-Hat-Groove' : 'Groove sincopado de semicorcheas en hi-hat', dur: '10 min', bpm: '95', level: 'Mellemniveau', tags: ['Funk', 'Ghost notes'] },
+    { id: 'grooves-3', cat: 'grooves' as const, title: 'Linear Funk Pattern', sub: language === 'da' ? 'Linear timing uden overlappende slag' : language === 'en' ? 'Linear timing without overlapping hits' : language === 'de' ? 'Lineares Timing ohne überlappende Schläge' : 'Tempo lineal sin golpes superpuestos', dur: '15 min', bpm: '100', level: 'Øvet', tags: ['Funk', 'Linear grooves'] },
+    { id: 'playalong-1', cat: 'playalong' as const, title: 'Classic Rock 4/4 Beat', sub: language === 'da' ? 'Spil med et stærkt rock backing track' : language === 'en' ? 'Play along with a strong rock backing track' : language === 'de' ? 'Spiele zu einem starken Rock-Backing-Track' : 'Toca con una fuerte pista de acompañamiento de rock', dur: '3 min', bpm: '92', level: 'Begynder', tags: ['Rock tracks', 'Begyndertracks'] },
+    { id: 'playalong-2', cat: 'playalong' as const, title: 'Funk Groove Odyssey', sub: language === 'da' ? 'Super funky synth-backing track' : language === 'en' ? 'Super funky synth backing track' : language === 'de' ? 'Super funky Synth-Backing-Track' : 'Pista de acompañamiento de sintetizador súper funky', dur: '4 min', bpm: '105', level: 'Mellemniveau', tags: ['Funk tracks', 'Formtræning'] },
   ];
+
+  const getLevelLabel = (lvl: string) => {
+    if (lvl === 'Begynder') return translate('beginner');
+    if (lvl === 'Mellemniveau') return translate('intermediate');
+    if (lvl === 'Øvet') return translate('advanced');
+    return lvl;
+  };
+
+  const getCategoryLabel = (cat: string) => {
+    if (cat === 'opvarmning') return translate('warmup');
+    if (cat === 'nodelære') return translate('musicTheory');
+    if (cat === 'grooves') return translate('grooves');
+    if (cat === 'playalong') return translate('playalong');
+    return cat;
+  };
 
   const filtered = allExercises.filter(ex => {
     const matchesSearch = ex.title.toLowerCase().includes(search.toLowerCase()) || ex.sub.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
     if (activeChip === 'Alle') return true;
-    if (activeChip === 'Pocket Opvarmning') return ex.cat === 'opvarmning';
-    if (activeChip === 'Pocket Nodelære') return ex.cat === 'nodelære';
-    if (activeChip === 'Pocket Groove') return ex.cat === 'grooves';
-    if (activeChip === 'Pocket Play-along') return ex.cat === 'playalong';
-    return true;
+    return ex.cat === activeChip;
   });
+
+  const chips = [
+    { id: 'Alle' as const, label: language === 'da' ? 'Alle' : language === 'en' ? 'All' : language === 'de' ? 'Alle' : 'Todos' },
+    { id: 'opvarmning' as const, label: translate('warmup') },
+    { id: 'nodelære' as const, label: translate('musicTheory') },
+    { id: 'grooves' as const, label: translate('grooves') },
+    { id: 'playalong' as const, label: translate('playalong') }
+  ];
 
   return (
     <div style={{ color: t.text, fontFamily: t.font, padding: '4px 0 40px' }}>
       <div style={{ padding: '4px 20px 14px' }}>
-        <Display t={t} size={28} style={{ marginBottom: 16 }}>Øvelsesbibliotek</Display>
+        <Display t={t} size={28} style={{ marginBottom: 16 }}>
+          {language === 'da' ? 'Øvelsesbibliotek' : language === 'en' ? 'Exercise Library' : language === 'de' ? 'Übungsbibliothek' : 'Biblioteca de ejercicios'}
+        </Display>
+
+        {/* Rhythm Hero card */}
+        <TiltCard style={{ borderRadius: '18px', marginBottom: 20 }}>
+          <div style={{
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: 18, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: '50%',
+                background: 'rgba(242,85,69,0.15)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', color: t.accent,
+                fontSize: 18
+              }}>
+                🎮
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 16, color: t.text, fontWeight: 'bold' }}>
+                  {translate('rhythmHero')}
+                </div>
+                <div style={{ fontSize: 11, color: t.textMuted, lineHeight: 1.3 }}>
+                  {translate('rhythmHeroSub')}
+                </div>
+              </div>
+            </div>
+            <button 
+              onClick={onPlayRhythmHero}
+              style={{
+                width: '100%',
+                background: t.accent,
+                border: 'none',
+                color: '#fff',
+                padding: '10px 14px',
+                borderRadius: 10,
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'background 0.2s',
+                fontFamily: t.font
+              }}
+            >
+              Start Game (+XP)
+            </button>
+          </div>
+        </TiltCard>
         
         {/* Search input */}
         <div style={{ position: 'relative', marginBottom: 16 }}>
           <input
             type="text"
-            placeholder="Søg efter øvelser, teknik..."
+            placeholder={language === 'da' ? 'Søg efter øvelser, teknik...' : language === 'en' ? 'Search exercises, techniques...' : language === 'de' ? 'Übungen, Techniken suchen...' : 'Buscar ejercicios, técnicas...'}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{
@@ -690,15 +824,15 @@ function PracticeScreen({ t, onSelectCategory }: PracticeScreenProps) {
 
         {/* Filter chips */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
-          {(['Alle', 'Pocket Opvarmning', 'Pocket Nodelære', 'Pocket Groove', 'Pocket Play-along'] as const).map(chip => {
-            const active = activeChip === chip;
+          {chips.map(chip => {
+            const active = activeChip === chip.id;
             return (
-              <button key={chip} onClick={() => setActiveChip(chip)} style={{
+              <button key={chip.id} onClick={() => setActiveChip(chip.id)} style={{
                 padding: '8px 14px', borderRadius: 999, border: `1px solid ${active ? t.accent : t.border}`,
                 background: active ? t.accentSoft : t.surface, color: active ? t.accent : t.textMuted,
                 fontFamily: t.font, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 whiteSpace: 'nowrap', transition: 'all 0.15s ease'
-              }}>{chip}</button>
+              }}>{chip.label}</button>
             );
           })}
         </div>
@@ -718,7 +852,7 @@ function PracticeScreen({ t, onSelectCategory }: PracticeScreenProps) {
                 color: ex.cat === 'opvarmning' ? '#3eaf7c' : ex.cat === 'nodelære' ? '#4287f5' : ex.cat === 'grooves' ? t.accent : '#9b59b6',
                 textTransform: 'uppercase', letterSpacing: 0.5
               }}>
-                {ex.cat === 'grooves' ? 'Pocket Groove' : ex.cat === 'opvarmning' ? 'Pocket Opvarmning' : ex.cat === 'nodelære' ? 'Pocket Nodelære' : ex.cat === 'playalong' ? 'Pocket Play-along' : ex.cat}
+                {getCategoryLabel(ex.cat)}
               </span>
               <span style={{ fontSize: 11, color: t.textMuted, fontFamily: t.mono }}>{ex.dur} · {ex.bpm} BPM</span>
             </div>
@@ -728,7 +862,7 @@ function PracticeScreen({ t, onSelectCategory }: PracticeScreenProps) {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
               <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ fontSize: 10.5, color: t.textMuted }}>{ex.level}</span>
+                <span style={{ fontSize: 10.5, color: t.textMuted }}>{getLevelLabel(ex.level)}</span>
               </div>
               <button style={{
                 width: 32, height: 32, borderRadius: '50%', background: t.accentSoft,
@@ -743,7 +877,9 @@ function PracticeScreen({ t, onSelectCategory }: PracticeScreenProps) {
         {filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textMuted }}>
             <span style={{ fontSize: 24 }}>🔍</span>
-            <div style={{ fontSize: 13, marginTop: 8 }}>Ingen øvelser matcher din søgning.</div>
+            <div style={{ fontSize: 13, marginTop: 8 }}>
+              {language === 'da' ? 'Ingen øvelser matcher din søgning.' : language === 'en' ? 'No exercises match your search.' : language === 'de' ? 'Keine Übungen entsprechen Ihrer Suche.' : 'No hay ejercicios que coincidan con tu búsqueda.'}
+            </div>
           </div>
         )}
       </div>
@@ -1368,6 +1504,7 @@ function LessonDetail({ t, onClose, onOpenCoach }: LessonDetailProps) {
   const [playing, setPlaying] = useState(false);
   const [bpm, setBpm] = useState(92);
   const [beat, setBeat] = useState(0);
+  const [videoUrl, setVideoUrl] = useState("https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1");
 
   useEffect(() => {
     if (!playing) return;
@@ -1375,6 +1512,17 @@ function LessonDetail({ t, onClose, onOpenCoach }: LessonDetailProps) {
     const id = setInterval(() => setBeat(b => (b + 1) % 8), interval);
     return () => clearInterval(id);
   }, [playing, bpm]);
+
+  const timeToSeconds = (timeStr: string) => {
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return 0;
+  };
+
+  const handleChapterClick = (timeStr: string) => {
+    const seconds = timeToSeconds(timeStr);
+    setVideoUrl(`https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&autoplay=1&start=${seconds}`);
+  };
 
   const exercises = [
     { title: 'Spil takten i 60 BPM', detail: '8 takter uden stop', done: true },
@@ -1494,7 +1642,7 @@ function LessonDetail({ t, onClose, onOpenCoach }: LessonDetailProps) {
               <iframe
                 width="100%"
                 height="100%"
-                src="https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1"
+                src={videoUrl}
                 title="Trommelektion - 16-dele Hi-Hat"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -1509,7 +1657,7 @@ function LessonDetail({ t, onClose, onOpenCoach }: LessonDetailProps) {
             </div>
 
             <div style={{ marginTop: 24 }}>
-              <SectionLabel t={t}>Kapitler</SectionLabel>
+              <SectionLabel t={t}>Kapitler (Klik for at afspille stempel)</SectionLabel>
               <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, overflow: 'hidden' }}>
                 {[
                   { time: '0:00', title: 'Introduktion' },
@@ -1518,7 +1666,7 @@ function LessonDetail({ t, onClose, onOpenCoach }: LessonDetailProps) {
                   { time: '7:55', title: 'Spil med click' },
                   { time: '10:30', title: 'Almindelige fejl' },
                 ].map((c, i, arr) => (
-                  <div key={i} style={{
+                  <div key={i} onClick={() => handleChapterClick(c.time)} style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px',
                     borderBottom: i < arr.length - 1 ? `1px solid ${t.border}` : 'none', cursor: 'pointer',
                   }}>
@@ -1531,6 +1679,7 @@ function LessonDetail({ t, onClose, onOpenCoach }: LessonDetailProps) {
             </div>
           </div>
         )}
+
 
         {tab === 'ovelser' && (
           <div>
@@ -1587,10 +1736,11 @@ function LessonDetail({ t, onClose, onOpenCoach }: LessonDetailProps) {
 
 // 6. Studio Kit Screen
 function StudioKitScreen({ t, onOpenPads }: StudioKitScreenProps) {
+  const { language, t: translate } = useLanguage();
   return (
     <div style={{ color: t.text, fontFamily: t.font, padding: '4px 0 40px' }}>
       <div style={{ padding: '4px 20px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: t.textMuted }}>Trommesæt</div>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: t.textMuted }}>{translate('kit') || 'Trommesæt'}</div>
         <button style={{
           width: 38, height: 38, borderRadius: '50%', background: 'transparent',
           border: `1px solid ${t.border}`, color: t.text, cursor: 'pointer',
@@ -1611,18 +1761,30 @@ function StudioKitScreen({ t, onOpenPads }: StudioKitScreenProps) {
 
         <Display t={t} size={36} style={{ marginBottom: 6 }}>Studio Kit</Display>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: t.accent, marginBottom: 14 }}>
-          Dit virtuelle trommesæt
+          {language === 'da' ? 'Dit virtuelle trommesæt' : language === 'en' ? 'Your virtual drum kit' : language === 'de' ? 'Dein virtuelles Schlagzeug' : 'Tu batería virtual'}
         </div>
 
         <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 15, color: t.text, opacity: 0.8, lineHeight: 1.5 }}>
-          Et professionelt trommesæt med realistisk lyd og respons.
+          {language === 'da' ? 'Et professionelt trommesæt med realistisk lyd og respons.' : language === 'en' ? 'A professional drum kit with realistic sound and response.' : language === 'de' ? 'Ein professionelles Schlagzeug mit realistischem Sound und Ansprechverhalten.' : 'Una batería profesional con sonido y respuesta realistas.'}
         </div>
 
         <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 18 }}>
           {[
-            { icon: <IcWave size={18} />, title: 'Realistisk lyd', sub: 'Optaget i studiekvalitet' },
-            { icon: <IcTuner size={18} />, title: 'Tilpas dit kit', sub: 'Justér lyd og opsætning' },
-            { icon: <IcMic size={18} />, title: 'Responsiv følelse', sub: 'Naturlig spiloplevelse' },
+            { 
+              icon: <IcWave size={18} />, 
+              title: language === 'da' ? 'Realistisk lyd' : language === 'en' ? 'Realistic Sound' : language === 'de' ? 'Realistischer Sound' : 'Sonido realista', 
+              sub: language === 'da' ? 'Optaget i studiekvalitet' : language === 'en' ? 'Recorded in studio quality' : language === 'de' ? 'In Studioqualität aufgenommen' : 'Grabado en calidad de estudio' 
+            },
+            { 
+              icon: <IcTuner size={18} />, 
+              title: language === 'da' ? 'Tilpas dit kit' : language === 'en' ? 'Customize your kit' : language === 'de' ? 'Passe dein Kit an' : 'Personaliza tu kit', 
+              sub: language === 'da' ? 'Justér lyd og opsætning' : language === 'en' ? 'Adjust sound and setup' : language === 'de' ? 'Sound und Setup anpassen' : 'Ajustar sonido y configuración' 
+            },
+            { 
+              icon: <IcMic size={18} />, 
+              title: language === 'da' ? 'Responsiv følelse' : language === 'en' ? 'Responsive feel' : language === 'de' ? 'Reaktionsschnelles Gefühl' : 'Sensación receptiva', 
+              sub: language === 'da' ? 'Naturlig spiloplevelse' : language === 'en' ? 'Natural playing experience' : language === 'de' ? 'Natürliches Spielerlebnis' : 'Experiencia de juego natural' 
+            },
           ].map((f, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
@@ -1638,7 +1800,9 @@ function StudioKitScreen({ t, onOpenPads }: StudioKitScreenProps) {
         </div>
 
         <div style={{ marginTop: 30 }}>
-          <CTA t={t} onClick={onOpenPads} icon={<IcPlay size={13} fill color="#fff"/>}>Åbn trommesæt</CTA>
+          <CTA t={t} onClick={onOpenPads} icon={<IcPlay size={13} fill color="#fff"/>}>
+            {language === 'da' ? 'Åbn trommesæt' : language === 'en' ? 'Open drum kit' : language === 'de' ? 'Schlagzeug öffnen' : 'Abrir batería'}
+          </CTA>
         </div>
       </div>
     </div>
@@ -1667,6 +1831,7 @@ interface CustomWindow extends Window {
 function KitPadView({ t, onClose }: KitPadViewProps) {
   const [active, setActive] = useState<Record<number, number>>({});
   const [recording, setRecording] = useState(false);
+  const { language } = useLanguage();
 
   const hit = (i: number) => {
     setActive(a => ({ ...a, [i]: Date.now() }));
@@ -1731,7 +1896,9 @@ function KitPadView({ t, onClose }: KitPadViewProps) {
           display: 'flex', alignItems: 'center', }}><IcBack size={16} /></button>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: t.textMuted, letterSpacing: 1.8, textTransform: 'uppercase' }}>Studio Kit</div>
-          <Display t={t} size={16} style={{ marginTop: 2 }}>Live play</Display>
+          <Display t={t} size={16} style={{ marginTop: 2 }}>
+            {language === 'da' ? 'Live-spil' : language === 'en' ? 'Live Play' : language === 'de' ? 'Live-Spiel' : 'Juego en vivo'}
+          </Display>
         </div>
         <button onClick={() => setRecording(!recording)} style={{
           width: 38, height: 38, borderRadius: '50%',
@@ -1781,7 +1948,9 @@ function KitPadView({ t, onClose }: KitPadViewProps) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: recording ? t.accent : t.textDim }} />
-            <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>{recording ? 'Optager' : 'Klar'}</div>
+            <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>
+              {recording ? (language === 'da' ? 'Optager' : language === 'en' ? 'Recording' : language === 'de' ? 'Aufnahme' : 'Grabando') : (language === 'da' ? 'Klar' : language === 'en' ? 'Ready' : language === 'de' ? 'Bereit' : 'Listo')}
+            </div>
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 14, fontWeight: 600 }}>00:00</div>
           <button style={{
@@ -1938,24 +2107,19 @@ function CoachScreen({ t, onClose }: CoachScreenProps) {
 }
 
 // 9. Profile Screen
-function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
+function ProfileScreen({ t, dark, setDark, guestXp }: ProfileScreenProps) {
   const { user, login, logout } = useAuth();
-  const [emailInput, setEmailInput] = useState('');
+  const { language, setLanguage, t: translate } = useLanguage();
   const [loginLoading, setLoginLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput || !emailInput.includes('@')) {
-      setErrorMsg('Indtast en gyldig e-mailadresse');
-      return;
-    }
+  const handleGoogleLogin = async () => {
     setErrorMsg('');
     setLoginLoading(true);
     try {
-      await login(emailInput);
+      await login();
     } catch {
-      setErrorMsg('Fejl under login. Prøv igen.');
+      setErrorMsg(language === 'da' ? 'Fejl under login med Google. Prøv igen.' : 'Error during Google sign-in. Please try again.');
     } finally {
       setLoginLoading(false);
     }
@@ -1966,12 +2130,18 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
+  const xp = user?.xp !== undefined ? user.xp : guestXp;
+  const level = user ? (user.level || 1) : Math.floor(xp / 200) + 1;
+  const streak = user?.streak !== undefined ? user.streak : 7;
+  const xpPct = ((xp % 200) / 200) * 100;
   const isPremium = user ? (user.isPremium || false) : false;
 
   return (
     <div style={{ color: t.text, fontFamily: t.font, padding: '4px 0 40px' }}>
       <div style={{ padding: '4px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: t.textMuted }}>Profil</div>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: t.textMuted }}>
+          {translate('profile') || 'Profil'}
+        </div>
       </div>
 
       {!user ? (
@@ -1983,51 +2153,47 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
             boxShadow: '0 8px 30px rgba(0,0,0,0.02)'
           }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🔐</div>
-            <Display t={t} size={22} style={{ marginBottom: 8 }}>Gem dine fremskridt</Display>
+            <Display t={t} size={22} style={{ marginBottom: 8 }}>
+              {language === 'da' ? 'Gem dine fremskridt' : language === 'en' ? 'Save Your Progress' : language === 'de' ? 'Speichere deinen Fortschritt' : 'Guarda tu progreso'}
+            </Display>
             <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 20, lineHeight: 1.5 }}>
-              Indtast din e-mailadresse for at logge ind og synkronisere dine øvelser og træningsplaner med skyen.
+              {translate('loginGoogleSub')}
             </div>
             
-            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input
-                type="email"
-                placeholder="Din e-mailadresse..."
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loginLoading}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
                   background: t.surface2,
                   border: `1px solid ${t.borderStrong}`,
                   borderRadius: 12,
                   padding: '12px 14px',
                   color: t.text,
                   fontSize: 13,
-                  fontFamily: t.font,
-                  textAlign: 'center',
-                  outline: 'none',
-                }}
-              />
-              <button
-                type="submit"
-                disabled={loginLoading}
-                style={{
-                  background: t.accent,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 12,
-                  padding: '12px',
-                  fontSize: 13,
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: loginLoading ? 'default' : 'pointer',
                   transition: 'background 0.2s',
                   fontFamily: t.font,
+                  outline: 'none',
                 }}
               >
-                {loginLoading ? 'Logger ind...' : 'Log ind / Opret profil'}
+                <svg width="16" height="16" viewBox="0 0 18 18" style={{ marginRight: 4 }}>
+                  <path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.24h2.9c1.7-1.56 2.69-3.86 2.69-6.57z"/>
+                  <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.24c-.8.54-1.84.87-3.06.87-2.35 0-4.33-1.58-5.04-3.71H.94v2.3C2.42 16.03 5.48 18 9 18z"/>
+                  <path fill="#FBBC05" d="M3.96 10.74c-.18-.54-.28-1.12-.28-1.74s.1-1.2.28-1.74V4.96H.94A8.99 8.99 0 000 9c0 1.45.35 2.82.94 4.04l3.02-2.3z"/>
+                  <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.4C13.46.97 11.41 0 9 0 5.48 0 2.42 1.97.94 4.96l3.02 2.3c.71-2.13 2.69-3.71 5.04-3.71z"/>
+                </svg>
+                {loginLoading ? (language === 'da' ? 'Logger ind...' : 'Signing in...') : translate('loginGoogle')}
               </button>
               {errorMsg && (
                 <div style={{ color: t.accent, fontSize: 11, fontWeight: 500, marginTop: 4 }}>{errorMsg}</div>
               )}
-            </form>
+            </div>
           </div>
         </div>
       ) : (
@@ -2035,17 +2201,29 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
         <>
           <div style={{ padding: '20px 20px 0', textAlign: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block' }}>
-              <div style={{
-                width: 96, height: 96, borderRadius: '50%',
-                background: t.accent,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: t.serif, fontStyle: 'italic', fontSize: 36, color: '#fff',
-                boxShadow: '0 10px 28px rgba(239,90,58,0.4)',
-              }}>{getInitials(user.displayName)}</div>
+              {user.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt={user.displayName} 
+                  style={{ 
+                    width: 96, height: 96, borderRadius: '50%', 
+                    objectFit: 'cover', border: `3px solid ${t.accent}`,
+                    boxShadow: '0 10px 28px rgba(239,90,58,0.25)',
+                  }} 
+                />
+              ) : (
+                <div style={{
+                  width: 96, height: 96, borderRadius: '50%',
+                  background: t.accent,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: t.serif, fontStyle: 'italic', fontSize: 36, color: '#fff',
+                  boxShadow: '0 10px 28px rgba(239,90,58,0.4)',
+                }}>{getInitials(user.displayName)}</div>
+              )}
             </div>
             <Display t={t} size={28} style={{ marginTop: 16 }}>{user.displayName}</Display>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: t.accent, marginTop: 6 }}>
-              {user.role === 'admin' ? 'Administrator' : `Niveau 1 · ${isPremium ? 'PRO' : 'Gratis'}`}
+              {user.role === 'admin' ? (translate('adminPanel') || 'Administrator') : `${translate('level')} ${level} · ${isPremium ? 'PRO' : (translate('freePlan') || 'Gratis')}`}
             </div>
             <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>{user.email}</div>
 
@@ -2055,28 +2233,28 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
                   color: t.accent, textDecoration: 'none', fontSize: 12, 
                   fontWeight: 600, borderBottom: `1px solid ${t.accent}` 
                 }}>
-                  Gå til Admin-panel →
+                  {translate('adminPanel')} →
                 </a>
               </div>
             )}
 
             <div style={{ marginTop: 18, padding: '0 12px' }}>
-              <div style={{ display: 'flex', fontSize: 10, color: t.textMuted, marginBottom: 6, fontFamily: t.mono, fontWeight: 600, letterSpacing: 0.5 }}>
-                <span>NIV 1</span>
-                <span>120 / 200 XP</span>
-                <span>NIV 2</span>
+              <div style={{ display: 'flex', fontSize: 10, color: t.textMuted, marginBottom: 6, fontFamily: t.mono, fontWeight: 600, letterSpacing: 0.5, justifyContent: 'space-between' }}>
+                <span>{translate('level').toUpperCase()} {level}</span>
+                <span>{xp % 200} / 200 XP</span>
+                <span>{translate('level').toUpperCase()} {level + 1}</span>
               </div>
-              <Progress pct={60} t={t} h={6} />
+              <Progress pct={xpPct} t={t} h={6} />
             </div>
           </div>
 
           <div style={{ padding: '24px 20px 0' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[
-                { icon: <IcFlame size={16} color={t.accent} />, value: '7', label: 'Dage streak' },
-                { icon: <IcClock size={16} color={t.text} />, value: '18t', label: 'Total øvetid' },
-                { icon: <IcCalendar size={16} color={t.text} />, value: '3/10', label: 'Moduler i gang' },
-                { icon: <IcTrophy size={16} color={t.text} />, value: `${user.completedExercises?.length || 0}`, label: 'Lektioner ✓' },
+                { icon: <IcFlame size={16} color={t.accent} />, value: String(streak), label: language === 'da' ? 'Dage streak' : language === 'en' ? 'Day Streak' : language === 'de' ? 'Tage am Stück' : 'Racha de días' },
+                { icon: <IcClock size={16} color={t.text} />, value: '18t', label: language === 'da' ? 'Total øvetid' : language === 'en' ? 'Total Practice' : language === 'de' ? 'Gesamtübungszeit' : 'Práctica total' },
+                { icon: <IcCalendar size={16} color={t.text} />, value: '3/10', label: language === 'da' ? 'Moduler i gang' : language === 'en' ? 'Active Modules' : language === 'de' ? 'Aktive Module' : 'Módulos activos' },
+                { icon: <IcTrophy size={16} color={t.text} />, value: `${user.completedExercises?.length || 0}`, label: language === 'da' ? 'Lektioner ✓' : language === 'en' ? 'Lessons Completed' : language === 'de' ? 'Lektionen ✓' : 'Lecciones ✓' },
               ].map((s, i) => (
                 <div key={i} style={{
                   background: t.surface, border: `1px solid ${t.border}`,
@@ -2096,11 +2274,14 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
 
       {/* Settings section */}
       <div style={{ padding: '26px 20px 0' }}>
-        <SectionLabel t={t}>Indstillinger</SectionLabel>
+        <SectionLabel t={t}>
+          {language === 'da' ? 'Indstillinger' : language === 'en' ? 'Settings' : language === 'de' ? 'Einstellungen' : 'Configuraciones'}
+        </SectionLabel>
         <div style={{
           background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: 18, overflow: 'hidden',
         }}>
+          {/* Dark Mode Switcher Row */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
             borderBottom: `1px solid ${t.border}`,
@@ -2109,7 +2290,9 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
               width: 32, height: 32, borderRadius: '50%', border: `1px solid ${t.borderStrong}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.text,
             }}>{dark ? <IcMoon size={14} /> : <IcSun size={14} />}</div>
-            <div style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>Mørkt tema</div>
+            <div style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>
+              {language === 'da' ? 'Mørkt tema' : language === 'en' ? 'Dark Theme' : language === 'de' ? 'Dunkles Design' : 'Tema oscuro'}
+            </div>
             <button onClick={() => setDark(!dark)} style={{
               width: 46, height: 26, borderRadius: 999, position: 'relative',
               background: dark ? t.accent : t.surface2,
@@ -2122,10 +2305,50 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
               }} />
             </button>
           </div>
+
+          {/* Language Switcher Setting Row */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+            borderBottom: `1px solid ${t.border}`,
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%', border: `1px solid ${t.borderStrong}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.text,
+              fontSize: 14
+            }}>🌐</div>
+            <div style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>
+              {language === 'da' ? 'Sprog' : language === 'en' ? 'Language' : language === 'de' ? 'Sprache' : 'Idioma'}
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[
+                { code: 'da', flag: '🇩🇰' },
+                { code: 'en', flag: '🇬🇧' },
+                { code: 'de', flag: '🇩🇪' },
+                { code: 'es', flag: '🇪🇸' }
+              ].map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => setLanguage(l.code as any)}
+                  style={{
+                    background: language === l.code ? t.accentSoft : 'transparent',
+                    border: `1px solid ${language === l.code ? t.accent : 'transparent'}`,
+                    borderRadius: 6,
+                    padding: '4px 6px',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {l.flag}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {[
-            { icon: <IcBell size={14} />, label: 'Notifikationer', detail: 'Hver dag kl. 18' },
-            { icon: <IcMetro size={14} />, label: 'Standard metronom', detail: '92 BPM' },
-            ...(user ? [{ icon: <IcLogout size={14} />, label: 'Log ud', onClick: logout }] : [])
+            { icon: <IcBell size={14} />, label: language === 'da' ? 'Notifikationer' : language === 'en' ? 'Notifications' : language === 'de' ? 'Benachrichtigungen' : 'Notificaciones', detail: 'Hver dag kl. 18' },
+            { icon: <IcMetro size={14} />, label: language === 'da' ? 'Standard metronom' : language === 'en' ? 'Default Metronome' : language === 'de' ? 'Standard-Metronom' : 'Metrónomo predeterminado', detail: '92 BPM' },
+            ...(user ? [{ icon: <IcLogout size={14} />, label: translate('logout'), onClick: logout }] : [])
           ].map((s, i, arr) => (
             <div key={i} onClick={s.onClick} style={{
               display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
@@ -2155,12 +2378,13 @@ function ProfileScreen({ t, dark, setDark }: ProfileScreenProps) {
 // App Tab bar & Shell Wrapper
 // ─────────────────────────────────────────────────────────────
 function TabBar({ tab, onTab, t, dark, isMobile, onSelectCategory }: TabBarProps) {
+  const { t: translate } = useLanguage();
   const tabs = [
-    { id: 'home', label: 'Hjem', icon: TabHome },
-    { id: 'practice', label: 'Øvelser', icon: TabPractice },
-    { id: 'playalong', label: 'Play-along', icon: TabPlayalong },
-    { id: 'kit', label: 'Trommesæt', icon: TabKit },
-    { id: 'profile', label: 'Profil', icon: TabUser },
+    { id: 'home', label: translate('home') || 'Hjem', icon: TabHome },
+    { id: 'practice', label: translate('practice') || 'Øvelser', icon: TabPractice },
+    { id: 'playalong', label: translate('playalong') || 'Play-along', icon: TabPlayalong },
+    { id: 'kit', label: translate('kit') || 'Trommesæt', icon: TabKit },
+    { id: 'profile', label: translate('profile') || 'Profil', icon: TabUser },
   ];
 
   return (
@@ -2231,6 +2455,10 @@ export default function MobilePrototype() {
   const [onboarded, setOnboarded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'opvarmning' | 'nodelære' | 'grooves' | 'playalong' | null>(null);
+  const [rhythmHeroOpen, setRhythmHeroOpen] = useState(false);
+  const [guestXp, setGuestXp] = useState(120);
+
+  const { user } = useAuth();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -2241,17 +2469,42 @@ export default function MobilePrototype() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Initialize onboarded status from localStorage client-side
+  // Initialize guest XP and onboarded status client-side
   useEffect(() => {
     try {
-      const val = localStorage.getItem('pocketdrummer-onboarded');
-      setTimeout(() => {
-        setOnboarded(val === '1');
-      }, 0);
+      if (typeof window !== 'undefined') {
+        const valXp = localStorage.getItem('pocketdrummer_xp');
+        if (valXp) setGuestXp(Number(valXp));
+
+        const valOnboard = localStorage.getItem('pocketdrummer-onboarded');
+        setTimeout(() => {
+          setOnboarded(valOnboard === '1');
+        }, 0);
+      }
     } catch {
       // Ignore errors silently on SSR
     }
   }, []);
+
+  const handleAwardXp = async (awardedXp: number) => {
+    try {
+      if (user) {
+        const nextXp = (user.xp || 0) + awardedXp;
+        const nextLevel = Math.floor(nextXp / 200) + 1;
+        const { firestoreService } = await import('@/lib/firestoreService');
+        await firestoreService.saveUserProfile(user.uid, {
+          xp: nextXp,
+          level: nextLevel
+        });
+      } else {
+        const nextXp = guestXp + awardedXp;
+        setGuestXp(nextXp);
+        localStorage.setItem('pocketdrummer_xp', String(nextXp));
+      }
+    } catch (err) {
+      console.error("Error awarding RhythmHero XP:", err);
+    }
+  };
 
   const t = tokens(dark);
   const scale = useFitScale(402, 874);
@@ -2260,8 +2513,6 @@ export default function MobilePrototype() {
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [tab]);
-
-
 
   const completeOnboarding = () => {
     try {
@@ -2400,16 +2651,20 @@ export default function MobilePrototype() {
               {tab === 'home' && (
                 <HomeScreen t={t} dark={dark} setDark={setDark}
                   onSelectCategory={(id) => setSelectedCategory(id)}
-                  onOpenCoach={() => setCoachOpen(true)} />
+                  onOpenCoach={() => setCoachOpen(true)}
+                  onPlayRhythmHero={() => setRhythmHeroOpen(true)}
+                  guestXp={guestXp} />
               )}
               {tab === 'practice' && (
-                <PracticeScreen t={t} dark={dark} onSelectCategory={(id) => setSelectedCategory(id)} />
+                <PracticeScreen t={t} dark={dark} 
+                  onSelectCategory={(id) => setSelectedCategory(id)}
+                  onPlayRhythmHero={() => setRhythmHeroOpen(true)} />
               )}
               {tab === 'kit' && (
                 <StudioKitScreen t={t} dark={dark} onOpenPads={() => setPadsOpen(true)} />
               )}
               {tab === 'profile' && (
-                <ProfileScreen t={t} dark={dark} setDark={setDark} />
+                <ProfileScreen t={t} dark={dark} setDark={setDark} guestXp={guestXp} />
               )}
             </div>
 
@@ -2452,6 +2707,15 @@ export default function MobilePrototype() {
             {/* Onboarding (covers everything) */}
             {!onboarded && (
               <OnboardingScreen t={t} dark={dark} onStart={completeOnboarding} />
+            )}
+
+            {/* Rhythm Hero overlay */}
+            {rhythmHeroOpen && (
+              <RhythmHero 
+                onClose={() => setRhythmHeroOpen(false)}
+                onAwardXP={handleAwardXp}
+                tTokens={t}
+              />
             )}
 
             {/* Home indicator */}

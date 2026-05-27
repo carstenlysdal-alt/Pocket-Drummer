@@ -17,6 +17,10 @@ import {
   LEVELS, MODULES, PILLARS,
 } from '@/lib/curriculum';
 import { useAuth } from '@/lib/authContext';
+import { useLanguage } from '@/lib/languageContext';
+import TiltCard from '@/components/TiltCard';
+import RhythmHero from '@/components/RhythmHero';
+
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────
 interface T {
@@ -142,6 +146,9 @@ function Sidebar({ t, view, onView, selectedCategory, setSelectedCategory, isPre
   onUpgrade: () => void;
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
+  const { language, setLanguage, t: translate } = useLanguage();
+  const { user } = useAuth();
+  
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); searchRef.current?.focus(); }
@@ -149,6 +156,14 @@ function Sidebar({ t, view, onView, selectedCategory, setSelectedCategory, isPre
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  const languages: { code: typeof language; flag: string }[] = [
+    { code: 'da', flag: '🇩🇰' },
+    { code: 'en', flag: '🇬🇧' },
+    { code: 'de', flag: '🇩🇪' },
+    { code: 'es', flag: '🇪🇸' },
+  ];
+
   return (
     <div style={{ width: 240, height: '100%', flexShrink: 0, background: t.sidebar, borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', padding: '18px 14px 16px' }}>
       {/* Brand */}
@@ -162,17 +177,24 @@ function Sidebar({ t, view, onView, selectedCategory, setSelectedCategory, isPre
       {/* Search */}
       <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 10, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={t.textDim} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <input ref={searchRef} placeholder="Søg øvelser, genrer…" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontFamily: t.font, fontSize: 12, padding: 0, margin: 0 }} />
+        <input ref={searchRef} placeholder="Søg..." style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontFamily: t.font, fontSize: 12, padding: 0, margin: 0 }} />
         <span style={{ fontFamily: t.mono, fontSize: 9, color: t.textDim, padding: '1px 5px', borderRadius: 4, border: `1px solid ${t.border}` }}>⌘K</span>
       </div>
 
       {/* Nav */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Sect t={t} style={{ marginBottom: 8 }}>Naviger</Sect>
+        <Sect t={t} style={{ marginBottom: 8 }}>{translate('home')}</Sect>
         {NAV_ITEMS.map(it => {
           const active = it.id === 'category'
             ? (view === 'category' && selectedCategory === it.category)
             : (view === it.id);
+          
+          const labelTranslated = it.id === 'home' ? translate('home') :
+                                  it.id === 'exercises' ? translate('practice') :
+                                  it.id === 'category' ? translate('playalong') :
+                                  it.id === 'studio' ? translate('kit') :
+                                  it.id === 'profile' ? translate('profile') : it.label;
+
           return (
             <button key={it.label} onClick={() => {
               if (it.id === 'category' && it.category) {
@@ -189,7 +211,7 @@ function Sidebar({ t, view, onView, selectedCategory, setSelectedCategory, isPre
               fontSize: 13.5, fontWeight: active ? 600 : 450, textAlign: 'left', width: '100%',
             }}>
               <it.icon size={17} color={active ? t.accent : t.textMuted} sw={active ? 1.8 : 1.4} />
-              <span style={{ flex: 1 }}>{it.label}</span>
+              <span style={{ flex: 1 }}>{labelTranslated}</span>
               {active && <div style={{ width: 5, height: 5, borderRadius: '50%', background: t.accent }} />}
             </button>
           );
@@ -198,6 +220,31 @@ function Sidebar({ t, view, onView, selectedCategory, setSelectedCategory, isPre
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
+
+      {/* Language Switcher */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, padding: '0 6px', justifyContent: 'center' }}>
+        {languages.map(l => (
+          <button 
+            key={l.code} 
+            onClick={() => setLanguage(l.code)}
+            style={{
+              background: language === l.code ? t.accentSoft : 'transparent',
+              border: `1px solid ${language === l.code ? t.accent : 'transparent'}`,
+              borderRadius: 8,
+              padding: '6px 8px',
+              fontSize: 14,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s'
+            }}
+          >
+            <span>{l.flag}</span>
+          </button>
+        ))}
+      </div>
+
 
       {/* Premium CTA or status */}
       {!isPremium ? (
@@ -231,12 +278,23 @@ function Sidebar({ t, view, onView, selectedCategory, setSelectedCategory, isPre
 
       {/* User chip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 6px 0', borderTop: `1px solid ${t.border}`, marginTop: 12 }}>
-        <div style={{ width: 32, height: 32, borderRadius: '50%', background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 700 }}>AL</div>
+        {user?.photoURL ? (
+          <img src={user.photoURL} alt={user.displayName} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 700 }}>
+            {user ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'A'}
+          </div>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: t.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Anders Lind</div>
-          <div style={{ fontSize: 10, color: t.textMuted, fontFamily: t.mono }}>Niveau 1 · {isPremium ? 'PRO' : 'FREE'}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: t.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {user ? user.displayName : 'Trommeslager'}
+          </div>
+          <div style={{ fontSize: 10, color: t.textMuted, fontFamily: t.mono }}>
+            {translate('level')} {user?.level || 1} · {isPremium ? 'PRO' : 'FREE'}
+          </div>
         </div>
       </div>
+
     </div>
   );
 }
@@ -417,8 +475,7 @@ function CoachPanel({ t, open, onToggle, isPremium, onUpgrade, onNavigate }: {
   );
 }
 
-// ─── HOME VIEW ────────────────────────────────────────────────
-function HomeView({ t, dark, setDark, onSelectCategory }: {
+function HomeView({ t, dark, setDark, onView, isPremium, onUpgrade, onSelectCategory, setRhythmHeroOpen }: {
   t: T;
   dark: boolean;
   setDark: (d: boolean) => void;
@@ -426,10 +483,18 @@ function HomeView({ t, dark, setDark, onSelectCategory }: {
   isPremium: boolean;
   onUpgrade: () => void;
   onSelectCategory: (cat: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong') => void;
+  setRhythmHeroOpen: (open: boolean) => void;
 }) {
   const { user } = useAuth();
+  const { t: translate } = useLanguage();
   const today = new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
   const displayName = user ? user.displayName : 'Anders';
+  
+  // Gamification states
+  const xp = user?.xp !== undefined ? user.xp : 120;
+  const level = user?.level || 1;
+  const streak = user?.streak !== undefined ? user.streak : 7;
+  const xpPct = ((xp % 200) / 200) * 100;
 
   return (
     <div style={{ padding: '36px 44px 60px', color: t.text, fontFamily: t.font, maxWidth: 1100 }}>
@@ -439,7 +504,7 @@ function HomeView({ t, dark, setDark, onSelectCategory }: {
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: t.textMuted, marginBottom: 10 }}>
             {today.charAt(0).toUpperCase() + today.slice(1)}
           </div>
-          <Display t={t} size={48}>Hej, {displayName}</Display>
+          <Display t={t} size={48}>{translate('welcome')}, {displayName}</Display>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setDark(!dark)} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -455,70 +520,114 @@ function HomeView({ t, dark, setDark, onSelectCategory }: {
       {/* Hero grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, marginBottom: 36 }}>
         {/* Recommended Daily Exercise */}
-        <Card t={t} pad={0} style={{ overflow: 'hidden', display: 'flex', borderLeft: `4px solid ${t.accent}` }}>
-          <div style={{ padding: 28, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <Sect t={t} color={t.accent}>Dagens anbefaling</Sect>
-              <Display t={t} size={30} style={{ marginBottom: 8 }}>Paradiddle Grooves</Display>
-              <div style={{ fontSize: 11, color: t.textMuted, fontFamily: t.mono, letterSpacing: 0.5, marginBottom: 12 }}>12 MIN · LET ØVET</div>
-              <p style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.5, margin: '0 0 16px' }}>
-                Styrk din koordination, fingerkontrol og balance på trommerne med dagens fokuserede paradiddle-grooves.
-              </p>
+        <TiltCard style={{ borderRadius: '18px' }}>
+          <Card t={t} pad={0} style={{ overflow: 'hidden', display: 'flex', borderLeft: `4px solid ${t.accent}`, height: '100%' }}>
+            <div style={{ padding: 28, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <Sect t={t} color={t.accent}>Dagens anbefaling</Sect>
+                <Display t={t} size={30} style={{ marginBottom: 8 }}>Paradiddle Grooves</Display>
+                <div style={{ fontSize: 11, color: t.textMuted, fontFamily: t.mono, letterSpacing: 0.5, marginBottom: 12 }}>12 MIN · LET ØVET</div>
+                <p style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.5, margin: '0 0 16px' }}>
+                  Styrk din koordination, fingerkontrol og balance på trommerne med dagens fokuserede paradiddle-grooves.
+                </p>
+              </div>
+              <div>
+                <Btn t={t} onClick={() => onSelectCategory('grooves')} icon={<IcPlay size={11} />}>Start dagens øvelse</Btn>
+              </div>
             </div>
-            <div>
-              <Btn t={t} onClick={() => onSelectCategory('grooves')} icon={<IcPlay size={11} />}>Start dagens øvelse</Btn>
+            <div style={{ width: 180, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dark ? '#101012' : '#F3EFE7', borderLeft: `1px solid ${t.border}`, flexShrink: 0 }}>
+              <IllSnare size={130} color={t.accent} sw={1.4} />
             </div>
-          </div>
-          <div style={{ width: 180, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dark ? '#101012' : '#F3EFE7', borderLeft: `1px solid ${t.border}`, flexShrink: 0 }}>
-            <IllSnare size={130} color={t.accent} sw={1.4} />
-          </div>
-        </Card>
+          </Card>
+        </TiltCard>
 
-        {/* Weekly Progression */}
-        <Card t={t} pad={24} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <Sect t={t}>Din progression</Sect>
-            <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6, fontFamily: t.mono }}>Denne uge</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 12, fontFamily: t.font }}>
-              3 øvedage · <span style={{ color: t.accent }}>72 min</span> · Niveau 2
+        {/* Weekly Progression / Gamification Dashboard */}
+        <TiltCard style={{ borderRadius: '18px' }}>
+          <Card t={t} pad={24} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+            <div>
+              <Sect t={t}>{translate('dailyQuests')}</Sect>
+              <div style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 12, fontFamily: t.font }}>
+                🔥 {streak} {translate('streakActive')}
+              </div>
+              
+              {/* Daily Quests Checklist */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: t.textMuted }}>
+                  <input type="checkbox" defaultChecked disabled style={{ accentColor: t.accent }} />
+                  <span>Spil i Studio Kit i 5 min (Fuldført)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: t.textMuted }}>
+                  <input type="checkbox" defaultChecked disabled style={{ accentColor: t.accent }} />
+                  <span>Øv en valgfri lektion (Fuldført)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: t.text }}>
+                  <input type="checkbox" disabled style={{ accentColor: t.accent }} />
+                  <strong>Prøv Rytmehelt minispillet! (+50 XP)</strong>
+                </div>
+              </div>
             </div>
-            <p style={{ fontSize: 12, color: t.textMuted, lineHeight: 1.5, marginBottom: 14, fontFamily: t.font }}>
-              Du er <span style={{ color: t.accentText, fontWeight: 600 }}>72%</span> af vejen mod dit ugentlige øvemål på 100 minutter.
-            </p>
-          </div>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.textMuted, marginBottom: 6, fontFamily: t.mono, fontWeight: 600, letterSpacing: 0.5 }}>
-              <span>UGEMÅL STATUS</span><span>72%</span>
+            
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.textMuted, marginBottom: 6, fontFamily: t.mono, fontWeight: 600, letterSpacing: 0.5 }}>
+                <span>{translate('level')} {level} PROGRESSION</span><span>{xp % 200} / 200 XP</span>
+              </div>
+              <Prog pct={xpPct} t={t} h={6} />
+              
+              <button 
+                onClick={() => setRhythmHeroOpen(true)}
+                style={{
+                  marginTop: 16,
+                  width: '100%',
+                  background: 'rgba(242,85,69,0.1)',
+                  border: '1px dashed #f25545',
+                  color: '#f25545',
+                  borderRadius: 10,
+                  padding: '10px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(242,85,69,0.18)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(242,85,69,0.1)'}
+              >
+                🎮 {translate('rhythmHero')} (+XP)
+              </button>
             </div>
-            <Prog pct={72} t={t} h={5} />
-            <div style={{ marginTop: 10, fontSize: 11, color: t.textDim, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span>🔥 7 dages streak · Fortsæt timingen!</span>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </TiltCard>
       </div>
 
       {/* Choose practice category */}
       <Sect t={t} style={{ marginBottom: 18 }}>Vælg øvespor</Sect>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 40 }}>
         {[
-          { id: 'opvarmning' as const, title: 'Opvarmning', desc: 'Start med hænder, fødder, kontrol og timing.', icon: <IllSticks size={52} color={t.accent} /> },
-          { id: 'nodelære' as const, title: 'Nodelære', desc: 'Forstå rytmer, taktarter og trommenotation.', icon: <div style={{ transform: 'scale(0.8)', marginTop: -20, marginBottom: -10 }}><DrumNotation color={t.text} width={140} accent={t.accent} active={2} /></div> },
-          { id: 'grooves' as const, title: 'Groove', desc: 'Spil beats, fills, overgange og genrer.', icon: <IllSnare size={62} color={t.accent} /> },
-          { id: 'playalong' as const, title: 'Play-along', desc: 'Spil med musik, backing tracks og form.', icon: <div style={{ width: 42, height: 42, borderRadius: '50%', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.accent }}><IcPlay size={20} fill color={t.accent} /></div> },
+          { id: 'opvarmning' as const, title: translate('warmup'), desc: translate('warmupDesc'), icon: <IllSticks size={52} color={t.accent} /> },
+          { id: 'nodelære' as const, title: translate('musicTheory'), desc: translate('theoryDesc'), icon: <div style={{ transform: 'scale(0.8)', marginTop: -20, marginBottom: -10 }}><DrumNotation color={t.text} width={140} accent={t.accent} active={2} /></div> },
+          { id: 'grooves' as const, title: translate('grooves'), desc: translate('groovesDesc'), icon: <IllSnare size={62} color={t.accent} /> },
+          { id: 'playalong' as const, title: translate('playalong'), desc: translate('playalongDesc'), icon: <div style={{ width: 42, height: 42, borderRadius: '50%', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.accent }}><IcPlay size={20} fill color={t.accent} /></div> },
         ].map((cat, i) => (
-          <Card key={i} t={t} pad={24} onClick={() => onSelectCategory(cat.id)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 20, transition: 'transform 0.15s ease, border-color 0.15s ease' }}>
-            <div style={{ width: 80, height: 80, borderRadius: 14, background: t.sidebar, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: `1px solid ${t.border}` }}>
-              {cat.icon}
-            </div>
-            <div style={{ flex: 1 }}>
-              <Display t={t} size={22} style={{ marginBottom: 6 }}>{cat.title}</Display>
-              <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.4 }}>{cat.desc}</div>
-            </div>
-            <IcChev size={16} color={t.textDim} />
-          </Card>
+          <TiltCard key={i} onClick={() => onSelectCategory(cat.id)} style={{ borderRadius: '18px' }}>
+            <Card t={t} pad={24} style={{ display: 'flex', alignItems: 'center', gap: 20, height: '100%' }}>
+              <div style={{ width: 80, height: 80, borderRadius: 14, background: t.sidebar, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, border: `1px solid ${t.border}` }}>
+                {cat.icon}
+              </div>
+              <div style={{ flex: 1 }}>
+                <Display t={t} size={22} style={{ marginBottom: 6 }}>{cat.title}</Display>
+                <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.4 }}>{cat.desc}</div>
+              </div>
+              <IcChev size={16} color={t.textDim} />
+            </Card>
+          </TiltCard>
         ))}
       </div>
+
     </div>
   );
 }
@@ -1330,22 +1439,16 @@ function StudioView({ t }: { t: T; dark: boolean }) {
 // ─── PROFILE VIEW ─────────────────────────────────────────────
 function ProfileView({ t, dark, setDark, isPremium, onUpgrade, completedIds, onReset }: { t: T; dark: boolean; setDark: (d: boolean) => void; isPremium: boolean; onUpgrade: () => void; completedIds: string[]; onReset: () => void }) {
   const { user, login, logout } = useAuth();
-  const [emailInput, setEmailInput] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput || !emailInput.includes('@')) {
-      setErrorMsg('Indtast venligst en gyldig e-mailadresse');
-      return;
-    }
+  const handleGoogleLogin = async () => {
     setErrorMsg('');
     setLoginLoading(true);
     try {
-      await login(emailInput);
+      await login();
     } catch {
-      setErrorMsg('Fejl under login. Prøv igen.');
+      setErrorMsg('Fejl under login med Google. Prøv igen.');
     } finally {
       setLoginLoading(false);
     }
@@ -1365,36 +1468,48 @@ function ProfileView({ t, dark, setDark, isPremium, onUpgrade, completedIds, onR
             <Sect t={t} color={t.accent}>Brugerstyring</Sect>
             <Display t={t} size={36} style={{ marginBottom: 14 }}>Log ind eller opret profil</Display>
             <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
-              Log ind med din e-mailadresse for at gemme dine øvelser, fremskridt og skræddersyede AI-træningsplaner i skyen, så du kan tilgå dem fra enhver enhed.
+              Log ind med din Google-konto for at gemme dine øvelser, fremskridt og skræddersyede AI-træningsplaner i skyen, så du kan tilgå dem fra enhver enhed.
             </div>
             
-            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', gap: 10 }}>
-                <input
-                  type="email"
-                  placeholder="Indtast din e-mailadresse..."
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={loginLoading}
                   style={{
-                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 12,
                     background: t.surface,
                     border: `1px solid ${t.borderStrong}`,
                     borderRadius: 12,
-                    padding: '12px 16px',
+                    padding: '12px 24px',
                     color: t.text,
                     fontSize: 14,
+                    fontWeight: 600,
                     fontFamily: t.font,
                     outline: 'none',
+                    cursor: loginLoading ? 'default' : 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
                   }}
-                />
-                <Btn t={t} onClick={() => {}} disabled={loginLoading}>
-                  {loginLoading ? 'Logger ind...' : 'Fortsæt'}
-                </Btn>
+                  onMouseOver={(e) => { if (!loginLoading) e.currentTarget.style.background = t.surface2; }}
+                  onMouseOut={(e) => { if (!loginLoading) e.currentTarget.style.background = t.surface; }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18">
+                    <path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.24h2.9c1.7-1.56 2.69-3.86 2.69-6.57z"/>
+                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.24c-.8.54-1.84.87-3.06.87-2.35 0-4.33-1.58-5.04-3.71H.94v2.3C2.42 16.03 5.48 18 9 18z"/>
+                    <path fill="#FBBC05" d="M3.96 10.74c-.18-.54-.28-1.12-.28-1.74s.1-1.2.28-1.74V4.96H.94A8.99 8.99 0 000 9c0 1.45.35 2.82.94 4.04l3.02-2.3z"/>
+                    <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.4C13.46.97 11.41 0 9 0 5.48 0 2.42 1.97.94 4.96l3.02 2.3c.71-2.13 2.69-3.71 5.04-3.71z"/>
+                  </svg>
+                  {loginLoading ? 'Logger ind...' : 'Fortsæt med Google'}
+                </button>
               </div>
               {errorMsg && (
                 <div style={{ color: t.accent, fontSize: 12, fontWeight: 500 }}>{errorMsg}</div>
               )}
-            </form>
+            </div>
           </div>
           
           <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start', marginTop: 24 }}>
@@ -1406,14 +1521,27 @@ function ProfileView({ t, dark, setDark, isPremium, onUpgrade, completedIds, onR
       ) : (
         /* Logged in state */
         <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginBottom: 40 }}>
-          <div style={{ 
-            width: 110, height: 110, borderRadius: '50%', background: t.accent, 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            color: '#fff', fontFamily: t.serif, fontStyle: 'italic', fontSize: 42, 
-            boxShadow: '0 16px 40px rgba(239,90,58,0.4)' 
-          }}>
-            {getInitials(user.displayName)}
-          </div>
+          {user.photoURL ? (
+            <img 
+              src={user.photoURL} 
+              alt={user.displayName} 
+              style={{ 
+                width: 110, height: 110, borderRadius: '50%', 
+                objectFit: 'cover', border: `3px solid ${t.accent}`,
+                boxShadow: '0 16px 40px rgba(239,90,58,0.25)'
+              }} 
+            />
+          ) : (
+            <div style={{ 
+              width: 110, height: 110, borderRadius: '50%', background: t.accent, 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              color: '#fff', fontFamily: t.serif, fontStyle: 'italic', fontSize: 42, 
+              boxShadow: '0 16px 40px rgba(239,90,58,0.4)' 
+            }}>
+              {getInitials(user.displayName)}
+            </div>
+          )}
+
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <Sect t={t} color={t.accent} style={{ marginBottom: 0 }}>
@@ -1671,6 +1799,7 @@ export default function App() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [, setPlan] = useState<UserPlan | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
+  const [rhythmHeroOpen, setRhythmHeroOpen] = useState(false);
 
   const t = useMemo(() => mkT(dark), [dark]);
   // Sync state with user profile
@@ -1749,6 +1878,7 @@ export default function App() {
           setSelectedCategory(cat);
           setView('category');
         }}
+        setRhythmHeroOpen={setRhythmHeroOpen}
       />
     );
   }
@@ -1804,6 +1934,34 @@ export default function App() {
       {showCheckout && (
         <CheckoutModal t={t} onClose={() => setShowCheckout(false)} onSuccess={handlePremiumSuccess} />
       )}
+
+      {/* Rhythm Hero Game modal overlay */}
+      {rhythmHeroOpen && (
+        <RhythmHero 
+          onClose={() => setRhythmHeroOpen(false)} 
+          onAwardXP={async (awardedXp) => {
+            try {
+              if (user) {
+                const nextXp = (user.xp || 0) + awardedXp;
+                const nextLevel = Math.floor(nextXp / 200) + 1;
+                const { firestoreService } = await import('@/lib/firestoreService');
+                await firestoreService.saveUserProfile(user.uid, {
+                  xp: nextXp,
+                  level: nextLevel
+                });
+              } else {
+                const currentLocalXp = Number(localStorage.getItem('pocketdrummer_xp') || '120');
+                const nextLocalXp = currentLocalXp + awardedXp;
+                localStorage.setItem('pocketdrummer_xp', String(nextLocalXp));
+              }
+            } catch (err) {
+              console.error("Error awarding RhythmHero XP:", err);
+            }
+          }}
+          tTokens={t}
+        />
+      )}
     </div>
   );
 }
+
