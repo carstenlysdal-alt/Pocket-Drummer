@@ -234,7 +234,9 @@ function ExerciseDetailModal({ t, ex, nextExercise, onNavigateNext, onClose }: {
               {done && <span style={{ fontSize: 10, fontFamily: t.mono, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: t.goodSoft, color: t.good }}>FÆRDIG</span>}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', background: t.surface2, border: `1px solid ${t.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textMuted, fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', background: t.surface2, border: `1px solid ${t.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={t.textMuted} strokeWidth="2" strokeLinecap="round"><path d="M1 1l10 10M11 1L1 11"/></svg>
+          </button>
         </div>
 
         {/* Tab bar */}
@@ -288,7 +290,9 @@ function ExerciseDetailModal({ t, ex, nextExercise, onNavigateNext, onClose }: {
                 <div style={{ borderRadius: 16, border: `1px solid ${t.good}33`, background: `${t.good}0a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Coach praise */}
                   <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>🥁</div>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    </div>
                     <div>
                       <div style={{ fontSize: 10, fontFamily: t.mono, fontWeight: 700, letterSpacing: 1, color: t.accent, textTransform: 'uppercase', marginBottom: 5 }}>AI Coach</div>
                       <div style={{ fontSize: 13.5, color: t.text, lineHeight: 1.6 }}>{coach.praise}</div>
@@ -336,6 +340,142 @@ function ExerciseDetailModal({ t, ex, nextExercise, onNavigateNext, onClose }: {
               )}
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PLAY-ALONG TRACK MODAL ───────────────────────────────────
+interface PlayAlongTrackData {
+  key: string;
+  title: string;
+  bpm: number | string;
+  level?: string;
+}
+
+function PlayAlongTrackModal({ t, track, onClose }: {
+  t: T;
+  track: PlayAlongTrackData;
+  onClose: () => void;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [guideVol, setGuideVol] = useState(60);
+  const [backingVol, setBackingVol] = useState(80);
+  const { markCompleted, isCompleted } = useExerciseProgress();
+  const done = isCompleted(track.key);
+  const sections = ['INTRO', 'VERS', 'OMKVÆD', 'BRIDGE', 'OUTRO'];
+  const totalSecs = 248;
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const id = setInterval(() => setProgress(p => {
+      if (p >= 100) { setPlaying(false); return 100; }
+      return p + 0.4;
+    }), 1000);
+    return () => clearInterval(id);
+  }, [playing]);
+
+  const currentSectionIdx = Math.min(Math.floor((progress / 100) * sections.length), sections.length - 1);
+  const currentSecs = Math.round((progress / 100) * totalSecs);
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 600, background: t.surface, borderRadius: 20, border: `1px solid ${t.borderStrong}`, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: `1px solid ${t.border}` }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.text, marginBottom: 3 }}>{track.title}</div>
+            <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted, letterSpacing: 0.5, textTransform: 'uppercase' }}>{track.bpm} BPM · BACKING TRACK</div>
+          </div>
+          {done && <span style={{ fontSize: 10, fontFamily: t.mono, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: t.goodSoft, color: t.good }}>FÆRDIG</span>}
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', background: t.surface2, border: `1px solid ${t.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={t.textMuted} strokeWidth="2" strokeLinecap="round"><path d="M1 1l10 10M11 1L1 11"/></svg>
+          </button>
+        </div>
+
+        <div style={{ padding: '28px 28px 32px' }}>
+          {/* Form timeline */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 10, fontFamily: t.mono, fontWeight: 700, letterSpacing: 1, color: t.textMuted, textTransform: 'uppercase', marginBottom: 10 }}>Opbygning</div>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+              {sections.map((s, si) => (
+                <div key={si} style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, fontFamily: t.mono, letterSpacing: 0.3, color: si === currentSectionIdx && playing ? t.accent : t.textMuted, marginBottom: 5, transition: 'color 0.5s' }}>{s}</div>
+                  <div style={{ height: 4, borderRadius: 2, background: si < currentSectionIdx ? t.accent : si === currentSectionIdx && playing ? t.accentSoft : t.surface2, transition: 'background 0.5s' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Progress bar + time */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+            <span style={{ fontFamily: t.mono, fontSize: 12, color: t.textMuted, minWidth: 36 }}>{fmt(currentSecs)}</span>
+            <div
+              style={{ flex: 1, position: 'relative', height: 6, borderRadius: 999, background: t.surface2, cursor: 'pointer' }}
+              onClick={e => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setProgress(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+              }}
+            >
+              <div style={{ width: `${progress}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${t.accent}, #ff7a4f)` }} />
+              <div style={{ position: 'absolute', top: '50%', left: `${progress}%`, transform: 'translate(-50%, -50%)', width: 14, height: 14, borderRadius: '50%', background: '#fff', boxShadow: `0 0 0 3px ${t.accent}` }} />
+            </div>
+            <span style={{ fontFamily: t.mono, fontSize: 12, color: t.textMuted, minWidth: 36, textAlign: 'right' }}>{fmt(totalSecs)}</span>
+          </div>
+
+          {/* Play button */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+            <button
+              onClick={() => setPlaying(p => !p)}
+              style={{ width: 60, height: 60, borderRadius: '50%', background: t.accent, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 32px rgba(242,85,69,0.4)`, transition: 'transform 0.1s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.07)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
+            >
+              {playing
+                ? <svg width="18" height="18" viewBox="0 0 18 18" fill="white"><rect x="3" y="3" width="4" height="12" rx="1"/><rect x="11" y="3" width="4" height="12" rx="1"/></svg>
+                : <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5 3.5l11 5.5-11 5.5V3.5z" fill="white"/></svg>
+              }
+            </button>
+          </div>
+
+          {/* Mixer */}
+          <div style={{ background: t.surface2, borderRadius: 14, padding: '18px 20px', marginBottom: 24 }}>
+            <div style={{ fontSize: 10, fontFamily: t.mono, fontWeight: 700, letterSpacing: 1, color: t.textMuted, textTransform: 'uppercase', marginBottom: 14 }}>Mixer</div>
+            {[
+              { label: 'Guide-trommer', vol: guideVol, set: setGuideVol },
+              { label: 'Backing track', vol: backingVol, set: setBackingVol },
+            ].map(({ label, vol, set }) => (
+              <div key={label} style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: t.text }}>{label}</span>
+                  <span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{vol}%</span>
+                </div>
+                <input type="range" min={0} max={100} value={vol} onChange={e => set(+e.target.value)} style={{ width: '100%', accentColor: t.accent }} />
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => { if (!done) markCompleted(track.key); }}
+            style={{ width: '100%', padding: '12px 24px', borderRadius: 12, background: done ? t.goodSoft : t.surface2, border: `1px solid ${done ? t.good + '55' : t.border}`, cursor: done ? 'default' : 'pointer', fontFamily: t.font, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: done ? t.good : t.text }}
+          >
+            {done ? '✓ Markeret som færdig' : 'Markér som færdig'}
+          </button>
         </div>
       </div>
     </div>
@@ -583,7 +723,7 @@ function CoachPanel({ t, open, onToggle, isPremium, onUpgrade, onNavigate }: {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [msgs, setMsgs] = useState<ChatMessage[]>([
-    { id: 0, role: 'ai', text: 'Hej! Jeg er din personlige trommelærer.\n\nHvordan gik øvningen sidst — og hvad vil du arbejde med i dag?' },
+    { id: 0, role: 'ai', text: 'Hej! Jeg er din personlige trommelærer. Hvad vil du fokusere på i dag — og hvor er du henne i dit forløb?' },
   ]);
   const msgIdRef = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -962,6 +1102,7 @@ function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
   const [activeChip, setActiveChip] = useState('Alle');
   const [selectedExercise, setSelectedExercise] = useState<ExerciseDetailData | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
+  const [selectedPlayAlongTrack, setSelectedPlayAlongTrack] = useState<PlayAlongTrackData | null>(null);
   const { markOpened, isCompleted } = useExerciseProgress();
 
   // Metronome widget states (nodelære-sektion)
@@ -1265,17 +1406,26 @@ function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
       })()}
 
       {/* Exercise list */}
-      <Sect t={t}>Lektioner ({filteredExercises.length})</Sect>
+      <Sect t={t}>{category === 'playalong' ? 'Tracks' : 'Lektioner'} ({filteredExercises.length})</Sect>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filteredExercises.map((ex, idx) => {
           const exKey = `${category}-${idx}`;
           const done = isCompleted(exKey);
           const isNext = !done && idx === 0;
+          const isPlayAlong = category === 'playalong';
           return (
             <button
               key={exKey}
               className="anim-fade-up"
-              onClick={() => { markOpened(exKey); setSelectedIdx(idx); setSelectedExercise({ key: exKey, title: ex.title, sub: ex.sub, level: ex.level, bpm: ex.bpm, tags: ex.tags }); }}
+              onClick={() => {
+                if (isPlayAlong) {
+                  setSelectedPlayAlongTrack({ key: exKey, title: ex.title, bpm: ex.bpm, level: ex.level });
+                } else {
+                  markOpened(exKey);
+                  setSelectedIdx(idx);
+                  setSelectedExercise({ key: exKey, title: ex.title, sub: ex.sub, level: ex.level, bpm: ex.bpm, tags: ex.tags });
+                }
+              }}
               style={{
                 animationDelay: `${idx * 60}ms`,
                 width: '100%', textAlign: 'left', background: t.surface,
@@ -1285,22 +1435,22 @@ function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
               }}
             >
               <div style={{
-                width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                width: 34, height: 34, borderRadius: isPlayAlong ? 10 : '50%', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: done ? t.good : isNext ? t.accentSoft : 'transparent',
-                border: done ? 'none' : `1px solid ${t.borderStrong}`,
+                background: done ? t.good : isNext ? t.accentSoft : isPlayAlong ? 'radial-gradient(circle at 30% 30%, #ff7a4f, #c43425)' : 'transparent',
+                border: done ? 'none' : isPlayAlong ? 'none' : `1px solid ${t.borderStrong}`,
                 color: done ? '#fff' : isNext ? t.accent : t.textMuted,
                 fontFamily: t.mono, fontSize: 12, fontWeight: 700,
               }}>
-                {done ? <IcCheck size={14} sw={2.5} color="#fff" /> : <span>{idx + 1}</span>}
+                {done ? <IcCheck size={14} sw={2.5} color="#fff" /> : isPlayAlong ? <IcPlay size={13} fill color="#fff" /> : <span>{idx + 1}</span>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.title}</div>
-                <div style={{ fontSize: 11, color: isNext ? t.accent : t.textMuted, fontWeight: isNext ? 600 : 400 }}>{isNext ? 'Næste op' : ex.sub}</div>
+                <div style={{ fontSize: 11, color: isNext ? t.accent : t.textMuted, fontWeight: isNext ? 600 : 400 }}>{isNext && !isPlayAlong ? 'Næste op' : ex.sub}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 {done && <span style={{ fontFamily: t.mono, fontSize: 9, color: t.good, letterSpacing: 0.5 }}>FÆRDIG</span>}
-                <span className="content-badge">NODER</span>
+                <span className="content-badge">{isPlayAlong ? 'PLAYER' : 'NODER'}</span>
                 <span className={`level-niv ${ex.level === 'Begynder' ? 'level-niv-0' : ex.level === 'Mellemniveau' ? 'level-niv-1' : 'level-niv-2'}`}>
                   NIV. {ex.level === 'Begynder' ? 0 : ex.level === 'Mellemniveau' ? 1 : 2}
                 </span>
@@ -1313,8 +1463,12 @@ function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
 
       {filteredExercises.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textMuted }}>
-          <div style={{ fontSize: 13 }}>Ingen lektioner matcher filteret &quot;{activeChip}&quot;.</div>
+          <div style={{ fontSize: 13 }}>Ingen {category === 'playalong' ? 'tracks' : 'lektioner'} matcher filteret &quot;{activeChip}&quot;.</div>
         </div>
+      )}
+
+      {selectedPlayAlongTrack && (
+        <PlayAlongTrackModal t={t} track={selectedPlayAlongTrack} onClose={() => setSelectedPlayAlongTrack(null)} />
       )}
 
       {selectedExercise && (() => {
