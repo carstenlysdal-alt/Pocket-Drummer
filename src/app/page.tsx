@@ -98,6 +98,250 @@ const Badge = ({ children, t, tone = 'default' }: { children: React.ReactNode; t
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: c.bg, color: c.fg, padding: '4px 10px', borderRadius: 999, fontSize: 10.5, fontWeight: 700, fontFamily: t.font, letterSpacing: 0.4 }}>{children}</span>;
 };
 
+// ─── EXERCISE PROGRESS ────────────────────────────────────────
+const PROGRESS_KEY = 'pocketdrummer_exercise_progress';
+interface ExerciseProgressItem { openedAt: number; completedAt?: number }
+function useExerciseProgress() {
+  const [progress, setProgress] = React.useState<Record<string, ExerciseProgressItem>>({});
+  useEffect(() => {
+    try { const s = localStorage.getItem(PROGRESS_KEY); if (s) setProgress(JSON.parse(s)); } catch {}
+  }, []);
+  const save = (next: Record<string, ExerciseProgressItem>) => {
+    setProgress(next);
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch {}
+  };
+  const markOpened = (key: string) => {
+    setProgress(prev => {
+      if (prev[key]) return prev;
+      const next = { ...prev, [key]: { openedAt: Date.now() } };
+      try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const markCompleted = (key: string) => {
+    setProgress(prev => {
+      const next = { ...prev, [key]: { ...(prev[key] || { openedAt: Date.now() }), completedAt: Date.now() } };
+      try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const isCompleted = (key: string) => !!progress[key]?.completedAt;
+  return { markOpened, markCompleted, isCompleted, save };
+}
+
+// ─── EXERCISE DETAIL MODAL ────────────────────────────────────
+interface ExerciseDetailData {
+  key: string;
+  title: string;
+  sub: string;
+  level: string;
+  bpm: number | string;
+  tags?: string[];
+  videoId?: string;
+}
+
+const COACH_MESSAGES: Record<string, { praise: string; next: string }> = {
+  Begynder: {
+    praise: 'Flot arbejde — du har taget det første vigtige skridt. Regelmæssighed slår hurtigt alt andet.',
+    next: 'Nu er grundmønsteret siddet fast. Det næste trin bygger videre på præcis den kontrol, du lige har trænet — lad tempoet stige naturligt.',
+  },
+  Mellemniveau: {
+    praise: 'Stærkt — du er i gang med at konsolidere teknikkerne og mærke det i kroppen. Det er her, det virkelig begynder at sidde.',
+    next: 'Med det fundament du har nu, er du klar til at arbejde med finere detaljer. Det næste trin handler om kvalitet frem for hastighed.',
+  },
+  Øvet: {
+    praise: 'Imponerende — det her niveau kræver fokus og tålmodighed, og du leverer begge dele.',
+    next: 'Næste øvelse introducerer et nyt lag af kompleksitet. Tag det roligt og lad kroppen absorbere det — din teknik er klar til det.',
+  },
+};
+
+function getCoachMessage(level: string) {
+  const key = level.includes('Begynder') || level.includes('0') || level.includes('1') ? 'Begynder'
+    : level.includes('Mellemniveau') || level.includes('2') || level.includes('3') ? 'Mellemniveau'
+    : 'Øvet';
+  return COACH_MESSAGES[key];
+}
+
+function ExerciseDetailModal({ t, ex, nextExercise, onNavigateNext, onClose }: {
+  t: T;
+  ex: ExerciseDetailData;
+  nextExercise?: ExerciseDetailData;
+  onNavigateNext?: () => void;
+  onClose: () => void;
+}) {
+  const [tab, setTab] = React.useState<'noder' | 'video'>('noder');
+  const [bpm, setBpm] = React.useState(typeof ex.bpm === 'number' ? ex.bpm : 90);
+  const [metroPlaying, setMetroPlaying] = React.useState(false);
+  const [currentBeat, setCurrentBeat] = React.useState(0);
+  const [justCompleted, setJustCompleted] = React.useState(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const { markCompleted, isCompleted } = useExerciseProgress();
+  const done = isCompleted(ex.key);
+  const coach = getCoachMessage(ex.level);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const getAudioCtx = () => {
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+    return audioCtxRef.current;
+  };
+
+  useEffect(() => {
+    if (!metroPlaying) return;
+    const interval = setInterval(() => {
+      setCurrentBeat(prev => {
+        const next = (prev + 1) % 4;
+        try {
+          const ctx = getAudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.frequency.setValueAtTime(next === 0 ? 1000 : 600, ctx.currentTime);
+          gain.gain.setValueAtTime(next === 0 ? 0.2 : 0.09, ctx.currentTime);
+          osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+          osc.stop(ctx.currentTime + 0.06);
+        } catch {}
+        return next;
+      });
+    }, (60 / bpm) * 1000);
+    return () => clearInterval(interval);
+  }, [metroPlaying, bpm]);
+
+  useEffect(() => () => { audioCtxRef.current?.close(); }, []);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 840, maxHeight: '88vh', display: 'flex', flexDirection: 'column', background: t.surface, borderRadius: 20, border: `1px solid ${t.borderStrong}`, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.text, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.title}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11, fontFamily: t.mono, color: t.textMuted, textTransform: 'uppercase', letterSpacing: 0.8 }}>{ex.level}</span>
+              {done && <span style={{ fontSize: 10, fontFamily: t.mono, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: t.goodSoft, color: t.good }}>FÆRDIG</span>}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', background: t.surface2, border: `1px solid ${t.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textMuted, fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✕</button>
+        </div>
+
+        {/* Tab bar */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
+          {(['noder', 'video'] as const).map(tb => (
+            <button key={tb} onClick={() => setTab(tb)} style={{
+              padding: '11px 24px', background: 'transparent', border: 'none', borderBottom: `2px solid ${tab === tb ? t.accent : 'transparent'}`,
+              cursor: 'pointer', fontFamily: t.font, fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase',
+              color: tab === tb ? t.accent : t.textMuted, transition: 'color 0.15s',
+            }}>{tb === 'noder' ? 'Noder' : 'Video'}</button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+          {tab === 'noder' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ borderRadius: 12, overflow: 'hidden', background: '#FAF8F5', border: `1px solid ${t.border}`, padding: '24px 16px' }}>
+                <DrumNotation color="#16161a" width={740} accent={t.accent} active={metroPlaying ? currentBeat : -1} />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button onClick={() => setBpm(b => Math.max(40, b - 5))} style={{ width: 32, height: 32, borderRadius: '50%', background: t.surface2, border: `1px solid ${t.border}`, cursor: 'pointer', color: t.text, fontSize: 16 }}>−</button>
+                  <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: t.text, minWidth: 64, textAlign: 'center' }}>{bpm} BPM</span>
+                  <button onClick={() => setBpm(b => Math.min(220, b + 5))} style={{ width: 32, height: 32, borderRadius: '50%', background: t.surface2, border: `1px solid ${t.border}`, cursor: 'pointer', color: t.text, fontSize: 16 }}>+</button>
+                </div>
+                <button
+                  onClick={() => setMetroPlaying(p => !p)}
+                  style={{ padding: '8px 20px', borderRadius: 999, background: metroPlaying ? t.accent : t.surface2, border: `1px solid ${metroPlaying ? t.accent : t.border}`, cursor: 'pointer', fontFamily: t.font, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: metroPlaying ? '#fff' : t.text }}
+                >
+                  {metroPlaying ? 'Stop metronom' : 'Start metronom'}
+                </button>
+                {metroPlaying && (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[0,1,2,3].map(i => (
+                      <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: currentBeat === i ? t.accent : t.surface2, transition: 'background 0.05s' }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => { if (!done) { markCompleted(ex.key); setJustCompleted(true); } }}
+                style={{ alignSelf: 'flex-start', padding: '11px 24px', borderRadius: 999, background: done ? t.goodSoft : t.accent, border: 'none', cursor: done ? 'default' : 'pointer', fontFamily: t.font, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: done ? t.good : '#fff', boxShadow: done ? 'none' : '0 6px 22px rgba(242,85,69,0.3)' }}
+              >
+                {done ? '✓ Gennemført' : 'Markér som færdig'}
+              </button>
+
+              {(done || justCompleted) && (
+                <div style={{ borderRadius: 16, border: `1px solid ${t.good}33`, background: `${t.good}0a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Coach praise */}
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>🥁</div>
+                    <div>
+                      <div style={{ fontSize: 10, fontFamily: t.mono, fontWeight: 700, letterSpacing: 1, color: t.accent, textTransform: 'uppercase', marginBottom: 5 }}>AI Coach</div>
+                      <div style={{ fontSize: 13.5, color: t.text, lineHeight: 1.6 }}>{coach.praise}</div>
+                    </div>
+                  </div>
+
+                  {/* Next exercise */}
+                  {nextExercise && (
+                    <div style={{ borderTop: `1px solid ${t.border}`, paddingTop: 16 }}>
+                      <div style={{ fontSize: 10, fontFamily: t.mono, fontWeight: 700, letterSpacing: 1, color: t.textMuted, textTransform: 'uppercase', marginBottom: 8 }}>Næste øvelse</div>
+                      <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.55, marginBottom: 14 }}>{coach.next}</div>
+                      <button
+                        onClick={onNavigateNext}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, background: t.surface2, border: `1px solid ${t.border}`, borderRadius: 12, padding: '12px 16px', cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'border-color 0.15s' }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 2 }}>{nextExercise.title}</div>
+                          <div style={{ fontSize: 11, color: t.textMuted }}>{nextExercise.level} · {nextExercise.bpm} BPM</div>
+                        </div>
+                        <div style={{ fontFamily: t.mono, fontSize: 18, color: t.accent, flexShrink: 0 }}>→</div>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'video' && (
+            <div>
+              {ex.videoId ? (
+                <div style={{ aspectRatio: '16/9', borderRadius: 12, overflow: 'hidden', background: '#000' }}>
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${ex.videoId}?rel=0&modestbranding=1`}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div style={{ aspectRatio: '16/9', borderRadius: 12, background: t.surface2, border: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                  <div style={{ fontSize: 40, opacity: 0.3 }}>▶</div>
+                  <div style={{ fontSize: 13, color: t.textMuted }}>Ingen video tilknyttet denne øvelse endnu</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MACWINDOW CHROME ─────────────────────────────────────────
 const TrafficLights = () => (
   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -638,6 +882,33 @@ function HomeView({ t, dark, setDark, onView, isPremium, onUpgrade, onSelectCate
               <Btn t={t} icon={<IcPlay size={12} />} size="lg">Fortsæt hvor du slap</Btn>
             </div>
           </div>
+
+          {/* AI Coach kommentar */}
+          <div className="anim-fade-up d-480" style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 18, padding: 22, marginBottom: 8, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: t.accentSoft, border: `1px solid ${t.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🥁</div>
+            <div>
+              <div style={{ fontSize: 9.5, fontFamily: t.mono, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', color: t.accent, marginBottom: 6 }}>AI Coach · Næste skridt</div>
+              <div style={{ fontSize: 13.5, color: t.text, lineHeight: 1.65, marginBottom: 10 }}>
+                {plan?.fokustema?.includes('Uge 1') || !plan?.fokustema
+                  ? 'Du er ved at lægge fundamentet — og det er det vigtigste arbejde du kan gøre nu. Sæt tempoet lavt, hold timingen præcis, og lad mønstret sætte sig.'
+                  : plan?.fokustema?.includes('Uge 2')
+                  ? 'Grundmønstrene sidder bedre nu. Denne uge handler om at flytte opmærksomheden fra "hvad gør jeg" til "hvad hører jeg". Lyt aktivt til din egen timing.'
+                  : plan?.fokustema?.includes('Uge 3')
+                  ? 'Du er halvvejs — og teknikken begynder at blive til musikalitet. Fokusér på dynamik og nuancer frem for hastighed denne uge.'
+                  : 'Du er tæt på at fuldføre dit første projekt. Gennemfør de resterende øvelser i dit eget tempo — du har allerede bevist, at du kan holde kursen.'}
+              </div>
+              <div style={{ fontSize: 12, color: t.textMuted, lineHeight: 1.6 }}>
+                <span style={{ fontWeight: 600, color: t.text }}>Hvad du skal fokusere på: </span>
+                {plan?.fokustema?.includes('Uge 1') || !plan?.fokustema
+                  ? 'Begynd med opvarmning i 5 min, derefter ét grooveønske på 80 BPM. Gentag tre gange.'
+                  : plan?.fokustema?.includes('Uge 2')
+                  ? 'Øv med metronomen i 10 min. Spil langsomt, mærk hvert slag — og øg BPM med 5 når det sidder.'
+                  : plan?.fokustema?.includes('Uge 3')
+                  ? 'Veksl mellem stille og kraftigt spil i dit foretrukne groove. Dynamikken er din næste musikalske dimension.'
+                  : 'Kør én fuld session med play-along og notér, hvad der stadig udfordrer dig. Det er din næste fokuszone.'}
+              </div>
+            </div>
+          </div>
         </>
       ) : (
         /* Ny bruger — ingen plan */
@@ -689,170 +960,53 @@ interface CategoryDetailViewProps {
 
 function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
   const [activeChip, setActiveChip] = useState('Alle');
-  const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
-  const [activeExTab, setActiveExTab] = useState<'beskrivelse' | 'noder'>('beskrivelse');
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseDetailData | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number>(-1);
+  const { markOpened, isCompleted } = useExerciseProgress();
+
+  // Metronome widget states (nodelære-sektion)
   const [bpm, setBpm] = useState(90);
   const [metroPlaying, setMetroPlaying] = useState(false);
   const [subdivision, setSubdivision] = useState<'quarter' | 'eighth'>('quarter');
   const [currentBeat, setCurrentBeat] = useState(0);
 
   // Play-along states
+  const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const [playalongPlaying, setPlayalongPlaying] = useState(false);
-  const [playalongSpeed, setPlayalongSpeed] = useState<80 | 90 | 100 | 110>(100);
   const [mixerVols, setMixerVols] = useState({ drums: 70, music: 60 });
-  const [playalongBeat, setPlayalongBeat] = useState(0);
 
-  // Audio Context Ref
   const audioCtxRef = useRef<AudioContext | null>(null);
-
   const getAudioCtx = () => {
     if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
       audioCtxRef.current = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
     }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
+    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
     return audioCtxRef.current;
   };
 
-  // Metronome Sound loop
   useEffect(() => {
     if (!metroPlaying) return;
     const intervalTime = (60 / bpm) * (subdivision === 'eighth' ? 500 : 1000);
-    const intervalId = setInterval(() => {
+    const id = setInterval(() => {
       setCurrentBeat(prev => {
-        const nextBeat = subdivision === 'eighth' ? (prev + 1) % 8 : (prev + 1) % 4;
+        const next = subdivision === 'eighth' ? (prev + 1) % 8 : (prev + 1) % 4;
         try {
           const ctx = getAudioCtx();
-          // Synthesize tick
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          
-          const isDownbeat = nextBeat === 0;
-          const isSub = subdivision === 'eighth' && nextBeat % 2 !== 0;
-          
-          osc.frequency.setValueAtTime(isDownbeat ? 1000 : isSub ? 450 : 600, ctx.currentTime);
-          gain.gain.setValueAtTime(isDownbeat ? 0.2 : isSub ? 0.04 : 0.09, ctx.currentTime);
-          
-          osc.start();
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-          osc.stop(ctx.currentTime + 0.06);
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          const isDown = next === 0; const isSub = subdivision === 'eighth' && next % 2 !== 0;
+          osc.frequency.setValueAtTime(isDown ? 1000 : isSub ? 450 : 600, ctx.currentTime);
+          gain.gain.setValueAtTime(isDown ? 0.2 : isSub ? 0.04 : 0.09, ctx.currentTime);
+          osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05); osc.stop(ctx.currentTime + 0.06);
         } catch {}
-        return nextBeat;
+        return next;
       });
     }, intervalTime);
-
-    return () => clearInterval(intervalId);
+    return () => clearInterval(id);
   }, [metroPlaying, bpm, subdivision]);
 
-  // Backing Track Synthesizer loop
-  useEffect(() => {
-    if (!playalongPlaying) return;
-    
-    // Base tempo is 105 BPM, speed alters it
-    const actualBpm = 105 * (playalongSpeed / 100);
-    const intervalTime = (60 / actualBpm) * 500; // eighth notes
-    
-    const intervalId = setInterval(() => {
-      setPlayalongBeat(prev => {
-        const nextBeat = (prev + 1) % 32; // 4 measures of 8 eighth notes (32 clicks total)
-        
-        let section = 'Intro';
-        if (nextBeat >= 8 && nextBeat < 24) section = 'Verse';
-        else if (nextBeat >= 24 && nextBeat < 28) section = 'Chorus';
-        else if (nextBeat >= 28 && nextBeat < 30) section = 'Fill Cue';
-        else section = 'Outro';
-        
-        try {
-          const ctx = getAudioCtx();
-          const now = ctx.currentTime;
-          
-          // Drums synthesis
-          if (mixerVols.drums > 0) {
-            const subBeat = nextBeat % 8;
-            if (subBeat === 0 || subBeat === 4) {
-              const kick = ctx.createOscillator();
-              const kickGain = ctx.createGain();
-              kick.connect(kickGain);
-              kickGain.connect(ctx.destination);
-              kick.frequency.setValueAtTime(140, now);
-              kick.frequency.exponentialRampToValueAtTime(45, now + 0.08);
-              kickGain.gain.setValueAtTime((mixerVols.drums / 100) * 0.35, now);
-              kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-              kick.start();
-              kick.stop(now + 0.2);
-            }
-            
-            if (subBeat === 4) {
-              const snare = ctx.createOscillator();
-              const snareGain = ctx.createGain();
-              snare.connect(snareGain);
-              snareGain.connect(ctx.destination);
-              snare.type = 'triangle';
-              snare.frequency.setValueAtTime(240, now);
-              snareGain.gain.setValueAtTime((mixerVols.drums / 100) * 0.22, now);
-              snareGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-              snare.start();
-              snare.stop(now + 0.1);
-            }
-            
-            const hh = ctx.createOscillator();
-            const hhGain = ctx.createGain();
-            hh.connect(hhGain);
-            hhGain.connect(ctx.destination);
-            hh.type = 'sine';
-            hh.frequency.setValueAtTime(8000, now);
-            hhGain.gain.setValueAtTime((mixerVols.drums / 100) * 0.02, now);
-            hhGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-            hh.start();
-            hh.stop(now + 0.04);
-          }
-          
-          // Music synth backing chords
-          if (mixerVols.music > 0 && nextBeat % 2 === 0) {
-            const synth = ctx.createOscillator();
-            const synthGain = ctx.createGain();
-            synth.connect(synthGain);
-            synthGain.connect(ctx.destination);
-            synth.type = 'sine';
-            
-            let baseFreq = 130.81; // C3
-            if (section === 'Verse') baseFreq = 146.83; // D3
-            else if (section === 'Chorus') baseFreq = 164.81; // E3
-            else if (section === 'Fill Cue') baseFreq = 196.00; // G3
-            else if (section === 'Outro') baseFreq = 130.81; // C3
-            
-            const harmony = ctx.createOscillator();
-            harmony.connect(synthGain);
-            harmony.type = 'sine';
-            harmony.frequency.setValueAtTime(baseFreq * 1.5, now); // fifth
-            
-            synth.frequency.setValueAtTime(baseFreq, now);
-            synthGain.gain.setValueAtTime((mixerVols.music / 100) * 0.06, now);
-            synthGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-            
-            synth.start();
-            harmony.start();
-            synth.stop(now + 0.45);
-            harmony.stop(now + 0.45);
-          }
-        } catch {}
-        return nextBeat;
-      });
-    }, intervalTime);
+  useEffect(() => () => { audioCtxRef.current?.close(); }, []);
 
-    return () => clearInterval(intervalId);
-  }, [playalongPlaying, playalongSpeed, mixerVols]);
-
-  useEffect(() => {
-    return () => {
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close();
-      }
-    };
-  }, []);
 
   const categoryChips = {
     opvarmning: ['Alle', '5 min', '10 min', 'Hænder', 'Fødder', 'Single strokes', 'Double strokes', 'Paradiddles', 'Accenter', 'Dynamik', 'Tempo-ladder', 'Venstre hånd', 'Stortrommekontrol'],
@@ -1110,164 +1264,72 @@ function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
         );
       })()}
 
-      {/* Grid of exercises */}
+      {/* Exercise list */}
       <Sect t={t}>Lektioner ({filteredExercises.length})</Sect>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filteredExercises.map((ex, idx) => {
           const exKey = `${category}-${idx}`;
-          const isOpen = openExerciseId === exKey;
-          const isDone = idx < 2; // første to er "done" som demo
-          const isNext = !isDone && idx === 2;
-
+          const done = isCompleted(exKey);
+          const isNext = !done && idx === 0;
           return (
-            <div key={exKey} className="anim-fade-up" style={{
-              animationDelay: `${idx * 60}ms`,
-              borderRadius: 14, overflow: 'hidden',
-              border: `1px solid ${isOpen ? t.borderStrong : t.border}`,
-              transition: 'border-color 0.2s',
-            }}>
-              {/* Accordion header */}
-              <button
-                onClick={() => { if (!isOpen) setActiveExTab('beskrivelse'); setOpenExerciseId(isOpen ? null : exKey); }}
-                style={{
-                  width: '100%', background: isOpen ? t.surface2 : (isDone ? t.surface : t.surface),
-                  border: 'none', cursor: 'pointer', padding: '14px 18px',
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  transition: 'background 0.2s', textAlign: 'left',
-                }}
-              >
-                {/* Status dot / number */}
-                <div style={{
-                  width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isDone ? t.accent : isNext ? t.accentSoft : 'transparent',
-                  border: isDone ? 'none' : `1px solid ${t.borderStrong}`,
-                  color: isDone ? '#fff' : isNext ? t.accent : t.textMuted,
-                  fontFamily: t.mono, fontSize: 12, fontWeight: 700,
-                }}>
-                  {isDone ? <IcCheck size={14} sw={2.5} color="#fff" /> : <span>{idx + 1}</span>}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.title}</div>
-                  <div style={{ fontSize: 11, color: isNext ? t.accent : t.textMuted, fontWeight: isNext ? 600 : 400 }}>
-                    {isNext ? 'Næste op' : ex.sub}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  {isDone && <span style={{ fontFamily: t.mono, fontSize: 9, color: t.textMuted, letterSpacing: 0.5 }}>FÆRDIG</span>}
-                  {/* Content type badges */}
-                  <span className="content-badge">NODER</span>
-                  {/* Level badge: Niv. 0 / 1 / 2 */}
-                  <span className={`level-niv ${ex.level === 'Begynder' ? 'level-niv-0' : ex.level === 'Mellemniveau' ? 'level-niv-1' : 'level-niv-2'}`}>
-                    NIV. {ex.level === 'Begynder' ? 0 : ex.level === 'Mellemniveau' ? 1 : 2}
-                  </span>
-                  <div style={{ transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>
-                    <IcChev size={13} color={t.textDim} />
-                  </div>
-                </div>
-              </button>
-
-              {/* Accordion body */}
-              {isOpen && (
-                <div className="anim-fade-up d-0" style={{ background: t.surface2, borderTop: `1px solid ${t.border}` }}>
-                  {/* Tab navigation */}
-                  <div className="tab-nav">
-                    <button className={`tab-nav-btn${activeExTab === 'beskrivelse' ? ' tab-active' : ''}`}
-                      onClick={() => setActiveExTab('beskrivelse')}>
-                      Beskrivelse
-                    </button>
-                    <button className={`tab-nav-btn${activeExTab === 'noder' ? ' tab-active' : ''}`}
-                      onClick={() => setActiveExTab('noder')}>
-                      Noder
-                    </button>
-                  </div>
-
-                  {/* Tab content */}
-                  <div style={{ padding: '16px 18px 20px 66px' }}>
-                    {activeExTab === 'beskrivelse' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        {/* Cinematic video player */}
-                        <div style={{
-                          aspectRatio: '16/9', borderRadius: 12, maxWidth: 460,
-                          background: t.bg, border: `1px solid ${t.border}`,
-                          position: 'relative', overflow: 'hidden',
-                        }}>
-                          {/* Background illustration */}
-                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
-                            <IllSnare size={160} color={t.accent} sw={0.8} />
-                          </div>
-                          {/* Gradient overlay */}
-                          <div className="video-gradient-overlay" style={{ position: 'absolute', inset: 0 }} />
-                          {/* Video controls overlay */}
-                          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '12px 14px' }}>
-                            {/* Progress track */}
-                            <div style={{ width: '100%', height: 4, background: 'rgba(255,255,255,0.18)', borderRadius: 999, position: 'relative', marginBottom: 10 }}>
-                              <div className="progress-bar-hit" style={{
-                                position: 'absolute', left: 0, top: 0, height: '100%', width: 0,
-                                background: t.accent, borderRadius: 999,
-                              }} />
-                            </div>
-                            {/* Controls row */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <button className="active-glow" style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                background: t.accent, border: 'none', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                              }}>
-                                <IcPlay size={13} fill color="#fff" />
-                              </button>
-                              <span style={{ fontFamily: t.mono, fontSize: 10, color: 'rgba(255,255,255,0.65)' }}>
-                                0:00 / {ex.dur}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Serif description */}
-                        <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 15, color: t.textMuted, lineHeight: 1.65 }}>
-                          {ex.sub}. Byg det op gradvist og mærk forskellen i koordinationen.
-                        </div>
-
-                        {/* Metadata pills */}
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {ex.tags.map(tag => (
-                            <span key={tag} style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: t.surface, color: t.textMuted, border: `1px solid ${t.border}`, fontFamily: t.mono }}>{tag}</span>
-                          ))}
-                          <span style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: t.surface, color: t.textMuted, border: `1px solid ${t.border}`, fontFamily: t.mono }}>{ex.bpm} BPM</span>
-                        </div>
-
-                        {/* Actions */}
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <Btn t={t} size="sm" icon={<IcPlay size={11} />}>Start øvelse</Btn>
-                        </div>
-                      </div>
-                    )}
-
-                    {activeExTab === 'noder' && (
-                      <div style={{
-                        borderRadius: 10, overflow: 'hidden',
-                        background: '#FAF8F5', border: `1px solid ${t.border}`,
-                        padding: '20px 12px',
-                      }}>
-                        <DrumNotation color="#16161a" width={400} accent={t.accent} active={-1} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <button
+              key={exKey}
+              className="anim-fade-up"
+              onClick={() => { markOpened(exKey); setSelectedIdx(idx); setSelectedExercise({ key: exKey, title: ex.title, sub: ex.sub, level: ex.level, bpm: ex.bpm, tags: ex.tags }); }}
+              style={{
+                animationDelay: `${idx * 60}ms`,
+                width: '100%', textAlign: 'left', background: t.surface,
+                border: `1px solid ${done ? t.good + '44' : isNext ? t.accent + '55' : t.border}`,
+                borderRadius: 14, padding: '14px 18px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 14, transition: 'border-color 0.2s, background 0.2s',
+              }}
+            >
+              <div style={{
+                width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: done ? t.good : isNext ? t.accentSoft : 'transparent',
+                border: done ? 'none' : `1px solid ${t.borderStrong}`,
+                color: done ? '#fff' : isNext ? t.accent : t.textMuted,
+                fontFamily: t.mono, fontSize: 12, fontWeight: 700,
+              }}>
+                {done ? <IcCheck size={14} sw={2.5} color="#fff" /> : <span>{idx + 1}</span>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.title}</div>
+                <div style={{ fontSize: 11, color: isNext ? t.accent : t.textMuted, fontWeight: isNext ? 600 : 400 }}>{isNext ? 'Næste op' : ex.sub}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                {done && <span style={{ fontFamily: t.mono, fontSize: 9, color: t.good, letterSpacing: 0.5 }}>FÆRDIG</span>}
+                <span className="content-badge">NODER</span>
+                <span className={`level-niv ${ex.level === 'Begynder' ? 'level-niv-0' : ex.level === 'Mellemniveau' ? 'level-niv-1' : 'level-niv-2'}`}>
+                  NIV. {ex.level === 'Begynder' ? 0 : ex.level === 'Mellemniveau' ? 1 : 2}
+                </span>
+                <IcChev size={13} color={t.textDim} />
+              </div>
+            </button>
           );
         })}
       </div>
 
       {filteredExercises.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textMuted }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>🔍</div>
           <div style={{ fontSize: 13 }}>Ingen lektioner matcher filteret &quot;{activeChip}&quot;.</div>
         </div>
       )}
+
+      {selectedExercise && (() => {
+        const nextEx = filteredExercises[selectedIdx + 1];
+        const nextData: ExerciseDetailData | undefined = nextEx ? { key: `${category}-${selectedIdx + 1}`, title: nextEx.title, sub: nextEx.sub, level: nextEx.level, bpm: nextEx.bpm, tags: nextEx.tags } : undefined;
+        return (
+          <ExerciseDetailModal
+            t={t}
+            ex={selectedExercise}
+            nextExercise={nextData}
+            onNavigateNext={nextData ? () => { const k = `${category}-${selectedIdx + 1}`; markOpened(k); setSelectedIdx(selectedIdx + 1); setSelectedExercise(nextData); } : undefined}
+            onClose={() => setSelectedExercise(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -1278,6 +1340,9 @@ function CategoryDetailView({ t, category, onBack }: CategoryDetailViewProps) {
 function ExercisesView({ t, isPremium, onUpgrade, completedIds }: { t: T; isPremium: boolean; onUpgrade: () => void; completedIds: string[] }) {
   const [catFilter, setCatFilter] = useState('all');
   const [lvlFilter, setLvlFilter] = useState('all');
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseDetailData | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number>(-1);
+  const { markOpened } = useExerciseProgress();
   const CATS = ['all', 'rudiments', 'groove', 'fills', 'timing', 'koordination', 'stilarter'];
   const LVLS = ['all', 'begynder', 'mellemniveau', 'øvet'];
   const allLessons = MODULES.flatMap(m => m.lessons);
@@ -1321,12 +1386,13 @@ function ExercisesView({ t, isPremium, onUpgrade, completedIds }: { t: T; isPrem
 
       {/* Exercise grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        {filtered.map((lesson) => {
+        {filtered.map((lesson, idx) => {
           const done = completedIds.includes(lesson.id);
           const locked = lesson.premium && !isPremium;
           const lv = LEVELS[lesson.level];
+          const toData = (l: typeof lesson): ExerciseDetailData => ({ key: l.id, title: l.title, sub: l.skills?.join(', ') || '', level: `Niveau ${l.level}`, bpm: l.bpm ? `${l.bpm.min}–${l.bpm.max}` : '–', tags: l.format });
           return (
-            <Card key={lesson.id} t={t} pad={20} onClick={locked ? onUpgrade : undefined} style={{ cursor: 'pointer', position: 'relative' }}>
+            <Card key={lesson.id} t={t} pad={20} onClick={locked ? onUpgrade : () => { markOpened(lesson.id); setSelectedIdx(idx); setSelectedExercise(toData(lesson)); }} style={{ cursor: 'pointer', position: 'relative' }}>
               {done && (
                 <div style={{ position: 'absolute', top: 16, right: 16, width: 20, height: 20, borderRadius: '50%', background: t.goodSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <IcCheck size={12} color={t.good} />
@@ -1355,10 +1421,23 @@ function ExercisesView({ t, isPremium, onUpgrade, completedIds }: { t: T; isPrem
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: t.textMuted }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
           <div style={{ fontSize: 14 }}>Ingen øvelser matcher dine filtre.</div>
         </div>
       )}
+
+      {selectedExercise && (() => {
+        const nextLesson = filtered[selectedIdx + 1];
+        const nextData: ExerciseDetailData | undefined = nextLesson ? { key: nextLesson.id, title: nextLesson.title, sub: nextLesson.skills?.join(', ') || '', level: `Niveau ${nextLesson.level}`, bpm: nextLesson.bpm ? `${nextLesson.bpm.min}–${nextLesson.bpm.max}` : '–', tags: nextLesson.format } : undefined;
+        return (
+          <ExerciseDetailModal
+            t={t}
+            ex={selectedExercise}
+            nextExercise={nextData}
+            onNavigateNext={nextData ? () => { markOpened(nextData.key); setSelectedIdx(selectedIdx + 1); setSelectedExercise(nextData); } : undefined}
+            onClose={() => setSelectedExercise(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -1936,6 +2015,12 @@ export default function App() {
     const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     if (mobile) {
       router.replace('/prototype');
+      return;
+    }
+
+    const landingSeen = localStorage.getItem('pocketdrummer_landing_seen');
+    if (!landingSeen) {
+      router.replace('/landing');
       return;
     }
 

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @keyframes slideUp {
   from { transform: translateY(100%); }
@@ -214,20 +214,20 @@
 
 
 :root {
-  --bg-deep: #0a0a0a;
-  --bg-dark: #121212;
-  --bg-card: #1a1a1a;
-  --bg-card-hover: #242424;
-  --border-color: rgba(255, 255, 255, 0.05);
+  --bg-deep: #0C0A07;
+  --bg-dark: #161210;
+  --bg-card: #1E1A13;
+  --bg-card-hover: #272118;
+  --border-color: rgba(255, 255, 255, 0.07);
   --border-focus: rgba(239, 90, 58, 0.5);
   --border-glow: rgba(239, 90, 58, 0.15);
   
-  --text-primary: #f8fafc;
-  --text-secondary: #9ca3af;
-  --text-muted: #52525b;
-  
-  --accent-purple: #ef5a3a; /* Coral Orange */
-  --accent-purple-hover: #d94626;
+  --text-primary: #EDE9E4;
+  --text-secondary: #A09890;
+  --text-muted: #66615C;
+
+  --accent-purple: #E8703A; /* Orange/Coral accent */
+  --accent-purple-hover: #D4622E;
   --accent-purple-glow: rgba(239, 90, 58, 0.35);
   
   --accent-cyan: #ff7d61; /* Light Coral */
@@ -241,7 +241,8 @@
   --accent-rose: #f43f5e;
   
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-title: 'Outfit', sans-serif;
+  --font-head: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+  --font-title: 'Plus Jakarta Sans', 'Outfit', sans-serif;
   --font-serif: 'DM Serif Display', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   

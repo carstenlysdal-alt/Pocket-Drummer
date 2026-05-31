@@ -12,31 +12,32 @@ import RhythmHero from '@/components/RhythmHero';
 // Tokens
 // ─────────────────────────────────────────────────────────────
 const tokens = (dark: boolean) => ({
-  bg: dark ? '#131313' : '#FAF8F5',
-  bgGradient: dark ? '#131313' : '#FAF8F5',
-  surface: dark ? '#201f1f' : '#ffffff',
-  surface2: dark ? '#1c1b1b' : '#EBE6DC',
-  surfaceElev: dark ? '#2a2a2a' : '#ffffff',
-  border: dark ? 'rgba(255,255,255,0.05)' : 'rgba(37,37,37,0.08)',
-  borderStrong: dark ? 'rgba(255,255,255,0.1)' : 'rgba(37,37,37,0.14)',
-  text: dark ? '#e5e2e1' : '#252525',
-  textMuted: dark ? '#a98a83' : '#77716B',
-  textDim: dark ? '#5a413b' : '#A39C94',
-  accent: '#ef5a3a',
-  accentDeep: '#C43425',
-  accentSoft: dark ? 'rgba(239,90,58,0.13)' : 'rgba(242,85,69,0.08)',
-  accentText: dark ? '#f5b8a8' : '#C43425',
-  accentGlow: '0 0 20px rgba(246,95,62,0.2)',
+  bg: dark ? '#0C0A07' : '#FAF8F5',
+  bgGradient: dark ? '#0C0A07' : '#FAF8F5',
+  surface: dark ? '#1A1512' : '#ffffff',
+  surface2: dark ? '#1E1A13' : '#EBE6DC',
+  surfaceElev: dark ? '#272118' : '#ffffff',
+  border: dark ? 'rgba(255,255,255,0.07)' : 'rgba(37,37,37,0.08)',
+  borderStrong: dark ? 'rgba(255,255,255,0.12)' : 'rgba(37,37,37,0.14)',
+  text: dark ? '#EDE9E4' : '#252525',
+  textMuted: dark ? '#A09890' : '#77716B',
+  textDim: dark ? '#5A4E48' : '#A39C94',
+  accent: '#E8703A',
+  accentDeep: '#D4622E',
+  accentSoft: dark ? 'rgba(232,112,58,0.12)' : 'rgba(232,112,58,0.08)',
+  accentText: dark ? '#E8A080' : '#D4622E',
+  accentGlow: '0 0 20px rgba(232,112,58,0.2)',
   good: '#4edea3',
   goodSoft: dark ? 'rgba(78,222,163,0.14)' : 'rgba(93,211,158,0.14)',
-  glassBackground: dark ? 'rgba(28,27,27,0.6)' : '#ffffff',
-  glassBlur: dark ? 'blur(12px)' : 'none',
-  navBackground: dark ? 'rgba(32,31,31,0.9)' : 'rgba(250,248,245,0.95)',
-  navBorder: dark ? 'rgba(255,255,255,0.1)' : 'rgba(37,37,37,0.1)',
-  navShadow: dark ? '0 -8px 20px rgba(246,95,62,0.15)' : '0 -4px 16px rgba(0,0,0,0.06)',
+  glassBackground: dark ? 'rgba(22,18,14,0.7)' : '#ffffff',
+  glassBlur: dark ? 'blur(16px)' : 'none',
+  navBackground: dark ? 'rgba(10,8,5,0.88)' : 'rgba(250,248,245,0.95)',
+  navBorder: dark ? 'rgba(255,255,255,0.07)' : 'rgba(37,37,37,0.1)',
+  navShadow: dark ? '0 -1px 0 rgba(255,255,255,0.06)' : '0 -4px 16px rgba(0,0,0,0.06)',
   mono: 'var(--font-mono, monospace)',
   font: 'var(--font-sans, sans-serif)',
-  serif: 'var(--font-serif, Georgia, serif)',
+  head: 'var(--font-head, var(--font-title, sans-serif))',
+  serif: 'var(--font-head, var(--font-title, sans-serif))',
 });
 
 type ThemeTokens = ReturnType<typeof tokens>;
@@ -402,10 +403,88 @@ function CTA({ children, t, onClick, variant = 'primary', icon, className = '' }
 function Display({ children, t, size = 32, style = {} }: { children: React.ReactNode; t: ThemeTokens; size?: number; style?: React.CSSProperties }) {
   return (
     <div style={{
-      fontFamily: t.serif, fontStyle: 'italic', fontSize: size,
-      lineHeight: 1.05, color: t.text, letterSpacing: -0.3, ...style,
+      fontFamily: t.head, fontWeight: 800, fontSize: size,
+      lineHeight: 1.08, color: t.text, letterSpacing: -0.6, ...style,
     }}>{children}</div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Exercise Progress Tracking (localStorage)
+// ─────────────────────────────────────────────────────────────
+const PROGRESS_KEY = 'pocketdrummer_exercise_progress';
+
+interface ExerciseProgressItem {
+  opened: boolean;
+  completed: boolean;
+  lastOpened?: string;
+}
+
+function useExerciseProgress() {
+  const [progress, setProgress] = React.useState<Record<string, ExerciseProgressItem>>({});
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PROGRESS_KEY);
+      if (stored) setProgress(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const save = (updated: Record<string, ExerciseProgressItem>) => {
+    setProgress(updated);
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(updated)); } catch {}
+  };
+
+  const markOpened = (key: string) =>
+    save({ ...progress, [key]: { ...progress[key], opened: true, lastOpened: new Date().toISOString() } });
+
+  const markCompleted = (key: string) =>
+    save({ ...progress, [key]: { ...progress[key], opened: true, completed: true, lastOpened: new Date().toISOString() } });
+
+  const isCompleted = (key: string) => !!progress[key]?.completed;
+
+  const getCategoryProgress = (category: string, total: number) => {
+    const done = Object.keys(progress).filter(k =>
+      k.startsWith(`${category}_`) && progress[k]?.completed
+    ).length;
+    return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+  };
+
+  return { progress, markOpened, markCompleted, isCompleted, getCategoryProgress };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Video URL mapping (category + exercise id → YouTube embed)
+// ─────────────────────────────────────────────────────────────
+const EXERCISE_VIDEOS: Record<string, string[]> = {
+  opvarmning: [
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=120',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=240',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=360',
+  ],
+  nodelære: [
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=150',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=300',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=450',
+  ],
+  grooves: [
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=180',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=360',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=540',
+  ],
+  playalong: [
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=200',
+    'https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1&start=400',
+  ],
+};
+
+function getVideoUrl(category: string, id: number): string {
+  const arr = EXERCISE_VIDEOS[category] ?? EXERCISE_VIDEOS.grooves;
+  return arr[Math.min(id - 1, arr.length - 1)];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -597,100 +676,226 @@ function HomeScreen({ t, dark, setDark, onSelectCategory, onOpenCoach, onPlayRhy
         </div>
       </div>
 
-      {/* Dagens anbefaling */}
+      {/* Today's lesson — cinematic hero card */}
       <div style={{ marginBottom: 28 }}>
-        <SectionLabel t={t}>{language === 'da' ? 'Dagens anbefaling' : language === 'en' ? "Today's recommendation" : language === 'de' ? 'Tagesempfehlung' : 'Recomendación del día'}</SectionLabel>
-        <TiltCard style={{ borderRadius: '20px' }}>
-          <Card t={t} padding={20} style={{
-            borderLeft: `3px solid ${t.accent}`,
-            position: 'relative', overflow: 'hidden',
-          }}>
-            {/* Radial glow backdrop */}
+        <div
+          onClick={() => onSelectCategory('grooves')}
+          style={{
+            borderRadius: 20, overflow: 'hidden', position: 'relative',
+            aspectRatio: '3 / 4', cursor: 'pointer',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.65)',
+            transition: 'transform 150ms cubic-bezier(0.16,1,0.3,1)',
+          }}
+          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.975)')}
+          onMouseUp={e => (e.currentTarget.style.transform = '')}
+          onMouseLeave={e => (e.currentTarget.style.transform = '')}
+          onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.975)')}
+          onTouchEnd={e => (e.currentTarget.style.transform = '')}
+        >
+          {/* Video thumbnail — warm stage lighting */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: `
+              radial-gradient(ellipse at 50% 28%, rgba(200,100,40,0.58) 0%, transparent 52%),
+              radial-gradient(ellipse at 82% 68%, rgba(130,60,20,0.38) 0%, transparent 46%),
+              radial-gradient(ellipse at 18% 62%, rgba(80,40,10,0.28) 0%, transparent 42%),
+              linear-gradient(160deg, #2C1A08 0%, #1A0E05 44%, #0C0805 100%)
+            `,
+          }} />
+          {/* Drum kit silhouette */}
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.055 }} viewBox="0 0 350 460" fill="none">
+            <ellipse cx="175" cy="225" rx="85" ry="32" stroke="white" strokeWidth="2"/>
+            <ellipse cx="175" cy="225" rx="128" ry="55" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="95" cy="258" rx="48" ry="19" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="255" cy="258" rx="48" ry="19" stroke="white" strokeWidth="1.5"/>
+            <line x1="175" y1="183" x2="175" y2="95" stroke="white" strokeWidth="1.5"/>
+            <line x1="138" y1="198" x2="104" y2="128" stroke="white" strokeWidth="1.5"/>
+            <line x1="212" y1="198" x2="246" y2="128" stroke="white" strokeWidth="1.5"/>
+            <ellipse cx="60" cy="115" rx="38" ry="12" stroke="white" strokeWidth="1.2" transform="rotate(-15 60 115)"/>
+            <ellipse cx="290" cy="115" rx="38" ry="12" stroke="white" strokeWidth="1.2" transform="rotate(15 290 115)"/>
+          </svg>
+          {/* Cinematic gradient overlay — text lives here */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to bottom, rgba(12,10,7,0) 0%, rgba(12,10,7,0) 22%, rgba(12,10,7,0.46) 52%, rgba(12,10,7,0.9) 74%, rgba(12,10,7,0.97) 100%)',
+          }} />
+          {/* Top: day pill + play button */}
+          <div style={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{
-              position: 'absolute', top: -40, right: -40, width: 160, height: 160,
-              borderRadius: '50%', background: t.accent, filter: 'blur(70px)', opacity: 0.12, pointerEvents: 'none',
-            }} />
-            <div style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <div>
-                  <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', color: t.accent }}>
-                    {language === 'da' ? 'DAGENS ØVELSE' : language === 'en' ? 'DAILY EXERCISE' : language === 'de' ? 'TÄGLICHE ÜBUNG' : 'EJERCICIO DIARIO'}
-                  </span>
-                  <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 20, marginTop: 4, color: t.text }}>Paradiddle Grooves</div>
-                  <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>
-                    12 min · {language === 'da' ? 'Let øvet' : language === 'en' ? 'Intermediate' : language === 'de' ? 'Mittelstufe' : 'Intermedio'}
-                  </div>
-                </div>
-              </div>
-              <CTA t={t} onClick={() => onSelectCategory('grooves')}>
-                {language === 'da' ? 'Fortsæt' : language === 'en' ? 'Continue' : language === 'de' ? 'Weiter' : 'Continuar'}
-              </CTA>
+              background: 'rgba(232,112,58,0.18)', border: '1px solid rgba(232,112,58,0.38)',
+              borderRadius: 20, padding: '5px 12px',
+              fontSize: 11, fontWeight: 600, color: t.accent,
+              letterSpacing: 0.5, textTransform: 'uppercase',
+            }}>
+              {language === 'da' ? 'Dag 7 · 14 min' : 'Day 7 · 14 min'}
             </div>
-          </Card>
-        </TiltCard>
+            <div style={{
+              width: 38, height: 38, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)',
+              backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <IcPlay size={12} color="white" />
+            </div>
+          </div>
+          {/* Bottom: eyebrow + title + subtitle + progress + CTA */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, color: t.textMuted, letterSpacing: 0.9, textTransform: 'uppercase', marginBottom: 8 }}>
+              {language === 'da' ? 'I dag · Grundrytmer' : 'Today · Fundamentals'}
+            </div>
+            <div style={{ fontFamily: t.head, fontWeight: 800, fontSize: 26, color: t.text, letterSpacing: -0.6, lineHeight: 1.12, marginBottom: 8 }}>
+              {language === 'da' ? 'Grooves & fills — del 1' : 'Grooves & fills — pt. 1'}
+            </div>
+            <div style={{ fontSize: 13.5, color: t.textMuted, lineHeight: 1.45, marginBottom: 16 }}>
+              {language === 'da' ? 'Lær hi-hat mønstre med halvnoder over bass-tromme' : 'Learn hi-hat patterns with half notes over bass drum'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: '43%', background: t.accent, borderRadius: 2, boxShadow: `0 0 8px ${t.accentGlow}` }} />
+              </div>
+              <span style={{ fontSize: 12, color: t.textMuted, whiteSpace: 'nowrap' }}>3 / 7</span>
+            </div>
+            <CTA t={t} onClick={() => onSelectCategory('grooves')} icon={<IcChev size={16} />}>
+              {language === 'da' ? 'Start lektion' : language === 'en' ? 'Start lesson' : language === 'de' ? 'Lektion starten' : 'Iniciar lección'}
+            </CTA>
+          </div>
+        </div>
       </div>
 
-      {/* Vælg øvespor */}
-      <div style={{ marginBottom: 28 }}>
-        <SectionLabel t={t}>{language === 'da' ? 'Vælg øvespor' : language === 'en' ? 'Choose Practice Path' : language === 'de' ? 'Übungspfad wählen' : 'Elegir ruta de práctica'}</SectionLabel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Presentation video */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ borderRadius: 18, overflow: 'hidden', background: '#000', border: `1px solid ${t.border}`, position: 'relative', aspectRatio: '16/9' }}>
+          <iframe
+            width="100%" height="100%"
+            src="https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1"
+            title="Pocket Drummer — Introduktion"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{ width: '100%', height: '100%', border: '0', display: 'block' }}
+          />
+        </div>
+        <div style={{ marginTop: 10, paddingLeft: 2 }}>
+          <div style={{ fontFamily: t.head, fontSize: 15, fontWeight: 700, color: t.text, letterSpacing: -0.3, marginBottom: 2 }}>
+            {language === 'da' ? 'Velkommen til Pocket Drummer' : 'Welcome to Pocket Drummer'}
+          </div>
+          <div style={{ fontSize: 12, color: t.textMuted }}>
+            {language === 'da' ? 'Lær hvad appen kan — og hvad den vil gøre for dig' : 'See what the app can do for you'}
+          </div>
+        </div>
+      </div>
+
+      {/* Øvespor */}
+      <div style={{ marginBottom: 24 }}>
+        <SectionLabel t={t}>{language === 'da' ? 'Øvespor' : language === 'en' ? 'Practice paths' : language === 'de' ? 'Übungspfade' : 'Rutas de práctica'}</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { id: 'opvarmning' as const, title: translate('warmup'), desc: translate('warmupDesc'), icon: <IcWave size={20} /> },
-            { id: 'nodelære' as const, title: translate('musicTheory'), desc: translate('theoryDesc'), icon: <IcMetro size={20} /> },
-            { id: 'grooves' as const, title: translate('grooves'), desc: translate('groovesDesc'), icon: <TabKit size={20} color={t.accent} /> },
-            { id: 'playalong' as const, title: translate('playalong'), desc: translate('playalongDesc'), icon: <TabPlayalong size={20} color={t.accent} /> }
-          ].map((cat, i) => (
-            <TiltCard key={cat.id} onClick={() => onSelectCategory(cat.id)} style={{ borderRadius: '18px' }} className={`stagger-item d-${Math.min(i * 80, 480)}`}>
-              <div style={{
-                background: t.glassBackground,
-                backdropFilter: t.glassBlur,
-                WebkitBackdropFilter: t.glassBlur,
-                border: `1px solid ${t.border}`,
-                borderRadius: 18, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16,
-                cursor: 'pointer', transition: 'border-color 0.2s', height: '100%',
-              }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: t.accentSoft, color: t.accent, flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: `0 4px 12px ${t.accentSoft}`,
-                }}>
+            {
+              id: 'opvarmning' as const,
+              title: translate('warmup'),
+              desc: language === 'da' ? 'Hænder, fødder & timing' : 'Hands, feet & timing',
+              bg: 'radial-gradient(ellipse at 40% 30%, rgba(78,222,163,0.35) 0%, transparent 65%), #0A1810',
+              icon: <IcWave size={18} color="#4edea3" />,
+            },
+            {
+              id: 'nodelære' as const,
+              title: translate('musicTheory'),
+              desc: language === 'da' ? 'Rhythm & notation' : 'Rhythm & notation',
+              bg: 'radial-gradient(ellipse at 40% 30%, rgba(100,140,255,0.35) 0%, transparent 65%), #080C1A',
+              icon: <IcMetro size={18} color="#7090ff" />,
+            },
+            {
+              id: 'grooves' as const,
+              title: translate('grooves'),
+              desc: language === 'da' ? 'Beats, fills & genrer' : 'Beats, fills & genres',
+              bg: 'radial-gradient(ellipse at 40% 30%, rgba(232,112,58,0.4) 0%, transparent 65%), #180C04',
+              icon: <TabKit size={18} color={t.accent} />,
+            },
+            {
+              id: 'playalong' as const,
+              title: translate('playalong'),
+              desc: language === 'da' ? 'Spil med rigtig musik' : 'Play with real music',
+              bg: 'radial-gradient(ellipse at 40% 30%, rgba(180,80,220,0.35) 0%, transparent 65%), #110820',
+              icon: <TabPlayalong size={18} color="#b060dc" />,
+            },
+          ].map(cat => (
+            <div key={cat.id} onClick={() => onSelectCategory(cat.id)} style={{
+              borderRadius: 16, overflow: 'hidden', cursor: 'pointer', position: 'relative',
+              height: 110, border: `1px solid ${t.border}`,
+              background: cat.bg,
+              transition: 'transform 120ms cubic-bezier(0.16,1,0.3,1), border-color 150ms',
+            }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
+              onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+              onTouchEnd={e => { e.currentTarget.style.transform = ''; }}
+            >
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 25%, rgba(12,10,7,0.75) 100%)' }} />
+              <div style={{ position: 'absolute', top: 12, left: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {cat.icon}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: t.serif, fontStyle: 'italic', fontSize: 18, color: t.text }}>{cat.title}</div>
-                  <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2, lineHeight: 1.3 }}>{cat.desc}</div>
-                </div>
-                <IcChev size={15} color={t.textDim} />
               </div>
-            </TiltCard>
+              <div style={{ position: 'absolute', bottom: 10, left: 12, right: 12 }}>
+                <div style={{ fontFamily: t.head, fontSize: 13, fontWeight: 700, color: t.text, letterSpacing: -0.2, marginBottom: 2 }}>{cat.title}</div>
+                <div style={{ fontSize: 10, color: 'rgba(237,233,228,0.65)' }}>{cat.desc}</div>
+              </div>
+              <div style={{ position: 'absolute', bottom: 12, right: 12 }}>
+                <IcChev size={14} color="rgba(255,255,255,0.35)" />
+              </div>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Din progression */}
-      <div>
-        <SectionLabel t={t}>{language === 'da' ? 'Din progression' : language === 'en' ? 'Your Progression' : language === 'de' ? 'Dein Fortschritt' : 'Tu progresión'}</SectionLabel>
-        <TiltCard style={{ borderRadius: '16px' }}>
-          <div style={{
-            background: t.glassBackground,
-            backdropFilter: t.glassBlur,
-            WebkitBackdropFilter: t.glassBlur,
-            border: `1px solid ${t.border}`,
-            borderRadius: 16, padding: '14px 16px',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-          }}>
-            <div style={{ fontSize: 12, color: t.text, lineHeight: 1.5 }}>
-              {language === 'da' ? 'Denne uge' : language === 'en' ? 'This week' : language === 'de' ? 'Diese Woche' : 'Esta semana'}:{' '}
-              <span style={{ fontWeight: 600, color: t.accent }}>3 {language === 'da' ? 'øvedage' : language === 'en' ? 'practice days' : language === 'de' ? 'Übungstage' : 'días de práctica'}</span>
-              {' · '}
-              <span style={{ fontWeight: 600 }}>72 min</span>
-              {' · '}
-              <span style={{ fontWeight: 600 }}>{translate('level')} {level}</span>
-            </div>
-            <div style={{ width: 60, flexShrink: 0 }}><Progress pct={xpPct} t={t} h={5} /></div>
+      {/* AI Coach CTA */}
+      <div style={{ marginBottom: 24 }}>
+        <div onClick={onOpenCoach} style={{
+          background: `linear-gradient(135deg, rgba(232,112,58,0.14) 0%, rgba(180,60,20,0.08) 100%)`,
+          border: `1px solid rgba(232,112,58,0.28)`,
+          borderRadius: 18, padding: '18px 18px',
+          display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
+          transition: 'transform 120ms cubic-bezier(0.16,1,0.3,1)',
+        }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+          onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
+          onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+          onTouchEnd={e => { e.currentTarget.style.transform = ''; }}
+        >
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 6px 16px rgba(232,112,58,0.35)' }}>
+            <IcSpark size={20} color="#fff" />
           </div>
-        </TiltCard>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: t.head, fontSize: 15, fontWeight: 700, color: t.text, letterSpacing: -0.2, marginBottom: 3 }}>
+              {language === 'da' ? 'Spørg AI Coach' : 'Ask AI Coach'}
+            </div>
+            <div style={{ fontSize: 12, color: t.textMuted, lineHeight: 1.4 }}>
+              {language === 'da' ? 'Din personlige trommelærer husker dig og tilpasser til dit niveau' : 'Your personal teacher adapts to your level'}
+            </div>
+          </div>
+          <IcChev size={16} color={t.accent} />
+        </div>
+      </div>
+
+      {/* Progression mini */}
+      <div style={{ marginBottom: 8 }}>
+        <div style={{
+          background: t.glassBackground, backdropFilter: t.glassBlur, WebkitBackdropFilter: t.glassBlur,
+          border: `1px solid ${t.border}`, borderRadius: 14, padding: '12px 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        }}>
+          <div style={{ fontSize: 12, color: t.text, lineHeight: 1.5 }}>
+            {language === 'da' ? 'Denne uge' : 'This week'}:{' '}
+            <span style={{ fontWeight: 600, color: t.accent }}>3 {language === 'da' ? 'øvedage' : 'practice days'}</span>
+            {' · '}
+            <span style={{ fontWeight: 600 }}>72 min</span>
+            {' · '}
+            <span style={{ fontWeight: 600 }}>{translate('level')} {level}</span>
+          </div>
+          <div style={{ width: 56, flexShrink: 0 }}><Progress pct={xpPct} t={t} h={4} /></div>
+        </div>
       </div>
     </div>
   );
@@ -888,40 +1093,54 @@ function PracticeScreen({ t, onSelectCategory, onPlayRhythmHero }: PracticeScree
       </div>
 
       {/* Exercises list */}
-      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {filtered.map((ex) => (
-          <div key={ex.id} onClick={() => onSelectCategory(ex.cat)} style={{
-            background: t.surface, border: `1px solid ${t.border}`,
-            borderRadius: 18, padding: 18, cursor: 'pointer', position: 'relative', overflow: 'hidden',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6,
-                background: ex.cat === 'opvarmning' ? 'rgba(93,211,158,0.1)' : ex.cat === 'nodelære' ? 'rgba(66,135,245,0.1)' : ex.cat === 'grooves' ? 'rgba(242,85,69,0.1)' : 'rgba(155,89,182,0.1)',
-                color: ex.cat === 'opvarmning' ? '#3eaf7c' : ex.cat === 'nodelære' ? '#4287f5' : ex.cat === 'grooves' ? t.accent : '#9b59b6',
-                textTransform: 'uppercase', letterSpacing: 0.5
+      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {filtered.map((ex, idx) => {
+          const thumbGrads = [
+            `radial-gradient(ellipse at 50% 40%, rgba(200,100,50,0.55) 0%, transparent 70%), #1A1008`,
+            `radial-gradient(ellipse at 50% 40%, rgba(60,90,210,0.55) 0%, transparent 70%), #080C1A`,
+            `radial-gradient(ellipse at 50% 40%, rgba(150,60,200,0.5) 0%, transparent 70%), #110818`,
+            `radial-gradient(ellipse at 50% 40%, rgba(20,170,100,0.45) 0%, transparent 70%), #071A10`,
+            `radial-gradient(ellipse at 50% 40%, rgba(220,80,80,0.5) 0%, transparent 70%), #1A0808`,
+          ];
+          const thumbBg = thumbGrads[idx % thumbGrads.length];
+          return (
+            <div key={ex.id} onClick={() => onSelectCategory(ex.cat)} style={{
+              background: t.surface, border: `1px solid ${t.border}`,
+              borderRadius: 14, padding: '10px 12px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 12,
+              transition: 'background 120ms, transform 120ms cubic-bezier(0.16,1,0.3,1)',
+            }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = t.surface2; }}
+              onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = t.surface; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = t.surface; }}
+              onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+              onTouchEnd={e => { e.currentTarget.style.transform = ''; }}
+            >
+              {/* Gradient thumbnail */}
+              <div style={{
+                width: 64, height: 48, borderRadius: 8, overflow: 'hidden',
+                flexShrink: 0, position: 'relative', background: thumbBg,
               }}>
-                {getCategoryLabel(ex.cat)}
-              </span>
-              <span style={{ fontSize: 11, color: t.textMuted, fontFamily: t.mono }}>{ex.dur} · {ex.bpm} BPM</span>
-            </div>
-
-            <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>{ex.title}</div>
-            <div style={{ fontSize: 12, color: t.textMuted, lineHeight: 1.4 }}>{ex.sub}</div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ fontSize: 10.5, color: t.textMuted }}>{getLevelLabel(ex.level)}</span>
+                <div style={{
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.18)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <IcPlay size={12} color="rgba(255,255,255,0.65)" />
+                </div>
               </div>
-              <button style={{
-                width: 32, height: 32, borderRadius: '50%', background: t.accentSoft,
-                border: 'none', color: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <IcPlay size={12} fill color={t.accent} />
-              </button>
+              {/* Text */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: t.head, fontSize: 14, fontWeight: 700, color: t.text, letterSpacing: -0.2, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.title}</div>
+                <div style={{ fontSize: 12, color: t.textMuted, display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <span style={{ color: t.accent, fontWeight: 500 }}>{getLevelLabel(ex.level)}</span>
+                  <span>·</span>
+                  <span>{ex.dur}</span>
+                </div>
+              </div>
+              <IcChev size={15} color={t.textDim} />
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textMuted }}>
@@ -929,6 +1148,191 @@ function PracticeScreen({ t, onSelectCategory, onPlayRhythmHero }: PracticeScree
             <div style={{ fontSize: 13, marginTop: 8 }}>
               {language === 'da' ? 'Ingen øvelser matcher din søgning.' : language === 'en' ? 'No exercises match your search.' : language === 'de' ? 'Keine Übungen entsprechen Ihrer Suche.' : 'No hay ejercicios que coincidan con tu búsqueda.'}
             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Exercise Detail Popup
+// ─────────────────────────────────────────────────────────────
+interface ExerciseItem {
+  id: number;
+  title: string;
+  sub: string;
+  dur: string;
+  bpm: number | string;
+  tags: string[];
+  level: string;
+  nodrums?: boolean;
+}
+
+interface ExerciseDetailPopupProps {
+  t: ThemeTokens;
+  dark: boolean;
+  exercise: ExerciseItem;
+  category: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong';
+  onClose: () => void;
+  onMarkDone: () => void;
+  isCompleted: boolean;
+  onOpenCoach: () => void;
+}
+
+function ExerciseDetailPopup({ t, exercise, category, onClose, onMarkDone, isCompleted, onOpenCoach }: ExerciseDetailPopupProps) {
+  const [tab, setTab] = React.useState<'noder' | 'video'>('noder');
+  const [bpm, setBpm] = React.useState(typeof exercise.bpm === 'number' ? exercise.bpm : 90);
+  const [playing, setPlaying] = React.useState(false);
+  const [beat, setBeat] = React.useState(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Close on Escape
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  // Metronome
+  useEffect(() => {
+    if (!playing) { setBeat(0); return; }
+    const ms = (60000 / bpm) / 2;
+    const id = setInterval(() => {
+      setBeat(b => {
+        const next = (b + 1) % 8;
+        try {
+          if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+            audioCtxRef.current = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+          }
+          const ctx = audioCtxRef.current!;
+          if (ctx.state === 'suspended') ctx.resume();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.frequency.setValueAtTime(next === 0 ? 880 : 660, ctx.currentTime);
+          gain.gain.setValueAtTime(next === 0 ? 0.15 : 0.07, ctx.currentTime);
+          osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+          osc.stop(ctx.currentTime + 0.06);
+        } catch {}
+        return next;
+      });
+    }, ms);
+    return () => clearInterval(id);
+  }, [playing, bpm]);
+
+  useEffect(() => () => { audioCtxRef.current?.close(); }, []);
+
+  const videoUrl = getVideoUrl(category, exercise.id);
+  const lvlColor = exercise.level === 'Begynder' ? '#4edea3' : exercise.level === 'Mellemniveau' ? t.textMuted : t.accent;
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, background: t.bg, zIndex: 130,
+      display: 'flex', flexDirection: 'column', color: t.text, fontFamily: t.font,
+      animation: 'slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1)', overflow: 'hidden',
+    }}>
+      <div style={{ height: 'var(--safe-top, 62px)' }} />
+
+      {/* Header: back | title | X */}
+      <div style={{ padding: '0 14px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${t.border}` }}>
+        <button onClick={onClose} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${t.border}`, color: t.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <IcBack size={16} />
+        </button>
+        <div style={{ flex: 1, textAlign: 'center', padding: '0 10px' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: lvlColor, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 }}>
+            {exercise.level} · {exercise.dur}
+          </div>
+          <Display t={t} size={16}>{exercise.title}</Display>
+        </div>
+        <button onClick={onClose} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, lineHeight: 1 }}>✕</button>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: `1px solid ${t.border}` }}>
+        {(['noder', 'video'] as const).map(tt => (
+          <button key={tt} onClick={() => setTab(tt)} style={{
+            flex: 1, padding: '11px 0', border: 'none', background: 'transparent',
+            borderBottom: `2px solid ${tab === tt ? t.accent : 'transparent'}`,
+            color: tab === tt ? t.accent : t.textMuted,
+            fontFamily: t.font, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            transition: 'color 0.15s, border-color 0.15s',
+            textTransform: 'capitalize',
+          }}>{tt === 'noder' ? 'Noder' : 'Video'}</button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 80px', scrollbarWidth: 'none' }}>
+
+        {tab === 'noder' && (
+          <div>
+            <div style={{ background: '#FAF8F5', border: `1px solid ${t.border}`, borderRadius: 16, padding: '14px 6px', marginBottom: 14, overflowX: 'auto' }}>
+              <DrumNotation width={320} color="#16161a" accent={t.accent} active={playing ? beat : 99} />
+              <DrumNotation width={320} color="#16161a" accent={t.accent} active={99} />
+            </div>
+
+            {/* BPM + Play */}
+            <Card t={t} padding={14} style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button onClick={() => setBpm(Math.max(40, bpm - 4))} style={{ width: 32, height: 32, borderRadius: '50%', background: t.surface2, border: 'none', color: t.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 18 }}>-</button>
+                  <div style={{ textAlign: 'center', minWidth: 56 }}>
+                    <div style={{ fontFamily: t.mono, fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{bpm}</div>
+                    <div style={{ fontSize: 9, color: t.textMuted, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>BPM</div>
+                  </div>
+                  <button onClick={() => setBpm(Math.min(220, bpm + 4))} style={{ width: 32, height: 32, borderRadius: '50%', background: t.surface2, border: 'none', color: t.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 18 }}>+</button>
+                </div>
+                <button onClick={() => setPlaying(!playing)} style={{
+                  width: 54, height: 54, borderRadius: '50%', background: t.accent, border: 'none', color: '#fff',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 6px 20px rgba(232,112,58,0.4)',
+                }}>
+                  {playing ? <IcPause size={18} fill color="#fff" /> : <IcPlay size={18} fill color="#fff" />}
+                </button>
+              </div>
+            </Card>
+
+            <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.6, marginBottom: 20, textAlign: 'center', fontStyle: 'italic' }}>{exercise.sub}</div>
+
+            <button onClick={() => { onMarkDone(); onClose(); }} style={{
+              width: '100%', padding: '14px', borderRadius: 12, border: 'none', marginBottom: 10,
+              background: isCompleted ? t.goodSoft : t.accent, color: isCompleted ? t.good : '#fff',
+              fontFamily: t.font, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              boxShadow: isCompleted ? 'none' : '0 6px 20px rgba(232,112,58,0.35)',
+              transition: 'all 0.2s',
+            }}>
+              {isCompleted ? <><IcCheck size={16} /> Gennemført</> : 'Marker som gennemført'}
+            </button>
+            <button onClick={() => { onOpenCoach(); onClose(); }} style={{
+              width: '100%', padding: '12px', borderRadius: 12, border: `1px solid ${t.border}`,
+              background: 'transparent', color: t.textMuted, fontFamily: t.font, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              <IcSpark size={14} color={t.accent} /> Spørg AI Coach om denne øvelse
+            </button>
+          </div>
+        )}
+
+        {tab === 'video' && (
+          <div>
+            <div style={{ aspectRatio: '16/9', borderRadius: 16, overflow: 'hidden', background: '#000', border: `1px solid ${t.border}`, marginBottom: 16 }}>
+              <iframe width="100%" height="100%" src={videoUrl} title={exercise.title}
+                frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen style={{ width: '100%', height: '100%', border: '0' }} />
+            </div>
+            <Display t={t} size={18} style={{ marginBottom: 4 }}>{exercise.title}</Display>
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 20 }}>{exercise.sub} · {exercise.level} · {exercise.dur}</div>
+            <button onClick={() => { onMarkDone(); onClose(); }} style={{
+              width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+              background: isCompleted ? t.goodSoft : t.accent, color: isCompleted ? t.good : '#fff',
+              fontFamily: t.font, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              boxShadow: isCompleted ? 'none' : '0 6px 20px rgba(232,112,58,0.35)',
+            }}>
+              {isCompleted ? <><IcCheck size={16} /> Gennemført</> : 'Marker som gennemført'}
+            </button>
           </div>
         )}
       </div>
@@ -944,9 +1348,18 @@ interface MobileCategoryDetailProps {
   onOpenCoach: () => void;
 }
 
-function MobileCategoryDetail({ t, category, onClose, onOpenCoach }: MobileCategoryDetailProps) {
+function MobileCategoryDetail({ t, dark, category, onClose, onOpenCoach }: MobileCategoryDetailProps) {
   const [activeChip, setActiveChip] = useState('Alle');
   const [bpm, setBpm] = useState(category === 'playalong' ? 105 : 90);
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseItem | null>(null);
+  const { markOpened, markCompleted, isCompleted } = useExerciseProgress();
+
+  // Escape key to close this overlay (only when no sub-popup is open)
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape' && !selectedExercise) onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose, selectedExercise]);
   const [metroPlaying, setMetroPlaying] = useState(false);
   const [subdivision, setSubdivision] = useState<'quarter' | 'eighth'>('quarter');
   const [currentBeat, setCurrentBeat] = useState(0);
@@ -1165,22 +1578,16 @@ function MobileCategoryDetail({ t, category, onClose, onOpenCoach }: MobileCateg
     }}>
       <div style={{ height: 'var(--safe-top, 62px)' }} />
 
-      {/* Header */}
-      <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${t.border}` }}>
-        <button onClick={onClose} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'transparent',
-          border: `1px solid ${t.border}`, color: t.text, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}><IcBack size={16} /></button>
-        <div style={{ textAlign: 'center', flex: 1, padding: '0 12px' }}>
+      {/* Header: back | title | X */}
+      <div style={{ padding: '0 14px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${t.border}` }}>
+        <button onClick={onClose} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${t.border}`, color: t.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <IcBack size={16} />
+        </button>
+        <div style={{ textAlign: 'center', flex: 1, padding: '0 10px' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: t.textMuted, letterSpacing: 1.5, textTransform: 'uppercase' }}>Øvespor</div>
           <Display t={t} size={18} style={{ marginTop: 2 }}>{categoryTitle}</Display>
         </div>
-        <button onClick={onOpenCoach} style={{
-          width: 38, height: 38, borderRadius: '50%', background: 'transparent',
-          border: `1px solid ${t.border}`, color: t.text, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}><IcSpark size={16} color={t.accent} /></button>
+        <button onClick={onClose} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, lineHeight: 1 }}>✕</button>
       </div>
 
       {/* Scrollable Content */}
@@ -1370,34 +1777,49 @@ function MobileCategoryDetail({ t, category, onClose, onOpenCoach }: MobileCateg
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filteredExercises.map(ex => (
-            <div key={ex.id} style={{
-              background: t.surface, border: `1px solid ${t.border}`,
-              borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 8
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{
-                  fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                  background: ex.level === 'Begynder' ? 'rgba(93,211,158,0.1)' : ex.level === 'Mellemniveau' ? 'rgba(37,37,37,0.06)' : 'rgba(242,85,69,0.1)',
-                  color: ex.level === 'Begynder' ? '#3eaf7c' : ex.level === 'Mellemniveau' ? t.text : t.accent,
-                  textTransform: 'uppercase', letterSpacing: 0.5
-                }}>{ex.level}</span>
-                <span style={{ fontFamily: t.mono, fontSize: 10, color: t.textDim }}>{ex.dur} · {ex.bpm} BPM</span>
+          {filteredExercises.map((ex, idx) => {
+            const key = `${category}_${ex.id}`;
+            const done = isCompleted(key);
+            const thumbGrads = [
+              'radial-gradient(ellipse at 50% 40%, rgba(200,100,50,0.55) 0%, transparent 70%), #1A1008',
+              'radial-gradient(ellipse at 50% 40%, rgba(60,90,210,0.55) 0%, transparent 70%), #080C1A',
+              'radial-gradient(ellipse at 50% 40%, rgba(150,60,200,0.5) 0%, transparent 70%), #110818',
+              'radial-gradient(ellipse at 50% 40%, rgba(20,170,100,0.45) 0%, transparent 70%), #071A10',
+            ];
+            return (
+              <div key={ex.id} onClick={() => { markOpened(key); setSelectedExercise(ex as ExerciseItem); }} style={{
+                background: t.surface, border: `1px solid ${done ? t.accent + '60' : t.border}`,
+                borderRadius: 14, padding: '10px 12px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 12,
+                transition: 'background 120ms, border-color 150ms',
+              }}
+                onMouseDown={e => { e.currentTarget.style.background = t.surface2; }}
+                onMouseUp={e => { e.currentTarget.style.background = t.surface; }}
+                onMouseLeave={e => { e.currentTarget.style.background = t.surface; }}
+                onTouchStart={e => { e.currentTarget.style.background = t.surface2; }}
+                onTouchEnd={e => { e.currentTarget.style.background = t.surface; }}
+              >
+                {/* Gradient thumbnail */}
+                <div style={{ width: 64, height: 48, borderRadius: 8, overflow: 'hidden', flexShrink: 0, position: 'relative', background: thumbGrads[idx % thumbGrads.length] }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {done
+                      ? <IcCheck size={14} color="rgba(78,222,163,0.9)" />
+                      : <IcPlay size={12} color="rgba(255,255,255,0.7)" fill />}
+                  </div>
+                </div>
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: t.head, fontSize: 14, fontWeight: 700, color: done ? t.textMuted : t.text, letterSpacing: -0.2, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.title}</div>
+                  <div style={{ fontSize: 12, color: t.textMuted, display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span style={{ color: ex.level === 'Begynder' ? '#4edea3' : ex.level === 'Mellemniveau' ? t.textMuted : t.accent, fontWeight: 500 }}>{ex.level}</span>
+                    <span>·</span>
+                    <span>{ex.dur}</span>
+                  </div>
+                </div>
+                {done ? <IcCheck size={16} color={t.good} /> : <IcChev size={15} color={t.textDim} />}
               </div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{ex.title}</div>
-                <div style={{ fontSize: 11.5, color: t.textMuted, marginTop: 2 }}>{ex.sub}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                {ex.tags.map(tag => (
-                  <span key={tag} style={{
-                    padding: '2px 6px', borderRadius: 4, background: t.surface2, fontSize: 9,
-                    fontFamily: t.mono, color: t.textMuted
-                  }}>{tag}</span>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           {filteredExercises.length === 0 && (
             <div style={{ textAlign: 'center', padding: '30px 10px', color: t.textMuted }}>
@@ -1406,6 +1828,19 @@ function MobileCategoryDetail({ t, category, onClose, onOpenCoach }: MobileCateg
           )}
         </div>
       </div>
+
+      {/* Exercise detail popup */}
+      {selectedExercise && (
+        <ExerciseDetailPopup
+          t={t} dark={dark}
+          exercise={selectedExercise}
+          category={category}
+          onClose={() => setSelectedExercise(null)}
+          onMarkDone={() => markCompleted(`${category}_${selectedExercise.id}`)}
+          isCompleted={isCompleted(`${category}_${selectedExercise.id}`)}
+          onOpenCoach={onOpenCoach}
+        />
+      )}
     </div>
   );
 }
@@ -1413,6 +1848,12 @@ function MobileCategoryDetail({ t, category, onClose, onOpenCoach }: MobileCateg
 // 4. Track Detail Overlay
 function TrackDetail({ t, trackId, onClose, onOpenLesson, onOpenCoach }: TrackDetailProps) {
   const track = practiceTracks.find(x => x.id === trackId) || practiceTracks[0];
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
   const lessonList = [
     { n: 1, title: 'Indre puls — fod og hånd', dur: '6 min', done: true },
     { n: 2, title: 'Click på 2 & 4', dur: '8 min', done: true },
@@ -1554,6 +1995,12 @@ function LessonDetail({ t, onClose, onOpenCoach }: LessonDetailProps) {
   const [bpm, setBpm] = useState(92);
   const [beat, setBeat] = useState(0);
   const [videoUrl, setVideoUrl] = useState("https://www.youtube-nocookie.com/embed/8T_87k23Q1E?rel=0&modestbranding=1");
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
 
   useEffect(() => {
     if (!playing) return;
@@ -2023,6 +2470,13 @@ interface CoachMessage {
 
 function CoachScreen({ t, onClose }: CoachScreenProps) {
   const [input, setInput] = useState('');
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
   const [messages, setMessages] = useState<CoachMessage[]>([
     { role: 'ai', text: 'Hej Astrid 👋\nJeg er din AI Coach. Jeg har set, du arbejder med 16-dele hi-hat lige nu. Hvordan går det?' },
     { role: 'user', text: 'Det er svært at holde tempo når jeg tilføjer kick. Højre hånd bliver hurtig.' },
@@ -2439,18 +2893,15 @@ function TabBar({ tab, onTab, t, dark, isMobile, onSelectCategory }: TabBarProps
   return (
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 50,
-      paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 8px)' : 20,
-      paddingTop: 12, paddingLeft: 0, paddingRight: 0,
+      paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 10px)' : 20,
+      paddingTop: 10, paddingLeft: 0, paddingRight: 0,
       background: t.navBackground,
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
+      backdropFilter: 'blur(28px)',
+      WebkitBackdropFilter: 'blur(28px)',
       borderTop: `1px solid ${t.navBorder}`,
       boxShadow: t.navShadow,
-      borderRadius: '16px 16px 0 0',
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', padding: '0 4px',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '0 4px' }}>
         {tabs.map(tt => {
           const active = tab === tt.id;
           const Icon = tt.icon;
@@ -2463,15 +2914,23 @@ function TabBar({ tab, onTab, t, dark, isMobile, onSelectCategory }: TabBarProps
               }
             }} style={{
               flex: 1, background: 'transparent', border: 'none', cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               padding: '6px 0', fontFamily: t.font,
-              color: active ? t.accent : t.textMuted,
-              transition: 'color 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              color: active ? t.accent : t.textDim,
+              transition: 'color 0.2s cubic-bezier(0.16,1,0.3,1)',
+              opacity: 1,
             }}>
-              <Icon size={22} color={active ? t.accent : t.textMuted} sw={active ? 2 : 1.4} />
+              <div style={{
+                width: 40, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: 10,
+                background: active ? t.accentSoft : 'transparent',
+                transition: 'background 0.2s cubic-bezier(0.16,1,0.3,1)',
+              }}>
+                <Icon size={20} color={active ? t.accent : t.textDim} sw={active ? 2 : 1.5} />
+              </div>
               <span style={{
-                fontSize: 9.5, fontWeight: active ? 700 : 500, letterSpacing: 0.8,
-                textTransform: 'uppercase',
+                fontSize: 9, fontWeight: active ? 700 : 500,
+                letterSpacing: 0.2, textTransform: 'none',
               }}>{tt.label}</span>
             </button>
           );
@@ -2523,7 +2982,7 @@ export default function MobilePrototype() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Initialize guest XP and onboarded status client-side
+  // Initialize guest XP, onboarded status, and landing-page gate
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -2534,6 +2993,12 @@ export default function MobilePrototype() {
         setTimeout(() => {
           setOnboarded(valOnboard === '1');
         }, 0);
+
+        // First-visit redirect: send mobile users to landing page
+        const landingSeen = localStorage.getItem('pocketdrummer_landing_seen');
+        if (!landingSeen && window.innerWidth < 1024) {
+          window.location.replace('/landing');
+        }
       }
     } catch {
       // Ignore errors silently on SSR
