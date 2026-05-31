@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Header from '@/components/Header';
 import { useAuth } from '@/lib/authContext';
 import { useLanguage } from '@/lib/languageContext';
 import TiltCard from '@/components/TiltCard';
@@ -3058,7 +3057,6 @@ export default function MobilePrototype() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#050505' }}>
-      <Header />
 
       {/* Main Studio Frame container */}
       <div style={isMobile ? {
