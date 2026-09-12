@@ -25,9 +25,12 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) && 
+                      (request.resource.data.role == 'user' || isAdmin()) &&
+                      (!('isPremium' in request.resource.data) || request.resource.data.isPremium == false || isAdmin());
       allow update: if isOwner(userId) && 
-                      (request.resource.data.role == resource.data.role || isAdmin());
+                      (request.resource.data.role == resource.data.role || isAdmin()) &&
+                      (!('isPremium' in request.resource.data) || request.resource.data.isPremium == resource.data.isPremium || isAdmin());
     }
 
     match /learningPlans/{userId} {
@@ -37,6 +40,11 @@ service cloud.firestore {
 
     match /exercises/{exerciseId} {
       allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /exerciseNotations/{exerciseKey} {
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
   }

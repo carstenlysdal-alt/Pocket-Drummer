@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+  * { -webkit-font-smoothing: antialiased; }
+  body { margin: 0; }
+  @keyframes pdPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: .85; } }
+  @keyframes pdBeat { 0%,100% { transform: scaleY(.55); } 50% { transform: scaleY(1); } }
+</style>
+</helmet>
+<div style="min-width:100%; box-sizing:border-box; display:inline-block; min-width:1520px; background:#EFEBE3; background-image:radial-gradient(circle at 20% 0%, #F5F1EA 0%, #EBE6DD 60%); padding:56px 64px 72px; font-family:'Hanken Grotesk',system-ui,sans-serif; color:#2B2723;">
+
+  <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:40px; max-width:1360px; margin:0 auto 44px;">
+    <div style="max-width:640px;">
+      <div style="font-size:12px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#EE6C48; margin-bottom:14px;">Pocket Drummer · Mobil redesign</div>
+      <h1 style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:46px; line-height:1.02; letter-spacing:-1px; margin:0 0 14px;">Lettere. Roligere.<br>Nemmere at øve.</h1>
+      <p style="margin:0; font-size:16px; line-height:1.55; color:#7C736A; max-width:520px;">Et luftigt, venligt look bygget til 2026: ét klart fokus pr. dag, blød typografi og rolige farver — så du bruger energien på trommerne, ikke på interfacet.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:14px; padding:20px 22px; background:#FFFFFF; border-radius:22px; box-shadow:0 8px 30px rgba(43,39,35,.06); flex-shrink:0;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#A79E93;">Palette</div>
+      <div style="display:flex; gap:10px;">
+        <div style="width:34px; height:34px; border-radius:10px; background:#EE6C48;" title="Koral"></div>
+        <div style="width:34px; height:34px; border-radius:10px; background:#3FAE86;" title="Mint"></div>
+        <div style="width:34px; height:34px; border-radius:10px; background:#2B2723;" title="Blæk"></div>
+        <div style="width:34px; height:34px; border-radius:10px; background:#FBFAF6; box-shadow:inset 0 0 0 1px #ECE7DF;" title="Papir"></div>
+      </div>
+      <div style="font-size:12.5px; color:#948B80; line-height:1.4;">Bricolage Grotesque · Hanken Grotesk</div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:56px; justify-content:center; align-items:flex-start; flex-wrap:wrap;">
+
+    <!-- ============ SCREEN 1 · HJEM ============ -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:18px;">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#FBFAF6; font-family:'Hanken Grotesk',system-ui,sans-serif; color:#2B2723;">
+          <!-- scroll area -->
+          <div style="flex:1; overflow:auto; padding:58px 22px 20px;">
+            <!-- greeting row -->
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px;">
+              <div>
+                <div style="font-size:14px; color:#A79E93; font-weight:500; margin-bottom:3px;">Lørdag 4. juli</div>
+                <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:27px; line-height:1.05; letter-spacing:-.5px;">God morgen,<br>Carsten</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; background:#FFFFFF; border-radius:999px; padding:8px 13px 8px 11px; box-shadow:0 3px 12px rgba(43,39,35,.06); flex-shrink:0;">
+                <i class="ph-fill ph-fire" style="font-size:18px; color:#EE6C48;"></i>
+                <span style="font-size:14px; font-weight:700;">3</span>
+              </div>
+            </div>
+
+            <!-- today hero card -->
+            <div style="background:linear-gradient(160deg,#FDF0EA 0%,#FCE7DC 100%); border-radius:28px; padding:22px 22px 24px; margin-bottom:22px; box-shadow:0 10px 30px rgba(238,108,72,.10);">
+              <div style="display:inline-flex; align-items:center; gap:7px; background:#FFFFFF; border-radius:999px; padding:6px 12px; margin-bottom:16px;">
+                <span style="width:7px; height:7px; border-radius:50%; background:#EE6C48; display:inline-block;"></span>
+                <span style="font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#EE6C48;">I dag · Grundrytmer</span>
+              </div>
+              <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:31px; line-height:1.05; letter-spacing:-.6px; margin-bottom:8px;">Grooves &amp; fills<br>— del 1</div>
+              <p style="margin:0 0 20px; font-size:14.5px; line-height:1.5; color:#8A6F62; max-width:250px;">Hi-hat mønstre med halvnoder over bastromme.</p>
+              <!-- segmented progress -->
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                <div style="display:flex; gap:5px; flex:1;">
+                  <span style="flex:1; height:6px; border-radius:3px; background:#EE6C48;"></span>
+                  <span style="flex:1; height:6px; border-radius:3px; background:#EE6C48;"></span>
+                  <span style="flex:1; height:6px; border-radius:3px; background:#EE6C48;"></span>
+                  <span style="flex:1; height:6px; border-radius:3px; background:#F3D3C4;"></span>
+                  <span style="flex:1; height:6px; border-radius:3px; background:#F3D3C4;"></span>
+                  <span style="flex:1; height:6px; border-radius:3px; background:#F3D3C4;"></span>
+                  <span style="flex:1; height:6px; border-radius:3px; background:#F3D3C4;"></span>
+                </div>
+                <span style="font-size:13px; font-weight:700; color:#B5714F;">3/7</span>
+              </div>
+              <button style="width:100%; border:none; cursor:pointer; background:#EE6C48; color:#fff; border-radius:16px; padding:16px; font-family:'Hanken Grotesk',sans-serif; font-size:16px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 8px 20px rgba(238,108,72,.32);">
+                <i class="ph-fill ph-play" style="font-size:17px;"></i> Fortsæt lektion
+              </button>
+            </div>
+
+            <!-- quick tiles -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:13px;">
+              <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px;">Kom hurtigt i gang</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:26px;">
+              <div style="background:#FFFFFF; border-radius:20px; padding:16px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+                <div style="width:42px; height:42px; border-radius:13px; background:#E4F3EC; display:flex; align-items:center; justify-content:center; margin-bottom:12px;"><i class="ph ph-waveform" style="font-size:22px; color:#3FAE86;"></i></div>
+                <div style="font-size:15px; font-weight:700;">Øvelser</div>
+                <div style="font-size:12.5px; color:#A79E93; margin-top:2px;">312 i biblioteket</div>
+              </div>
+              <div style="background:#FFFFFF; border-radius:20px; padding:16px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+                <div style="width:42px; height:42px; border-radius:13px; background:#FCE9E1; display:flex; align-items:center; justify-content:center; margin-bottom:12px;"><i class="ph ph-play-circle" style="font-size:22px; color:#EE6C48;"></i></div>
+                <div style="font-size:15px; font-weight:700;">Play-along</div>
+                <div style="font-size:12.5px; color:#A79E93; margin-top:2px;">Spil med musik</div>
+              </div>
+              <div style="background:#FFFFFF; border-radius:20px; padding:16px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+                <div style="width:42px; height:42px; border-radius:13px; background:#EEEAF6; display:flex; align-items:center; justify-content:center; margin-bottom:12px;"><i class="ph ph-disc" style="font-size:22px; color:#7B6FB0;"></i></div>
+                <div style="font-size:15px; font-weight:700;">Studio Kit</div>
+                <div style="font-size:12.5px; color:#A79E93; margin-top:2px;">Digitalt trommesæt</div>
+              </div>
+              <div style="background:#FFFFFF; border-radius:20px; padding:16px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+                <div style="width:42px; height:42px; border-radius:13px; background:#FBEFD9; display:flex; align-items:center; justify-content:center; margin-bottom:12px;"><i class="ph ph-sparkle" style="font-size:22px; color:#D69A34;"></i></div>
+                <div style="font-size:15px; font-weight:700;">AI Coach</div>
+                <div style="font-size:12.5px; color:#A79E93; margin-top:2px;">Spørg om alt</div>
+              </div>
+            </div>
+
+            <!-- continue -->
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px; margin-bottom:13px;">Fortsæt hvor du slap</div>
+            <div style="background:#FFFFFF; border-radius:20px; padding:14px; display:flex; align-items:center; gap:14px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+              <div style="width:54px; height:54px; border-radius:15px; background:repeating-linear-gradient(135deg,#F1ECE4 0 7px,#F7F3EC 7px 14px); display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="ph ph-music-notes" style="font-size:22px; color:#B7AEA2;"></i></div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:15px; font-weight:700;">Sekstendedele · timing</div>
+                <div style="font-size:12.5px; color:#A79E93; margin-top:2px;">Nodelære · 4 min tilbage</div>
+              </div>
+              <i class="ph ph-caret-right" style="font-size:18px; color:#C6BDB2;"></i>
+            </div>
+          </div>
+
+          <!-- tab bar -->
+          <div style="display:flex; justify-content:space-around; align-items:flex-end; padding:12px 14px 30px; background:rgba(251,250,246,.9); backdrop-filter:blur(12px); border-top:1px solid #EEE9E1;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#EE6C48;"><i class="ph-fill ph-house" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:700;">Hjem</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#B7AEA2;"><i class="ph ph-waveform" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:600;">Øvelser</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#B7AEA2;"><i class="ph ph-play-circle" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:600;">Play</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#B7AEA2;"><i class="ph ph-disc" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:600;">Studio</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#B7AEA2;"><i class="ph ph-user" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:600;">Profil</span></div>
+          </div>
+        </div>
+      </x-import>
+      <div style="font-size:13px; font-weight:600; color:#948B80;">Hjem · Ét fokus pr. dag</div>
+    </div>
+
+    <!-- ============ SCREEN 2 · ØVELSER ============ -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:18px;">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#FBFAF6; font-family:'Hanken Grotesk',system-ui,sans-serif; color:#2B2723;">
+          <div style="flex:1; overflow:auto; padding:58px 22px 20px;">
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:30px; letter-spacing:-.6px; margin-bottom:4px;">Øvelser</div>
+            <div style="font-size:13.5px; color:#A79E93; margin-bottom:18px;">312 øvelser · 40 gratis</div>
+
+            <!-- search -->
+            <div style="display:flex; align-items:center; gap:10px; background:#FFFFFF; border-radius:15px; padding:13px 15px; margin-bottom:16px; box-shadow:0 3px 12px rgba(43,39,35,.05);">
+              <i class="ph ph-magnifying-glass" style="font-size:19px; color:#B7AEA2;"></i>
+              <span style="font-size:15px; color:#B7AEA2;">Søg efter teknik, groove…</span>
+            </div>
+
+            <!-- chips -->
+            <div style="display:flex; gap:9px; margin-bottom:22px; overflow:hidden;">
+              <span style="background:#2B2723; color:#fff; font-size:13px; font-weight:600; padding:9px 16px; border-radius:999px; white-space:nowrap;">Alle</span>
+              <span style="background:#FFFFFF; color:#6E655B; font-size:13px; font-weight:600; padding:9px 16px; border-radius:999px; white-space:nowrap; box-shadow:inset 0 0 0 1px #ECE7DF;">Nodelære</span>
+              <span style="background:#FFFFFF; color:#6E655B; font-size:13px; font-weight:600; padding:9px 16px; border-radius:999px; white-space:nowrap; box-shadow:inset 0 0 0 1px #ECE7DF;">Grooves</span>
+              <span style="background:#FFFFFF; color:#6E655B; font-size:13px; font-weight:600; padding:9px 16px; border-radius:999px; white-space:nowrap; box-shadow:inset 0 0 0 1px #ECE7DF;">Fills</span>
+            </div>
+
+            <!-- list -->
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <!-- item -->
+              <div style="background:#FFFFFF; border-radius:20px; padding:14px; display:flex; align-items:center; gap:14px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+                <div style="width:52px; height:52px; border-radius:15px; background:#FCE9E1; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="ph ph-music-notes" style="font-size:24px; color:#EE6C48;"></i></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:15px; font-weight:700;">Basic rock groove</div>
+                  <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">
+                    <span style="font-size:11px; font-weight:700; color:#3FAE86; background:#E4F3EC; padding:3px 9px; border-radius:999px;">Begynder</span>
+                    <span style="font-size:12px; color:#A79E93;">· 6 min</span>
+                  </div>
+                </div>
+                <i class="ph ph-caret-right" style="font-size:18px; color:#C6BDB2;"></i>
+              </div>
+
+              <div style="background:#FFFFFF; border-radius:20px; padding:14px; display:flex; align-items:center; gap:14px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+                <div style="width:52px; height:52px; border-radius:15px; background:#E4F3EC; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="ph ph-metronome" style="font-size:24px; color:#3FAE86;"></i></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:15px; font-weight:700;">Sekstendedele &amp; timing</div>
+                  <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">
+                    <span style="font-size:11px; font-weight:700; color:#D69A34; background:#FBEFD9; padding:3px 9px; border-radius:999px;">Øvet</span>
+                    <span style="font-size:12px; color:#A79E93;">· 9 min</span>
+                  </div>
+                </div>
+                <i class="ph ph-caret-right" style="font-size:18px; color:#C6BDB2;"></i>
+              </div>
+
+              <div style="background:#FFFFFF; border-radius:20px; padding:14px; display:flex; align-items:center; gap:14px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+                <div style="width:52px; height:52px; border-radius:15px; background:#EEEAF6; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="ph ph-music-notes-simple" style="font-size:24px; color:#7B6FB0;"></i></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:15px; font-weight:700;">Ghost notes i funk</div>
+                  <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">
+                    <span style="font-size:11px; font-weight:700; color:#EE6C48; background:#FCE9E1; padding:3px 9px; border-radius:999px;">Avanceret</span>
+                    <span style="font-size:12px; color:#A79E93;">· 12 min</span>
+                  </div>
+                </div>
+                <i class="ph ph-caret-right" style="font-size:18px; color:#C6BDB2;"></i>
+              </div>
+
+              <div style="background:#FFFFFF; border-radius:20px; padding:14px; display:flex; align-items:center; gap:14px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+                <div style="width:52px; height:52px; border-radius:15px; background:#FCE9E1; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="ph ph-music-notes" style="font-size:24px; color:#EE6C48;"></i></div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:15px; font-weight:700;">Shuffle-føling</div>
+                  <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">
+                    <span style="font-size:11px; font-weight:700; color:#3FAE86; background:#E4F3EC; padding:3px 9px; border-radius:999px;">Begynder</span>
+                    <span style="font-size:12px; color:#A79E93;">· 5 min</span>
+                  </div>
+                </div>
+                <i class="ph ph-caret-right" style="font-size:18px; color:#C6BDB2;"></i>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-around; align-items:flex-end; padding:12px 14px 30px; background:rgba(251,250,246,.9); backdrop-filter:blur(12px); border-top:1px solid #EEE9E1;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#B7AEA2;"><i class="ph ph-house" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:600;">Hjem</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#EE6C48;"><i class="ph-fill ph-waveform" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:700;">Øvelser</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#B7AEA2;"><i class="ph ph-play-circle" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:600;">Play</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#B7AEA2;"><i class="ph ph-disc" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:600;">Studio</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#B7AEA2;"><i class="ph ph-user" style="font-size:23px;"></i><span style="font-size:10.5px; font-weight:600;">Profil</span></div>
+          </div>
+        </div>
+      </x-import>
+      <div style="font-size:13px; font-weight:600; color:#948B80;">Øvelser · Ét klik til at scanne</div>
+    </div>
+
+    <!-- ============ SCREEN 3 · LEKTION ============ -->
+    <div style="display:flex; flex-direction:column; align-items:center; gap:18px;">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%; display:flex; flex-direction:column; background:#FBFAF6; font-family:'Hanken Grotesk',system-ui,sans-serif; color:#2B2723;">
+          <div style="flex:1; overflow:auto; padding:58px 22px 20px;">
+            <!-- header -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+              <div style="width:40px; height:40px; border-radius:12px; background:#FFFFFF; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 12px rgba(43,39,35,.06);"><i class="ph ph-caret-left" style="font-size:19px; color:#2B2723;"></i></div>
+              <div style="font-size:12px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#A79E93;">Grundrytmer · 3/7</div>
+              <div style="width:40px; height:40px; border-radius:12px; background:#FFFFFF; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 12px rgba(43,39,35,.06);"><i class="ph ph-heart" style="font-size:19px; color:#C6BDB2;"></i></div>
+            </div>
+
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:27px; line-height:1.05; letter-spacing:-.6px; margin-bottom:16px;">Grooves &amp; fills — del 1</div>
+
+            <!-- video placeholder -->
+            <div style="position:relative; border-radius:22px; overflow:hidden; aspect-ratio:16/10; background:repeating-linear-gradient(135deg,#EBE6DD 0 10px,#F2EDE5 10px 20px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; margin-bottom:18px;">
+              <div style="width:60px; height:60px; border-radius:50%; background:#FFFFFF; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(43,39,35,.14);"><i class="ph-fill ph-play" style="font-size:24px; color:#EE6C48; margin-left:3px;"></i></div>
+              <span style="font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px; letter-spacing:.5px; color:#A79E93;">video · lektion</span>
+            </div>
+
+            <!-- notation strip -->
+            <div style="background:#FFFFFF; border-radius:20px; padding:18px 16px; margin-bottom:16px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                <span style="font-size:13px; font-weight:700;">Takt 3</span>
+                <span style="font-size:12px; color:#A79E93;">Hi-hat · Snare · Kick</span>
+              </div>
+              <div style="display:flex; align-items:flex-end; gap:6px; height:56px;">
+                <span style="flex:1; height:60%; border-radius:5px; background:#EFEAE2;"></span>
+                <span style="flex:1; height:100%; border-radius:5px; background:#EE6C48;"></span>
+                <span style="flex:1; height:45%; border-radius:5px; background:#EFEAE2;"></span>
+                <span style="flex:1; height:80%; border-radius:5px; background:#F3C9B8;"></span>
+                <span style="flex:1; height:55%; border-radius:5px; background:#EFEAE2;"></span>
+                <span style="flex:1; height:100%; border-radius:5px; background:#EE6C48;"></span>
+                <span style="flex:1; height:45%; border-radius:5px; background:#EFEAE2;"></span>
+                <span style="flex:1; height:70%; border-radius:5px; background:#F3C9B8;"></span>
+              </div>
+              <div style="display:flex; gap:6px; margin-top:8px;">
+                <span style="flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#C6BDB2;">1</span>
+                <span style="flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#EE6C48; font-weight:700;">&amp;</span>
+                <span style="flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#C6BDB2;">2</span>
+                <span style="flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#C6BDB2;">&amp;</span>
+                <span style="flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#C6BDB2;">3</span>
+                <span style="flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#C6BDB2;">&amp;</span>
+                <span style="flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#C6BDB2;">4</span>
+                <span style="flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#C6BDB2;">&amp;</span>
+              </div>
+            </div>
+
+            <!-- tempo -->
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#FFFFFF; border-radius:16px; padding:12px 14px; box-shadow:0 4px 16px rgba(43,39,35,.05);">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <i class="ph ph-metronome" style="font-size:20px; color:#3FAE86;"></i>
+                <span style="font-size:14px; font-weight:600; color:#6E655B;">Tempo</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:32px; height:32px; border-radius:10px; background:#F4EFE8; display:flex; align-items:center; justify-content:center;"><i class="ph ph-minus" style="font-size:15px; color:#6E655B;"></i></div>
+                <span style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px; min-width:64px; text-align:center;">90 BPM</span>
+                <div style="width:32px; height:32px; border-radius:10px; background:#F4EFE8; display:flex; align-items:center; justify-content:center;"><i class="ph ph-plus" style="font-size:15px; color:#6E655B;"></i></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- transport dock -->
+          <div style="padding:14px 22px 30px; background:rgba(251,250,246,.92); backdrop-filter:blur(12px); border-top:1px solid #EEE9E1; display:flex; align-items:center; justify-content:space-between;">
+            <div style="width:52px; height:52px; border-radius:16px; background:#F4EFE8; display:flex; align-items:center; justify-content:center;"><i class="ph ph-repeat" style="font-size:22px; color:#6E655B;"></i></div>
+            <div style="width:70px; height:70px; border-radius:50%; background:#EE6C48; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 24px rgba(238,108,72,.4);"><i class="ph-fill ph-play" style="font-size:28px; color:#fff; margin-left:4px;"></i></div>
+            <div style="width:52px; height:52px; border-radius:16px; background:#F4EFE8; display:flex; align-items:center; justify-content:center;"><i class="ph ph-arrow-right" style="font-size:22px; color:#6E655B;"></i></div>
+          </div>
+        </div>
+      </x-import>
+      <div style="font-size:13px; font-weight:600; color:#948B80;">Lektion · Video, noder &amp; tempo samlet</div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

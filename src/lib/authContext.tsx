@@ -2,17 +2,29 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, googleProvider } from './firebase';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
+} from 'firebase/auth';
+import { Timestamp } from 'firebase/firestore';
 import { firestoreService, UserProfile } from './firestoreService';
 import { UserPlan, getCompletedExercises, getUserPlan, saveUserPlan, setPremiumStatus } from './mockData';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
-  login: (email?: string) => Promise<void>;
+  login: () => Promise<string>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   syncCompletedExercises: (completedIds: string[]) => Promise<void>;
-  syncLearningPlan: (plan: UserPlan) => Promise<void>;
+  syncLearningPlan: (plan: UserPlan, uidOverride?: string) => Promise<void>;
   syncPremiumStatus: (isPremium: boolean) => Promise<void>;
 }
 
@@ -50,12 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const finalPlan = dbPlan || localPlan;
 
             const isPremiumLocal = localStorage.getItem('pocketdrummer_premium_active') === 'true';
-            const finalPremium = profile.isPremium || isPremiumLocal;
+            // Firestore-profilen er facit for logged-in brugere (ikke lokal klient-state)
+            const finalPremium = typeof profile.isPremium === 'boolean' ? profile.isPremium : isPremiumLocal;
 
-            // Sync to Firestore
+            // Sync to Firestore (ekskluder isPremium så klienten ikke overskriver server-autoritet)
             await firestoreService.saveUserProfile(uid, {
-              completedExercises: mergedCompleted,
-              isPremium: finalPremium
+              completedExercises: mergedCompleted
             });
 
             if (finalPlan) {
@@ -86,6 +98,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.error('Error during Auth state change handler:', err);
+        // Firestore fejlede — sæt minimal bruger fra Firebase Auth så login stadig virker
+        if (firebaseUser) {
+          const now = Timestamp.now();
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Trommeslager',
+            photoURL: firebaseUser.photoURL,
+            role: firebaseUser.email === 'carstenlysdal@gmail.com' ? 'admin' : 'user',
+            createdAt: now,
+            lastLogin: now,
+            completedExercises: [],
+            isPremium: false,
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -95,15 +122,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Login using Google popup
-  const login = async (email?: string) => {
+  const login = async () => {
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      return result.user.uid;
     } catch (err) {
       console.error('Google sign-in popup error:', err);
       throw err;
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Opret konto med email og password
+  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+    setLoading(true);
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(result.user, { displayName });
+    } catch (err) {
+      console.error('Email sign-up error:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Log ind med email og password
+  const signInWithEmail = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      console.error('Email sign-in error:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Nulstil kodeord
+  const resetPassword = async (email: string) => {
+    try {
+      const actionCodeSettings = {
+        url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/login`,
+        handleCodeInApp: false,
+      };
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+    } catch (err) {
+      console.error('Password reset error:', err);
+      throw err;
     }
   };
 
@@ -137,13 +206,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Sync learning plan
-  const syncLearningPlan = async (plan: UserPlan) => {
+  const syncLearningPlan = async (plan: UserPlan, uidOverride?: string) => {
     if (typeof window !== 'undefined') {
       saveUserPlan(plan);
     }
-    if (user) {
+    const targetUid = uidOverride || user?.uid;
+    if (targetUid) {
       try {
-        await firestoreService.saveLearningPlan(user.uid, plan);
+        await firestoreService.saveLearningPlan(targetUid, plan);
       } catch (err) {
         console.error('Error syncing learning plan:', err);
       }
@@ -170,6 +240,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       loading,
       login,
+      signUpWithEmail,
+      signInWithEmail,
+      resetPassword,
       logout,
       syncCompletedExercises,
       syncLearningPlan,

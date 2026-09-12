@@ -38,7 +38,7 @@ Du skal ALTID returnere et rent JSON-objekt (ingen markdown, ingen forklaringer 
 "action" er VALGFRIT. Inkludér det KUN når du konkret anbefaler at brugeren øver noget bestemt i appen.`;
 
 exports.kaldDeepSeek = onRequest(
-  { secrets: ["DEEPSEEK_API_KEY"], cors: true },
+  { secrets: ["DEEPSEEK_API_KEY"], cors: true, minInstances: 1 },
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");

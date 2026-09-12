@@ -131,15 +131,27 @@ export default function OsmdRenderer({ xmlData, zoom = 1.0, currentMeasure, onLo
           {error}
         </div>
       )}
-      <div 
-        ref={containerRef} 
+      <style>{`
+        #osmd-svg-container text,
+        #osmd-svg-container tspan {
+          font-family: var(--font-serif, 'DM Serif Display', Georgia, serif) !important;
+        }
+        #osmd-svg-container .osmd-title,
+        #osmd-svg-container .osmd-subtitle {
+          font-family: var(--font-serif, 'DM Serif Display', Georgia, serif) !important;
+          font-style: italic;
+        }
+      `}</style>
+      <div
+        ref={containerRef}
         id="osmd-svg-container"
-        style={{ 
-          width: '100%', 
-          background: '#ffffff', 
-          padding: '1rem', 
-          borderRadius: '8px' 
-        }} 
+        style={{
+          width: '100%',
+          background: '#ffffff',
+          padding: '1rem',
+          borderRadius: '8px',
+          fontFamily: 'var(--font-serif, "DM Serif Display", Georgia, serif)',
+        }}
       />
     </div>
   );

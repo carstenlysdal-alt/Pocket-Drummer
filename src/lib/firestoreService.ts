@@ -17,6 +17,9 @@ export interface UserProfile {
   lastLogin: Timestamp;
   completedExercises?: string[];
   isPremium?: boolean;
+  xp?: number;
+  level?: number;
+  streak?: number;
 }
 
 export const firestoreService = {

@@ -8,11 +8,17 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      ".firebase/**",
+      "functions/**",
+      "docs/**",
+      "*.md",
+      "*.txt",
+      "*.rtf",
+      "firebase-debug.log"
     ],
     "frameworksBackend": {
       "region": "us-central1",
-      "framework": "nextjs",
       "secrets": ["DEEPSEEK_API_KEY", "GEMINI_API_KEY"]
     }
   },

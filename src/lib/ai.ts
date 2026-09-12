@@ -1,4 +1,5 @@
 import { getStandardDrumMusicXML, initialExercises, PlanExercise } from './mockData';
+import { extractXmlPayload, hasScorePartwise } from './musicXml';
 
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
@@ -141,10 +142,14 @@ Returner KUN den rå XML-tekst startende med <?xml version="1.0" ...> og slutten
     }
 
     const data = await response.json();
-    let rawText = data.choices[0].message.content.trim();
-    // Rens eventuel markdown-omslutning
-    rawText = rawText.replace(/^```xml/, "").replace(/^```/, "").replace(/```$/, "").trim();
-    return rawText;
+    const rawText = data.choices[0].message.content.trim();
+    const xml = extractXmlPayload(rawText);
+
+    if (!hasScorePartwise(xml)) {
+      console.warn("DeepSeek returned XML without a score-partwise root; returning extracted XML for client-side preview validation.");
+    }
+
+    return xml;
   } catch (e) {
     console.error("Error generating AI MusicXML:", e);
     return generateFallbackMusicXML(input);

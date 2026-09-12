@@ -3,22 +3,26 @@
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import { useRouter } from 'next/navigation';
-import { Sparkles, ArrowRight, ArrowLeft, Shield } from 'lucide-react';
-import { saveUserGoal, saveUserPlan, setPremiumStatus } from '@/lib/mockData';
+import { Sparkles, ArrowRight, ArrowLeft } from 'lucide-react';
+import { saveUserGoal, saveUserPlan } from '@/lib/mockData';
 
 const GOAL_TAGS = [
-  "Hi-hat kontrol", "Stortromme styrke", "Fills og fills-kombinationer",
-  "Rudiments & Hvirvler", "Jazz Swing", "Funk Syncoper",
-  "Metronom Timing", "Stikuafhængighed", "Koordination", "Tempo/Hastighed"
+  "Hi-hat kontrol",
+  "Rudiments & Hvirvler",
+  "Jazz Swing",
+  "Funk Syncoper",
+  "Koordination",
+  "Fills og kombinationer",
 ];
 
+// step: 0 = mål, 1 = niveau, 2 = øvetid
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Analyserer dine mål...");
+  const [errorMsg, setErrorMsg] = useState('');
 
-  // Formular state
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [freeTextGoal, setFreeTextGoal] = useState("");
   const [level, setLevel] = useState<'begynder' | 'mellemniveau' | 'øvet'>('begynder');
@@ -26,35 +30,30 @@ export default function OnboardingPage() {
   const [timeframe, setTimeframe] = useState("3 måneder");
 
   const toggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter(t => t !== tag));
-    } else {
-      setSelectedTags([...selectedTags, tag]);
-    }
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
   };
 
-  const handleNext = () => {
-    setStep(step + 1);
-  };
-
-  const handleBack = () => {
-    if (step > 0) setStep(step - 1);
-  };
+  const handleNext = () => setStep(s => s + 1);
+  const handleBack = () => { if (step > 0) setStep(s => s - 1); };
 
   const handleSubmit = async () => {
+    setErrorMsg('');
     setLoading(true);
-    setLoadingMessage("Kontakter Claude AI...");
+    setLoadingMessage("Din personlige trommelærer analyserer dine mål...");
 
-    // Simulér trin i genereringen for en fed brugeroplevelse
     const timers = [
-      setTimeout(() => setLoadingMessage("Analyserer din valgte sværhedsgrad..."), 1500),
-      setTimeout(() => setLoadingMessage("Sammensætter 4-ugers øvelsesrækkefølge..."), 3000),
-      setTimeout(() => setLoadingMessage("Færdiggør kalender & milepæle..."), 4500)
+      setTimeout(() => setLoadingMessage("Tilpasser øvelserne til dit niveau..."), 1500),
+      setTimeout(() => setLoadingMessage("Sammensætter din 4-ugers plan..."), 3000),
+      setTimeout(() => setLoadingMessage("Færdiggør milepæle og kalender..."), 4500),
     ];
 
     try {
-      const compiledGoalDescription = freeTextGoal.trim() || (selectedTags.length > 0 ? `Forbedre: ${selectedTags.join(', ')}` : "Generel tromme progression");
-      
+      const compiledGoalDescription =
+        freeTextGoal.trim() ||
+        (selectedTags.length > 0 ? `Forbedre: ${selectedTags.join(', ')}` : "Generel tromme progression");
+
       const response = await fetch('/api/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,46 +61,43 @@ export default function OnboardingPage() {
           maal: compiledGoalDescription,
           niveau: level,
           tidPrDag: practiceMinutes,
-          tidshorisont: timeframe
-        })
+          tidshorisont: timeframe,
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error("Kunne ikke oprette læringsplan");
-      }
+      if (!response.ok) throw new Error("Kunne ikke oprette læringsplan");
 
       const planData = await response.json();
-      
-      // Gem til mock database
+
       saveUserGoal({
         beskrivelse: compiledGoalDescription,
         tidshorisont: timeframe,
         aktiv: true,
         oprettet: new Date().toISOString(),
-        delmål: selectedTags.length > 0 ? selectedTags.slice(0, 3) : ["Følg daglige øvelser", "Styrk timing", "Øv med metronom"]
+        delmål: selectedTags.length > 0
+          ? selectedTags.slice(0, 3)
+          : ["Følg daglige øvelser", "Styrk timing", "Øv med metronom"],
       });
 
-      // Konverter og gem AI-genereret plan
       saveUserPlan({
         goal_id: 'active-goal',
         uge_start: new Date().toLocaleDateString('da-DK', { day: 'numeric', month: 'long' }),
         fokustema: planData.fokustema || "Uge 1: Grundlæggende færdigheder",
         milepæl: planData.milepæl || "Kunne gennemføre ugens øvelser stabilt",
-        øvelser: planData.øvelser || []
+        øvelser: planData.øvelser || [],
       });
 
-      // Sæt premium status til sandt så de kan se hele appen i demoen
-      setPremiumStatus(true);
-
-      // Ryd timere og omdiriger
       timers.forEach(t => clearTimeout(t));
       router.push('/dashboard');
     } catch (e) {
       console.error(e);
+      timers.forEach(t => clearTimeout(t));
       setLoading(false);
-      alert("Der skete en fejl under plan-genereringen. Prøv venligst igen.");
+      setErrorMsg("Der skete en fejl under plan-genereringen. Tjek din internetforbindelse og prøv igen.");
     }
   };
+
+  const goalsValid = selectedTags.length > 0 || freeTextGoal.trim().length > 0;
 
   return (
     <div className="grid-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -109,7 +105,7 @@ export default function OnboardingPage() {
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
         <div className="glass-card" style={{ maxWidth: '600px', width: '100%', padding: '2.5rem' }}>
-          
+
           {loading ? (
             <div className="text-center p-3">
               <div style={{
@@ -119,13 +115,10 @@ export default function OnboardingPage() {
                 width: '60px',
                 height: '60px',
                 animation: 'spin 1.2s linear infinite',
-                margin: '2rem auto'
-              }}></div>
+                margin: '2rem auto',
+              }} />
               <h2 className="mb-2" style={{ fontSize: '1.8rem' }}>Skaber din læringsplan</h2>
               <p className="text-purple" style={{ fontSize: '1.1rem', fontWeight: 600 }}>{loadingMessage}</p>
-              <p className="text-muted-color mt-3" style={{ fontSize: '0.85rem' }}>
-                Claude 3.5 Haiku tilpasser øvelserne til dit niveau...
-              </p>
               <style jsx global>{`
                 @keyframes spin {
                   0% { transform: rotate(0deg); }
@@ -135,92 +128,34 @@ export default function OnboardingPage() {
             </div>
           ) : (
             <div>
-              {/* Progress dots */}
+              {/* Progress dots — 3 trin */}
               <div
                 role="progressbar"
-                aria-valuenow={step}
-                aria-valuemin={0}
+                aria-valuenow={step + 1}
+                aria-valuemin={1}
                 aria-valuemax={3}
-                aria-label={`Trin ${step + 1} af 4`}
+                aria-label={`Trin ${step + 1} af 3`}
                 style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}
               >
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: (step === 0 || step === 1) ? 'var(--accent-purple)' : 'rgba(255,255,255,0.2)' }}></span>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: step === 2 ? 'var(--accent-purple)' : 'rgba(255,255,255,0.2)' }}></span>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: step === 3 ? 'var(--accent-purple)' : 'rgba(255,255,255,0.2)' }}></span>
+                {[0, 1, 2].map(i => (
+                  <span key={i} style={{
+                    width: i === step ? '24px' : '8px',
+                    height: '8px',
+                    borderRadius: '4px',
+                    background: i <= step ? 'var(--accent-purple)' : 'rgba(255,255,255,0.2)',
+                    transition: 'all 0.25s ease',
+                  }} />
+                ))}
               </div>
 
-              {/* Step 0: Splash Screen */}
+              {/* Trin 0: Mål */}
               {step === 0 && (
-                <div className="text-center">
-                  <div className="logo-brand" style={{ fontSize: '2.8rem', marginBottom: '0.1rem' }}>
-                    Pocket Drummer<span style={{ color: 'var(--color-accent)', fontStyle: 'normal' }}>.</span>
-                  </div>
-                  <div className="text-serif-italic mb-3" style={{ fontSize: '1.25rem', color: 'var(--color-accent)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    Spil. Øv. Udvikl dig.
-                  </div>
-                  
-                  <div className="snare-art-container" style={{ margin: '1.5rem auto' }}>
-                    <svg viewBox="0 0 100 100" width="160" height="160" stroke="var(--accent-purple)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 10px rgba(242,92,61,0.15))' }}>
-                      {/* Crossed Drum Sticks */}
-                      <line x1="20" y1="35" x2="80" y2="65" strokeWidth="2.5" />
-                      <line x1="80" y1="35" x2="20" y2="65" strokeWidth="2.5" />
-                      
-                      <circle cx="80" cy="65" r="2" fill="var(--accent-purple)" />
-                      <circle cx="20" cy="65" r="2" fill="var(--accent-purple)" />
-                      
-                      {/* Snare Drum body */}
-                      <ellipse cx="50" cy="53" rx="30" ry="11" fill="var(--bg-deep)" strokeWidth="2" />
-                      <ellipse cx="50" cy="63" rx="30" ry="11" fill="none" strokeWidth="2" />
-                      
-                      {/* Vertical bars/ribs */}
-                      <line x1="20" y1="53" x2="20" y2="63" />
-                      <line x1="30" y1="59" x2="30" y2="69" />
-                      <line x1="40" y1="62" x2="40" y2="72" />
-                      <line x1="50" y1="64" x2="50" y2="74" />
-                      <line x1="60" y1="62" x2="60" y2="72" />
-                      <line x1="70" y1="59" x2="70" y2="69" />
-                      <line x1="80" y1="53" x2="80" y2="63" />
-                      
-                      {/* Orbit wave ring */}
-                      <circle cx="50" cy="56" r="38" stroke="var(--accent-purple)" strokeWidth="0.75" strokeDasharray="3 3" opacity="0.4" />
-                    </svg>
-                  </div>
-
-                  <h3 className="mb-2 font-title" style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '0.05em' }}>
-                    DIN REJSE BEGYNDER HER
-                  </h3>
-                  <p className="text-muted-color mb-3" style={{ fontSize: '0.95rem', maxWidth: '400px', margin: '0 auto 2rem auto' }}>
-                    Uanset dit niveau, hjælper vi dig med at blive en bedre trommeslager.
-                  </p>
-
-                  <button 
-                    onClick={() => setStep(1)} 
-                    className="btn btn-primary w-full mb-3"
-                    style={{ padding: '0.8rem 1.5rem', fontSize: '1.05rem', fontWeight: 600 }}
-                  >
-                    KOM I GANG
-                  </button>
-                  
-                  <div className="text-center">
-                    <button 
-                      onClick={() => router.push('/dashboard')}
-                      className="btn-link"
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
-                    >
-                      HAR DU ALLEREDE EN KONTO? LOG IND
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 1: Goals */}
-              {step === 1 && (
                 <div>
                   <h2 className="mb-1" style={{ fontSize: '1.8rem' }}>Hvad vil du gerne blive bedre til?</h2>
                   <p className="text-muted-color mb-3" style={{ fontSize: '0.9rem' }}>
-                    Vælg et eller flere fokusområder eller skriv dit eget mål.
+                    Vælg et eller flere fokusområder — eller skriv dit eget mål nedenfor.
                   </p>
-                  
+
                   <div className="tag-select mb-3" role="group" aria-label="Fokusområder">
                     {GOAL_TAGS.map((tag) => (
                       <button
@@ -240,21 +175,24 @@ export default function OnboardingPage() {
                       id="free-text-goal"
                       type="text"
                       className="form-control"
-                      placeholder="F.eks. Lære at spille sangen 'In The Air Tonight'..."
+                      placeholder="F.eks. lære at spille 'In The Air Tonight'..."
                       value={freeTextGoal}
                       onChange={(e) => setFreeTextGoal(e.target.value)}
                       aria-label="Skriv dit eget mål"
                     />
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-                    <button onClick={handleBack} className="btn btn-secondary">
-                      <ArrowLeft size={16} /> Tilbage
-                    </button>
-                    <button 
-                      onClick={handleNext} 
+                  {!goalsValid && (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                      Vælg mindst ét fokusområde, eller skriv dit eget mål.
+                    </p>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+                    <button
+                      onClick={handleNext}
                       className="btn btn-primary"
-                      disabled={selectedTags.length === 0 && !freeTextGoal.trim()}
+                      disabled={!goalsValid}
                     >
                       Næste <ArrowRight size={16} />
                     </button>
@@ -262,12 +200,12 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 2: Level */}
-              {step === 2 && (
+              {/* Trin 1: Niveau */}
+              {step === 1 && (
                 <div>
                   <h2 className="mb-1" style={{ fontSize: '1.8rem' }}>Hvad er dit nuværende niveau?</h2>
                   <p className="text-muted-color mb-3" style={{ fontSize: '0.9rem' }}>
-                    Dette afgør sværhedsgraden af de øvelser Claude vælger.
+                    Det afgør sværhedsgraden af de øvelser din plan indeholder.
                   </p>
 
                   <div role="radiogroup" aria-label="Vælg dit niveau" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: '2rem 0' }}>
@@ -278,7 +216,7 @@ export default function OnboardingPage() {
                       <input type="radio" name="level" value="begynder" checked={level === 'begynder'} onChange={() => setLevel('begynder')} className="sr-only" />
                       <div>
                         <h4 className="text-cyan">Begynder</h4>
-                        <p style={{ fontSize: '0.85rem' }}>Jeg har spillet 0-2 år, øver grundlæggende rytmer og skal opbygge stikteknik.</p>
+                        <p style={{ fontSize: '0.85rem' }}>0–2 år. Grundlæggende rytmer og stikteknik er i fokus.</p>
                       </div>
                     </label>
 
@@ -289,7 +227,7 @@ export default function OnboardingPage() {
                       <input type="radio" name="level" value="mellemniveau" checked={level === 'mellemniveau'} onChange={() => setLevel('mellemniveau')} className="sr-only" />
                       <div>
                         <h4 className="text-purple">Mellemniveau</h4>
-                        <p style={{ fontSize: '0.85rem' }}>Jeg har spillet 2-5 år, spiller måske i band og vil udfordres på dynamik og fills.</p>
+                        <p style={{ fontSize: '0.85rem' }}>2–5 år. Spiller måske i band — vil udfordres på dynamik og fills.</p>
                       </div>
                     </label>
 
@@ -300,7 +238,7 @@ export default function OnboardingPage() {
                       <input type="radio" name="level" value="øvet" checked={level === 'øvet'} onChange={() => setLevel('øvet')} className="sr-only" />
                       <div>
                         <h4 className="text-emerald">Øvet</h4>
-                        <p style={{ fontSize: '0.85rem' }}>Jeg har spillet 5+ år, kan mine rudiments og vil mestre uafhængighed og stilarter.</p>
+                        <p style={{ fontSize: '0.85rem' }}>5+ år. Kender rudiments — vil mestre uafhængighed og stilarter.</p>
                       </div>
                     </label>
                   </div>
@@ -316,25 +254,25 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 3: Practicing Time & Horizon */}
-              {step === 3 && (
+              {/* Trin 2: Øvetid */}
+              {step === 2 && (
                 <div>
                   <h2 className="mb-1" style={{ fontSize: '1.8rem' }}>Hvor meget kan du øve dig?</h2>
                   <p className="text-muted-color mb-3" style={{ fontSize: '0.9rem' }}>
-                    Vi planlægger din daglige rutine, så den passer ind i din hverdag.
+                    Din daglige rutine tilpasses din hverdag — ikke omvendt.
                   </p>
 
                   <div className="form-group mb-3">
                     <label className="form-label flex justify-between">
-                      <span>Daglige øvetid</span>
+                      <span>Daglig øvetid</span>
                       <span className="text-purple" style={{ fontWeight: 700 }}>{practiceMinutes} minutter</span>
                     </label>
-                    <input 
-                      type="range" 
-                      min="5" 
-                      max="60" 
+                    <input
+                      type="range"
+                      min="5"
+                      max="60"
                       step="5"
-                      className="w-full" 
+                      className="w-full"
                       value={practiceMinutes}
                       onChange={(e) => setPracticeMinutes(Number(e.target.value))}
                     />
@@ -361,19 +299,24 @@ export default function OnboardingPage() {
                     </div>
                   </div>
 
-                  <div className="text-center p-2 mb-3 mt-3" style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)', borderRadius: '12px' }}>
-                    <p style={{ fontSize: '0.8rem' }} className="text-emerald">
-                      <Shield size={12} style={{ display: 'inline', marginRight: '0.25rem' }} />
-                      Du er beskyttet af YouTube Privacy-Enhanced mode i alle videoafspillere.
-                    </p>
-                  </div>
+                  {errorMsg && (
+                    <div style={{ marginTop: '1.25rem', padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '10px', fontSize: '0.875rem', color: '#f87171' }}>
+                      {errorMsg}
+                      <button
+                        onClick={() => { setErrorMsg(''); handleSubmit(); }}
+                        style={{ marginLeft: '0.75rem', background: 'none', border: 'none', color: '#f87171', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                      >
+                        Prøv igen
+                      </button>
+                    </div>
+                  )}
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
                     <button onClick={handleBack} className="btn btn-secondary">
                       <ArrowLeft size={16} /> Tilbage
                     </button>
                     <button onClick={handleSubmit} className="btn btn-primary" style={{ background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-cyan))' }}>
-                      Skab AI-Læringsplan <Sparkles size={16} />
+                      Skab min læringsplan <Sparkles size={16} />
                     </button>
                   </div>
                 </div>

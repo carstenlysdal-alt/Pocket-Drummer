@@ -14,8 +14,7 @@ import {
   Save,
   Lock,
   Music,
-  Library,
-  Youtube
+  Library
 } from 'lucide-react';
 import {
   getSavedExercises,
@@ -24,10 +23,53 @@ import {
 } from '@/lib/mockData';
 import { useAuth } from '@/lib/authContext';
 import { presetExercises, getPresetMusicXML } from '@/lib/presetExercises';
+import { extractXmlPayload, hasScorePartwise } from '@/lib/musicXml';
 import Link from 'next/link';
 
 // Hent OsmdRenderer dynamisk uden SSR
 const OsmdRenderer = dynamic(() => import('@/components/OsmdRenderer'), { ssr: false });
+
+const SCAN_REQUEST_TIMEOUT_MS = 80_000;
+
+function getCleanPdfUrl(url: string) {
+  const separator = url.includes('#') ? '&' : '#';
+  return `${url}${separator}toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+}
+
+function normalizeMusicXmlResponse(xml: unknown, source: string): { xml: string; warning?: string } {
+  if (typeof xml !== 'string' || !xml.trim()) {
+    throw new Error(`Ugyldigt MusicXML modtaget fra ${source}: Tomt XML-svar`);
+  }
+
+  const cleanedXml = extractXmlPayload(xml);
+
+  if (!/<[A-Za-z_][\w:.-]*(?:\s[^>]*)?>/.test(cleanedXml)) {
+    throw new Error(`Ugyldigt MusicXML modtaget fra ${source}: Kunne ikke finde XML-indhold`);
+  }
+
+  if (!hasScorePartwise(cleanedXml)) {
+    return {
+      xml: cleanedXml,
+      warning: `⚠️ XML fra ${source} mangler <score-partwise>. Forsøger preview alligevel.`
+    };
+  }
+
+  return { xml: cleanedXml };
+}
+
+function isMusicXmlFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return (
+    name.endsWith('.xml') ||
+    name.endsWith('.musicxml') ||
+    file.type === 'application/vnd.recordare.musicxml+xml' ||
+    file.type === 'application/xml' ||
+    file.type === 'text/xml'
+  );
+}
+
+// PDF sendes direkte til Gemini — Gemini 2.5 Flash understøtter PDF nativt.
+// Client-side pdfjs-konvertering fjernet da den er inkompatibel med Turbopack/Next.js 16.
 
 export default function AdminPage() {
   const { user, login, logout, loading: authLoadingState } = useAuth();
@@ -47,6 +89,7 @@ export default function AdminPage() {
   const [measures, setMeasures] = useState(2);
   const [focus, setFocus] = useState("Ghost notes og svage snare beats");
   const [genre, setGenre] = useState("Rock");
+  const [youtubeId, setYoutubeId] = useState("");
   const [scanDescription, setScanDescription] = useState("");
   
   // Prompts
@@ -60,17 +103,23 @@ Regler for noteringen:
 - Hi-hat: display-step = G, display-octave = 5, notehoved skal være x (<notehead>x</notehead>).`);
 
   const [scanSystemPrompt, setScanSystemPrompt] = useState(`Du er en ekspert i Optical Music Recognition (OMR) og trommenoder.
-Analysér det vedhæftede billede eller PDF af en trommenode og transskriber den til en gyldig, komplet MusicXML 4.0-streng.
+Analysér det vedhæftede billede af en trommenode og transskriber den til en gyldig, komplet MusicXML 4.0-streng.
 
 Vigtige regler:
 1. Returner KUN den rå XML-streng uden nogen Markdown-formatering eller forklaringer.
 2. Noderne skal være skrevet i percussion clef i 4/4 takt.
-3. Brug standard General MIDI trommenotations-standarder.`);
+3. Brug standard General MIDI trommenotations-standarder.
+4. Hvis billedet indeholder mange takter, transskriber de første 8 takter præcist frem for at forsøge hele siden upræcist.`);
 
   // Gemini OMR scan state
   const [scanFile, setScanFile] = useState<File | null>(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanLog, setScanLog] = useState<string[]>([]);
+  const [notationFilename, setNotationFilename] = useState('');
+  const [saveNotationLoading, setSaveNotationLoading] = useState(false);
+  const [saveNotationMsg, setSaveNotationMsg] = useState('');
+  const [uploadCategory, setUploadCategory] = useState<'opvarmning' | 'nodelære' | 'grooves' | 'playalong'>('grooves');
   
   // Audio & YouTube Transcribe state
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -84,6 +133,16 @@ Vigtige regler:
   const [logs, setLogs] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'preview' | 'xml'>('preview');
   const [successMsg, setSuccessMsg] = useState("");
+
+  useEffect(() => {
+    if (scanFile && (scanFile.type === 'application/pdf' || scanFile.name.toLowerCase().endsWith('.pdf'))) {
+      const url = URL.createObjectURL(scanFile);
+      setPdfPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPdfPreviewUrl(null);
+    }
+  }, [scanFile]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -143,14 +202,16 @@ Vigtige regler:
 
       const data = await response.json();
       
-      if (!data.xml || !data.xml.includes('<score-partwise>')) {
-        throw new Error("Ugyldigt MusicXML modtaget fra API: Mangler rod-elementer");
-      }
+      const validation = normalizeMusicXmlResponse(data.xml, "DeepSeek API");
 
       logTimers.forEach(t => clearTimeout(t));
-      addLog("MusicXML validering succesfuld!");
+      if (validation.warning) {
+        addLog(validation.warning);
+      } else {
+        addLog("MusicXML validering succesfuld!");
+      }
       addLog("Indlæser node-preview...");
-      setXmlData(data.xml);
+      setXmlData(validation.xml);
     } catch (e) {
       console.error(e);
       logTimers.forEach(t => clearTimeout(t));
@@ -179,53 +240,122 @@ Vigtige regler:
     addScanLog("Klargør nodeark til scanning...");
     addScanLog(`Valgt fil: ${scanFile.name} (${(scanFile.size / 1024).toFixed(1)} KB)`);
 
+    if (isMusicXmlFile(scanFile)) {
+      try {
+        addScanLog("MusicXML-fil registreret. Indlæser direkte uden Gemini...");
+        const xml = await scanFile.text();
+        const validation = normalizeMusicXmlResponse(xml, "MusicXML-upload");
+        if (validation.warning) {
+          addScanLog(validation.warning);
+        }
+        setXmlData(validation.xml);
+        const baseName = scanFile.name.replace(/\.(musicxml|xml)$/i, "");
+        setTitle(baseName);
+        setNotationFilename(baseName);
+        setSaveNotationMsg('');
+        setActiveTab('preview');
+        addScanLog("MusicXML indlæst og klar til preview.");
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        addScanLog(`❌ FEJL under XML-import: ${message}`);
+      } finally {
+        setScanLoading(false);
+      }
+      return;
+    }
+
     const logTimers = [
       setTimeout(() => addScanLog("Uploader fil til Gemini OMR API..."), 800),
       setTimeout(() => addScanLog("Gemini 2.5 Flash analyserer nodelinjer og symboler..."), 2000),
       setTimeout(() => addScanLog("Ekstraherer takter, tempo og General MIDI percussion mapping..."), 3500),
-      setTimeout(() => addScanLog("Genererer gyldig MusicXML 4.0 percussion clef..."), 5000)
+      setTimeout(() => addScanLog("Genererer gyldig MusicXML 4.0 percussion clef..."), 5000),
+      setTimeout(() => addScanLog("Gemini arbejder stadig på konverteringen..."), 12000),
+      setTimeout(() => addScanLog("Store PDF'er og scannede billeder kan tage 30-60 sekunder..."), 25000),
+      setTimeout(() => addScanLog("Afventer stadig svar fra Gemini OMR API..."), 45000),
+      setTimeout(() => addScanLog("Gemini bruger længere tid end normalt. Fallback aktiveres snart hvis der ikke kommer svar..."), 60000)
     ];
+
+    let requestTimeout: ReturnType<typeof setTimeout> | undefined;
 
     try {
       const formData = new FormData();
       formData.append("file", scanFile);
       formData.append("systemPrompt", scanSystemPrompt);
 
+      const controller = new AbortController();
+      requestTimeout = setTimeout(() => controller.abort(), SCAN_REQUEST_TIMEOUT_MS);
+
       const response = await fetch('/api/scan-sheet-music', {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: controller.signal
       });
+      clearTimeout(requestTimeout);
+      requestTimeout = undefined;
 
       logTimers.forEach(t => clearTimeout(t));
 
       if (!response.ok) {
-        throw new Error("Fejl under scanning af noder");
+        const errorData = await response.json().catch(() => null);
+        addScanLog(`❌ FEJL under scanning: ${errorData?.error || "Fejl under scanning af noder"}`);
+        return;
       }
 
       const data = await response.json();
 
       if (data.error) {
-        throw new Error(data.error);
+        addScanLog(`❌ FEJL under scanning: ${data.error}`);
+        return;
       }
 
-      if (!data.xml || !data.xml.includes('<score-partwise>')) {
-        throw new Error("Ugyldigt MusicXML modtaget fra scanner: Mangler rod-elementer");
-      }
+      const validation = normalizeMusicXmlResponse(data.xml, "scanner");
 
       addScanLog("Scanning og konvertering færdig!");
+      if (data.warning) {
+        addScanLog(`⚠️ ${data.warning}`);
+      }
+      if (validation.warning) {
+        addScanLog(validation.warning);
+      }
       addScanLog("Indlæser node-preview...");
-      setXmlData(data.xml);
-      
+      setXmlData(validation.xml);
+
       const baseName = scanFile.name.replace(/\.[^/.]+$/, "");
       setTitle(`Scannet: ${baseName}`);
+      setNotationFilename(baseName);
+      setSaveNotationMsg('');
       setActiveTab('preview');
     } catch (e) {
-      console.error(e);
       logTimers.forEach(t => clearTimeout(t));
-      const message = e instanceof Error ? e.message : String(e);
+      const message = e instanceof Error && e.name === 'AbortError'
+        ? `Timeout efter ${Math.round(SCAN_REQUEST_TIMEOUT_MS / 1000)} sekunder. Prøv et mindre/skarpt billede eller en kortere PDF.`
+        : e instanceof Error ? e.message : String(e);
       addScanLog(`❌ FEJL under scanning: ${message}`);
     } finally {
+      if (requestTimeout) {
+        clearTimeout(requestTimeout);
+      }
       setScanLoading(false);
+    }
+  };
+
+  const handleSaveNotation = async () => {
+    if (!xmlData || !notationFilename.trim()) return;
+    setSaveNotationLoading(true);
+    setSaveNotationMsg('');
+    try {
+      const res = await fetch('/api/save-notation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: notationFilename.trim(), xml: xmlData }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Ukendt fejl');
+      setSaveNotationMsg(`✓ Gemt som ${data.saved}`);
+    } catch (e) {
+      setSaveNotationMsg(`❌ ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSaveNotationLoading(false);
     }
   };
 
@@ -235,7 +365,7 @@ Vigtige regler:
 
   const handleTranscribeAudio = async () => {
     if (!audioFile && !youtubeUrl.trim()) {
-      alert("Vælg venligst en lydfil eller angiv en YouTube-url.");
+      alert("Vælg venligst en video-/lydfil eller angiv en YouTube-url.");
       return;
     }
 
@@ -246,7 +376,7 @@ Vigtige regler:
 
     addTranscribeLog("Starter transskriberingspipeline...");
     if (audioFile) {
-      addTranscribeLog(`Uploader lydfil: ${audioFile.name} (${(audioFile.size / 1024 / 1024).toFixed(2)} MB)`);
+      addTranscribeLog(`Uploader fil: ${audioFile.name} (${(audioFile.size / 1024 / 1024).toFixed(2)} MB)`);
     } else {
       addTranscribeLog(`Forbinder til YouTube URL: ${youtubeUrl}`);
     }
@@ -283,16 +413,17 @@ Vigtige regler:
         throw new Error(data.error);
       }
 
-      if (!data.xml || !data.xml.includes('<score-partwise>')) {
-        throw new Error("Ugyldigt MusicXML modtaget fra transskription: Mangler rod-elementer");
-      }
+      const validation = normalizeMusicXmlResponse(data.xml, "transskription");
 
       addTranscribeLog("Transskription og OMR konvertering fuldført!");
+      if (validation.warning) {
+        addTranscribeLog(validation.warning);
+      }
       addTranscribeLog("Indlæser node-preview...");
-      setXmlData(data.xml);
+      setXmlData(validation.xml);
       
-      const defaultTitle = audioFile 
-        ? `Lyd: ${audioFile.name.replace(/\.[^/.]+$/, "")}` 
+      const defaultTitle = audioFile
+        ? audioFile.name.replace(/\.[^/.]+$/, "")
         : `YouTube: Transskriberet`;
       setTitle(defaultTitle);
       setActiveTab('preview');
@@ -331,7 +462,7 @@ Vigtige regler:
       kategori: category,
       sværhedsgrad: difficulty,
       varighed: measures * 3,
-      youtube_video_id: "84G2yU_q1c0", // Standard video til demo
+      youtube_video_id: youtubeId.trim() || "84G2yU_q1c0",
       musicxml_data: xmlData,
       tempo,
       takter: measures,
@@ -432,7 +563,7 @@ Vigtige regler:
     <div className="grid-bg" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
 
-      <main style={{ flex: 1, padding: '2rem' }}>
+      <main style={{ flex: 1, padding: '2rem 2.5rem' }}>
         
         {/* Admin Header */}
         <section style={{ maxWidth: '1400px', margin: '0 auto 1.5rem auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -474,7 +605,7 @@ Vigtige regler:
                 onClick={() => setToolTab('deepseek')} 
                 style={{ 
                   background: toolTab === 'deepseek' ? '#ef5a3a' : 'transparent', 
-                  color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 4px', 
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 8px',
                   fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', 
                   alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' 
                 }}
@@ -485,7 +616,7 @@ Vigtige regler:
                 onClick={() => setToolTab('gemini')} 
                 style={{ 
                   background: toolTab === 'gemini' ? '#ef5a3a' : 'transparent', 
-                  color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 4px', 
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 8px',
                   fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', 
                   alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' 
                 }}
@@ -496,18 +627,18 @@ Vigtige regler:
                 onClick={() => setToolTab('transcribe')} 
                 style={{ 
                   background: toolTab === 'transcribe' ? '#ef5a3a' : 'transparent', 
-                  color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 4px', 
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 8px',
                   fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', 
                   alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' 
                 }}
               >
-                <Music size={14} /> Lyd
+                <Music size={14} /> Video
               </button>
               <button 
                 onClick={() => setToolTab('presets')} 
                 style={{ 
                   background: toolTab === 'presets' ? '#ef5a3a' : 'transparent', 
-                  color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 4px', 
+                  color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 8px',
                   fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', display: 'flex', 
                   alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' 
                 }}
@@ -550,7 +681,7 @@ Vigtige regler:
                       className="form-control" 
                       style={{ padding: '7px 10px', fontSize: '0.85rem' }}
                       value={category}
-                      onChange={(e) => setCategory(e.target.value as any)}
+                      onChange={(e) => setCategory(e.target.value as typeof category)}
                     >
                       <option value="groove">Groove</option>
                       <option value="rudiments">Rudiments</option>
@@ -566,7 +697,7 @@ Vigtige regler:
                       className="form-control" 
                       style={{ padding: '7px 10px', fontSize: '0.85rem' }}
                       value={difficulty}
-                      onChange={(e) => setDifficulty(e.target.value as any)}
+                      onChange={(e) => setDifficulty(e.target.value as typeof difficulty)}
                     >
                       <option value="begynder">Begynder</option>
                       <option value="mellemniveau">Mellemniveau</option>
@@ -583,6 +714,19 @@ Vigtige regler:
                       onChange={(e) => setTempo(Number(e.target.value))}
                     />
                   </div>
+                </div>
+
+                {/* YouTube video ID */}
+                <div className="form-group" style={{ marginBottom: 0, marginTop: '10px' }}>
+                  <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '3px' }}>YouTube Video ID (valgfrit)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                    placeholder="F.eks. dQw4w9WgXcQ"
+                    value={youtubeId}
+                    onChange={(e) => setYoutubeId(e.target.value)}
+                  />
                 </div>
               </div>
             )}
@@ -649,7 +793,7 @@ Vigtige regler:
                   <h3 style={{ fontSize: '1.1rem' }}>Billede & PDF Node-Scanner (Gemini 2.5 Flash)</h3>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} className="mb-3">
-                  Scan et billede (PNG/JPG) eller en PDF af en trommenode og omdan den direkte til spilbart MusicXML.
+                  Scan et billede/PDF af en trommenode eller importér en eksisterende MusicXML-fil.
                 </p>
 
                 <div className="form-group">
@@ -667,7 +811,7 @@ Vigtige regler:
                     <input 
                       type="file" 
                       id="sheet-upload-input"
-                      accept="image/*,application/pdf"
+                      accept="image/*,application/pdf,.xml,.musicxml,application/vnd.recordare.musicxml+xml"
                       style={{ display: 'none' }}
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
@@ -693,11 +837,30 @@ Vigtige regler:
                         </p>
                         <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                           Understøtter JPG, PNG, PDF op til 20MB
+                          {' '}samt XML/MusicXML
                         </p>
                       </div>
                     )}
                   </div>
                 </div>
+
+                {pdfPreviewUrl && (
+                  <div className="form-group">
+                    <label className="form-label">PDF-forhåndsvisning</label>
+                    <iframe
+                      src={getCleanPdfUrl(pdfPreviewUrl)}
+                      style={{
+                        width: '100%',
+                        height: '72vh',
+                        border: 'none',
+                        borderRadius: 0,
+                        background: '#fff',
+                        display: 'block',
+                      }}
+                      title="PDF forhåndsvisning"
+                    />
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Scanner Systeminstruktioner (Gemini OMR)</label>
@@ -720,8 +883,22 @@ Vigtige regler:
                   />
                 </div>
 
-                <button 
-                  onClick={handleScanSheetMusic} 
+                <div className="form-group">
+                  <label className="form-label">Kategori</label>
+                  <select
+                    className="form-control"
+                    value={uploadCategory}
+                    onChange={(e) => setUploadCategory(e.target.value as typeof uploadCategory)}
+                  >
+                    <option value="opvarmning">Opvarmning</option>
+                    <option value="nodelære">Nodelære</option>
+                    <option value="grooves">Grooves</option>
+                    <option value="playalong">Play-along</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={handleScanSheetMusic}
                   className="btn btn-primary w-full"
                   disabled={scanLoading || !scanFile}
                 >
@@ -735,6 +912,40 @@ Vigtige regler:
                     ))}
                   </div>
                 )}
+
+                {xmlData && (
+                  <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                    <div className="flex align-center gap-2 mb-2">
+                      <Save size={16} style={{ color: '#ef5a3a' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Gem til notation-mappe</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        className="form-control"
+                        style={{ flex: 1, fontSize: '0.85rem' }}
+                        value={notationFilename}
+                        onChange={(e) => setNotationFilename(e.target.value)}
+                        placeholder="filnavn (uden .xml)"
+                      />
+                      <button
+                        className="btn btn-primary"
+                        style={{ whiteSpace: 'nowrap' }}
+                        onClick={handleSaveNotation}
+                        disabled={saveNotationLoading || !notationFilename.trim()}
+                      >
+                        {saveNotationLoading ? 'Gemmer...' : 'Gem .xml'}
+                      </button>
+                    </div>
+                    {saveNotationMsg && (
+                      <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: saveNotationMsg.startsWith('✓') ? '#5dd39e' : 'var(--accent-rose)' }}>
+                        {saveNotationMsg}
+                      </p>
+                    )}
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                      Gemmes i <code>public/content/notation/[filnavn].xml</code>
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -743,17 +954,17 @@ Vigtige regler:
               <div className="glass-card">
                 <div className="flex align-center gap-2 mb-2">
                   <Music size={20} style={{ color: '#ef5a3a' }} />
-                  <h3 style={{ fontSize: '1.1rem' }}>Lyd & YouTube AI Transskription</h3>
+                  <h3 style={{ fontSize: '1.1rem' }}>Video & YouTube AI Transskription</h3>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }} className="mb-3">
-                  Upload en MP3/WAV lydfil af en trommeoptagelse, eller paste et YouTube-link for at transskribere lyden direkte til MusicXML.
+                  Upload en video- eller lydfil af en trommeoptagelse, eller paste et YouTube-link for at transskribere indholdet direkte til MusicXML.
                 </p>
 
                 <div className="form-group">
-                  <label className="form-label">Valgmulighed A: Upload lydfil (MP3/WAV)</label>
-                  <input 
-                    type="file" 
-                    accept="audio/*" 
+                  <label className="form-label">Valgmulighed A: Upload video eller lyd (MP4, MOV, MP3, WAV...)</label>
+                  <input
+                    type="file"
+                    accept="video/*,audio/*"
                     className="form-control"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
@@ -780,13 +991,26 @@ Vigtige regler:
                   />
                 </div>
 
-                <button 
-                  onClick={handleTranscribeAudio} 
+                <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                  <label className="form-label">Kategori</label>
+                  <select
+                    className="form-control"
+                    value={uploadCategory}
+                    onChange={(e) => setUploadCategory(e.target.value as typeof uploadCategory)}
+                  >
+                    <option value="opvarmning">Opvarmning</option>
+                    <option value="nodelære">Nodelære</option>
+                    <option value="grooves">Grooves</option>
+                    <option value="playalong">Play-along</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={handleTranscribeAudio}
                   className="btn btn-primary w-full"
                   disabled={transcribeLoading || (!audioFile && !youtubeUrl.trim())}
-                  style={{ marginTop: '0.5rem' }}
                 >
-                  {transcribeLoading ? 'Transskriberer lydsporet...' : 'Kør AI Lyd-Transskription'}
+                  {transcribeLoading ? 'Transskriberer...' : 'Kør AI Video/Lyd-Transskription'}
                 </button>
 
                 {transcribeLog.length > 0 && (

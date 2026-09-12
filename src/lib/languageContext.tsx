@@ -20,15 +20,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('pocketdrummer_language') as Language;
       if (saved && ['da', 'en', 'de', 'es'].includes(saved)) {
-        setLanguageState(saved);
+        setTimeout(() => setLanguageState(saved), 0);
       } else if (typeof navigator !== 'undefined') {
         const pref = navigator.language.slice(0, 2) as Language;
         if (['da', 'en', 'de', 'es'].includes(pref)) {
-          setLanguageState(pref);
+          setTimeout(() => setLanguageState(pref), 0);
         }
       }
     }
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);

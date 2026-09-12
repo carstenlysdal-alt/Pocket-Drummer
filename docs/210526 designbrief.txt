@@ -1,0 +1,715 @@
+Du skal optimere og videreudvikle **Pocket Drummer**, en moderne trommeundervisningsapp, baseret på følgende designretning og kravspecifikation.
+
+Formålet er ikke at opfinde en helt ny app, men at forbedre den eksisterende appstruktur og UI-retning, så Pocket Drummer bliver mere enkel, luftig, pædagogisk, premium og intuitiv at bruge.
+
+---
+
+# 1. Produktbeskrivelse
+
+**Pocket Drummer** er en digital trommeskole til brugere fra begynder til avanceret niveau.
+
+Appen kombinerer:
+
+- Trommeundervisning
+- Øvelsesbibliotek
+- Opvarmning
+- Nodelære
+- Grooves
+- Fills
+- Play-alongs
+- Genrer
+- Progression
+- AI-genererede læringsplaner
+- Interaktive trommenoder
+- Virtuelt trommesæt
+- Personlig øveplan
+
+Appen skal føles som en professionel og moderne trommeskole — ikke som en tung teknisk musikapp.
+
+---
+
+# 2. Overordnet mål
+
+Redesign og optimer Pocket Drummer med fokus på:
+
+- Enklere forside
+- Mere luft i UI’et
+- Færre valg pr. skærm
+- Tydeligere hovedindgange
+- Mere pædagogisk struktur
+- Lettere visuel stil
+- Stærkere premium-fornemmelse
+- Bedre navigation
+- Klarere progression
+- Mere musikalsk og elegant identitet
+
+Brugeren skal hurtigt forstå:
+
+1. Hvad kan jeg øve?
+2. Hvor skal jeg starte?
+3. Hvad er dagens anbefaling?
+4. Hvordan kommer jeg videre?
+5. Hvordan udvikler jeg mig som trommeslager?
+
+---
+
+# 3. Designprincip
+
+Pocket Drummer skal redesignes efter et lyst, luftigt og elegant designprincip.
+
+## Visuel retning
+
+Designet skal være:
+
+- Lyst
+- Luftigt
+- Roligt
+- Musikalsk
+- Premium
+- Pædagogisk
+- Intuitivt
+- Minimalistisk
+- Let at aflæse
+- Inspirerende uden at være rodet
+
+Appen må ikke føles mørk, kompakt, teknisk eller overfyldt.
+
+---
+
+# 4. Designsystem
+
+## Farver
+
+Brug en varm, lys base.
+
+### Baggrund
+
+- Off-white
+- Ivory
+- Varm beige-hvid
+- Lys creme
+- Meget lys varm grå
+
+Baggrunden skal føles blød og premium — ikke kridhvid.
+
+### Primær tekst
+
+Brug mørk grafit frem for ren sort.
+
+Eksempler:
+
+- `#1E1E1E`
+- `#252525`
+- `#2B2B2B`
+
+### Sekundær tekst
+
+Brug varme gråtoner.
+
+Eksempler:
+
+- `#77716B`
+- `#8A847D`
+- `#9A948C`
+
+### Accentfarve
+
+Brug koralrød/tomatrød som appens identitetsfarve.
+
+Eksempler:
+
+- `#F25545`
+- `#EF4E3E`
+- `#FF604C`
+
+Accentfarven bruges til:
+
+- Primære CTA-knapper
+- Aktive navigationselementer
+- Progression
+- Ikoner
+- Små highlights
+- Valgte kategorier
+- Statusmarkeringer
+
+Accentfarven må ikke overbruges. Den skal have betydning.
+
+---
+
+# 5. Typografi
+
+## Overskrifter
+
+Overskrifter skal have et elegant, musikalsk og let kursivt udtryk.
+
+Brug gerne:
+
+- Elegant serif
+- Let kursiv displayfont
+- Musikalsk premium-typografi
+- Rolig kontrast mellem tykke og tynde streger
+
+Overskrifter må gerne føles håndværksprægede og eksklusive.
+
+Eksempler på steder, hvor denne typografi bruges:
+
+- Pocket Drummer-logo
+- Forsideoverskrifter
+- Modulnavne
+- “Rytme & Timing”
+- “Studio Kit”
+- “Dagens øvelse”
+
+## Brødtekst
+
+Brødtekst og UI-tekst skal være enkel og læsbar.
+
+Brug:
+
+- Ren sans serif
+- Høj læsbarhed
+- Tydelig kontrast
+- Korte tekstblokke
+- God linjeafstand
+
+Dekorativ typografi må ikke bruges til små UI-labels.
+
+---
+
+# 6. UI-principper
+
+## Mere luft
+
+UI’et skal have mere whitespace end tidligere versioner.
+
+Krav:
+
+- Store marginer
+- Mere afstand mellem cards
+- Mere ro omkring CTA’er
+- Færre elementer pr. skærm
+- Ikke for mange lister på forsiden
+- Ikke for mange tekniske labels
+
+## Ét hovedformål pr. skærm
+
+Hver skærm skal have ét tydeligt formål.
+
+Eksempler:
+
+- Velkomstskærm: Få brugeren i gang
+- Forside: Vælg øvespor eller fortsæt dagens øvelse
+- Øvelsesside: Start og forstå en øvelse
+- Nodelære: Lær rytmer og notation
+- Play-along: Spil musikalsk med backing tracks
+- Profil: Se niveau, mål og progression
+
+## Progressive disclosure
+
+Vis ikke alt på én gang.
+
+Forsiden skal vise de vigtigste hovedvalg. Underkategorier skal først vises, når brugeren går ind i et område.
+
+---
+
+# 7. Ny informationsarkitektur
+
+Forsiden skal forenkles markant.
+
+I stedet for et tungt dashboard med mange moduler skal forsiden primært fungere som en **rolig øveindgang**.
+
+## Primære hovedindgange på forsiden
+
+Forsiden skal have fire klare hovedkort:
+
+1. **Opvarmning**
+2. **Nodelære**
+3. **Grooves & Fills**
+4. **Play-along**
+
+Disse fire indgange skal være tydelige, store og nemme at forstå.
+
+---
+
+# 8. Forsidekrav
+
+## Formål
+
+Forsiden skal gøre det enkelt for brugeren at vælge, hvad de vil arbejde med.
+
+Brugeren skal på få sekunder forstå, at appen tilbyder:
+
+- Teknik og opvarmning
+- Forståelse af noder
+- Beats, grooves og fills
+- Musikalsk anvendelse gennem play-alongs
+
+## Forsidens struktur
+
+Forsiden bør bygges sådan:
+
+```md
+Hej, [navn]
+
+Dagens anbefaling
+[Fortsæt hvor du slap / Start dagens øvelse]
+
+Vælg øvespor
+[Opvarmning]
+[Nodelære]
+[Grooves & Fills]
+[Play-along]
+
+Din progression
+[Let status / streak / mål]
+
+Forsiden må ikke
+	•	Vise for mange underkategorier på én gang
+	•	Føles som et administrationspanel
+	•	Have lange forklaringer
+	•	Have mørke, tunge kort
+	•	Overvælde begyndere
+	•	Gemme de vigtigste handlinger
+
+9. Hovedindgang: Opvarmning
+Formål
+Opvarmning skal give brugeren en enkel og hurtig vej ind i daglig tekniktræning.
+Korttekst på forsiden
+
+Opvarmning
+Start med hænder, fødder, kontrol og timing.
+
+Underkategorier
+Når brugeren åbner Opvarmning, vises underkategorier som:
+	•	5 minutters opvarmning
+	•	10 minutters opvarmning
+	•	Hænder
+	•	Fødder
+	•	Single strokes
+	•	Double strokes
+	•	Paradiddles
+	•	Accenter
+	•	Dynamik
+	•	Tempo-ladder
+	•	Venstre hånd
+	•	Stortrommekontrol
+UI-krav
+	•	Vis korte øveforløb
+	•	Gør det let at starte hurtigt
+	•	Brug progressionsniveauer
+	•	Brug tempoangivelser
+	•	Brug korte forklaringer
+
+10. Hovedindgang: Nodelære
+Formål
+Nodelære skal lære brugeren at forstå, læse og spille trommenoder.
+Det skal være pædagogisk, ikke akademisk tungt.
+Korttekst på forsiden
+
+Nodelære
+Forstå rytmer, taktarter og trommenotation.
+
+Underkategorier
+Når brugeren åbner Nodelære, vises underkategorier som:
+	•	Fjerdedele
+	•	Ottendedele
+	•	Sekstendedele
+	•	Pauser
+	•	Accenter
+	•	Ghost notes
+	•	Taktarter
+	•	4/4
+	•	3/4
+	•	6/8
+	•	Shuffle-notation
+	•	Charts
+	•	Prima vista
+	•	Læs og spil
+	•	Nodequiz
+UI-krav
+	•	Brug interaktive noder
+	•	Vis én rytmisk idé ad gangen
+	•	Giv mulighed for at høre noden
+	•	Giv mulighed for at sænke tempo
+	•	Brug korte pædagogiske forklaringer
+	•	Undgå lange teoritekster
+
+11. Hovedindgang: Grooves & Fills
+Formål
+Grooves & Fills er appens centrale spilletekniske område.
+Her lærer brugeren beats, fills, overgange, koordination og genrebaserede trommefigurer.
+Korttekst på forsiden
+
+Grooves & Fills
+Spil beats, fills, overgange og genrer.
+
+Underkategorier
+Når brugeren åbner Grooves & Fills, vises underkategorier som:
+	•	Basic rock
+	•	Pop
+	•	Funk
+	•	Jazz
+	•	Blues
+	•	Shuffle
+	•	Samba
+	•	Songo
+	•	Latin
+	•	Reggae
+	•	Hip-hop
+	•	Metal
+	•	Brushes
+	•	Ghost notes
+	•	Linear grooves
+	•	Fills
+	•	Overgange
+	•	Odd meters
+	•	Koordination
+UI-krav
+	•	Del området op i niveauer
+	•	Vis tydeligt, hvad der er begynder, mellem og avanceret
+	•	Gør genrespor lette at finde
+	•	Brug korte læringsløfter
+	•	Brug play-knap/øvelsesknap tydeligt
+	•	Vis relaterede play-alongs
+
+12. Hovedindgang: Play-along
+Formål
+Play-along skal være sin egen hovedindgang, fordi det er appens mest motiverende musikalske område.
+Det er her, øvelser bliver til musik.
+Korttekst på forsiden
+
+Play-along
+Spil med musik, backing tracks og form.
+
+Underkategorier
+Når brugeren åbner Play-along, vises underkategorier som:
+	•	Rock tracks
+	•	Pop tracks
+	•	Funk tracks
+	•	Blues tracks
+	•	Jazz tracks
+	•	Latin tracks
+	•	No-drums tracks
+	•	Guided play-alongs
+	•	Call and response
+	•	Begyndertracks
+	•	Mellemtracks
+	•	Øvede tracks
+	•	Formtræning
+	•	Vers/omkvæd
+	•	Fill cues
+UI-krav
+	•	Gør det let at starte et track
+	•	Vis genre, tempo og niveau
+	•	Vis om tracket har trommer eller ikke har trommer
+	•	Vis visuelle cues
+	•	Giv brugeren mulighed for at vælge tempo
+	•	Vis anbefalede grooves/fills til tracket
+
+13. Dashboard-elementer
+Selvom forsiden skal være enkel, må den gerne have et let dashboard-element.
+Dagens anbefaling
+Vis én tydelig anbefaling:
+
+Dagens anbefaling
+Paradiddle Grooves
+12 min · Let øvet
+
+[Fortsæt]
+
+Progression
+Vis progression diskret:
+
+Denne uge
+3 øvedage · 72 min · Niveau 2
+
+Krav
+	•	Progression må ikke dominere forsiden
+	•	Undgå store datavisualiseringer
+	•	Brug enkel status
+	•	Motiver uden at presse brugeren
+	•	Streaks må gerne bruges, men ikke som aggressiv gamification
+
+14. Navigation
+Bundnavigation
+Appen skal have enkel bundnavigation.
+Anbefalet struktur:
+
+Hjem
+Øvelser
+Play-along
+Profil
+
+Alternativ struktur:
+
+Hjem
+Øvelser
+Trommesæt
+Profil
+
+Hvis Play-along er en hovedindgang på forsiden, kan bundnavigationen stadig indeholde “Øvelser” som samlet bibliotek.
+Krav
+	•	Aktivt punkt markeres med koralrød
+	•	Inaktive punkter vises i grafit/grå
+	•	Ikoner skal være lineære
+	•	Labels skal være korte
+	•	Navigationen skal være let at forstå
+	•	Undgå for mange hovedpunkter
+
+15. Øvelsesside
+Formål
+Øvelsessiden skal præsentere en øvelse eller et forløb enkelt og motiverende.
+Struktur
+
+[Øvelsestype]
+
+Titel
+
+Kort læringsløfte
+
+Nøgledata:
+- Niveau
+- Varighed
+- Tempo
+- Fokus
+
+[Start øvelse]
+
+Node / video / play-along
+
+Næste skridt
+
+Eksempel
+
+Øvelser
+
+Rytme & Timing
+
+Forbedr din timing
+
+Styrk din indre puls og få bedre kontrol over rytme, tempo og dynamik.
+
+- 15 lektioner
+- Interaktive øvelser
+- Fremgangssporing
+
+[Start forløb]
+
+Krav
+	•	Ét tydeligt læringsmål
+	•	Kort forklaring
+	•	Tydelig CTA
+	•	Ikke for meget tekst
+	•	Ikke for mange tekniske detaljer
+	•	Relaterede øvelser kan vises nederst
+
+16. Kortdesign
+Kort på forsiden
+Hvert hovedkort skal indeholde:
+	•	Ikon
+	•	Titel
+	•	Kort forklaring
+	•	Eventuelt lille status eller antal øvelser
+Eksempel:
+
+Opvarmning
+Start med hænder, fødder og kontrol.
+
+Card-stil
+	•	Lys baggrund
+	•	Afrundede hjørner
+	•	Diskret kant
+	•	Let skygge eller ingen skygge
+	•	God indvendig padding
+	•	Tydelig klikflade
+	•	Koral accent ved aktiv/valgt tilstand
+
+17. Ikoner og illustrationer
+Stil
+Brug fine line-art illustrationer.
+Motiver:
+	•	Lilletromme
+	•	Trommestikker
+	•	Trommesæt
+	•	Bækkener
+	•	Nodeark
+	•	Metronom
+	•	Play-knap
+	•	Hånd/fod-symboler
+	•	Lyd/rytmebølger
+Krav
+	•	Ingen fotos
+	•	Ingen tunge 3D-elementer
+	•	Ingen mørke illustrationer
+	•	Tynd stroke
+	•	Elegant, enkel og musikalsk
+	•	Illustrationer skal støtte forståelsen, ikke dominere skærmen
+
+18. Mikrocopy og tone of voice
+Pocket Drummer skal tale som en rolig, dygtig og motiverende trommelærer.
+Sproget skal være
+	•	Kort
+	•	Klart
+	•	Venligt
+	•	Motiverende
+	•	Pædagogisk
+	•	Musikalsk
+	•	Ikke smart
+	•	Ikke teknisk tungt
+Brug formuleringer som
+
+Fortsæt hvor du slap.
+
+Start dagens øvelse.
+
+Styrk din timing.
+
+Udvid dit groove.
+
+Lær at læse rytmen.
+
+Spil med musikken.
+
+Du er tæt på dagens mål.
+
+Tag 5 minutters opvarmning.
+
+Undgå formuleringer som
+
+AI-genereret adaptivt træningsmodul aktiveret.
+
+OSMD-baseret MusicXML-rendering klar.
+
+Interaktiv percussionnotation synkroniseret.
+
+Premium feature stack unlocked.
+
+Tekniske funktioner må eksistere, men de skal oversættes til brugerforståeligt sprog.
+
+19. Virtuelt trommesæt / Studio Kit
+Formål
+Studio Kit skal præsentere appens virtuelle trommesæt eller lydmodul på en enkel og attraktiv måde.
+Struktur
+
+Trommesæt
+
+Studio Kit
+
+Dit virtuelle trommesæt
+
+Et professionelt trommesæt med realistisk lyd og respons.
+
+- Realistisk lyd
+- Tilpas dit kit
+- Responsiv følelse
+
+[Åbn trommesæt]
+
+Krav
+	•	Brug line-art trommesæt
+	•	Hold teksten kort
+	•	Vis tre features
+	•	Gør CTA tydelig
+	•	Undgå teknisk specifikationssprog
+	•	Fokusér på brugeroplevelsen
+
+20. Premium og AI-planer
+Premium må ikke føles aggressivt
+Premium skal præsenteres som en naturlig udvidelse af læringen.
+Premium kan give adgang til
+	•	Fuldt øvelsesbibliotek
+	•	AI-læringsplan
+	•	Interaktive noder
+	•	PDF-download
+	•	Play-alongs
+	•	Progressionsplan
+	•	Flere genre-forløb
+	•	Personlige anbefalinger
+AI-plan-flow
+AI-planer skal præsenteres pædagogisk.
+Brugeren skal kunne angive:
+	•	Niveau
+	•	Mål
+	•	Øvetid
+	•	Tidshorisont
+	•	Fokusområde
+Eksempel:
+
+Hvad vil du blive bedre til?
+
+- Timing
+- Fills
+- Grooves
+- Nodelære
+- Funk
+- Jazz
+- Stortrommekontrol
+
+AI-output skal ligne en rolig øveplan — ikke en teknisk AI-rapport.
+
+21. Content hierarchy
+Prioriter indhold sådan:
+	1	Dagens anbefaling
+	2	Fire hovedindgange
+	3	Progression
+	4	Senest spillet
+	5	Nye øvelser
+	6	Premium/AI-anbefalinger
+Undgå at premium-push, statistik eller tekniske funktioner fylder mere end øvningen.
+
+22. Responsivt design
+Designet skal primært optimeres til mobil.
+Mobilkrav
+	•	Store klikflader
+	•	Kort tekst
+	•	Én primær handling pr. view
+	•	Cards skal være lette at scanne
+	•	Bundnavigation skal være stabil
+	•	CTA’er skal være tydelige
+	•	Ingen overfyldte grids
+Tablet/web
+På større skærme kan samme struktur udvides med:
+	•	To-kolonne layout
+	•	Sidepanel til kategorier
+	•	Større nodevisning
+	•	Play-along-player ved siden af øvelse
+	•	Mere detaljeret progression
+
+23. Acceptkriterier
+Designet og UI-optimeringen er vellykket, når:
+	•	Forsiden er enklere end før
+	•	Brugeren møder fire klare hovedindgange
+	•	Appen føles lysere og mere luftig
+	•	Brugeren forstår appens hovedstruktur på under fem sekunder
+	•	Primær handling er tydelig på hver skærm
+	•	Opvarmning, Nodelære, Grooves & Fills og Play-along er nemme at finde
+	•	Underkategorier vises først, når brugeren går ind i et område
+	•	Dashboardet ikke føles overfyldt
+	•	Typografien føles elegant, men stadig læsbar
+	•	Koralrød bruges konsekvent som accent
+	•	Appen føles som en moderne digital trommeskole
+	•	Tekniske funktioner er oversat til pædagogisk brugeroplevelse
+	•	Begyndere ikke bliver overvældet
+	•	Øvede brugere stadig kan finde dybde og avancerede spor
+
+24. Konkret opgave
+Redesign Pocket Drummer efter ovenstående principper.
+Du skal:
+	1	Bevare appens overordnede funktioner.
+	2	Forenkle forsiden.
+	3	Indføre fire hovedindgange:
+	◦	Opvarmning
+	◦	Nodelære
+	◦	Grooves & Fills
+	◦	Play-along
+	4	Gøre UI’et lysere, mere luftigt og mere premium.
+	5	Bruge varm off-white baggrund, grafittekst og koralrød accent.
+	6	Bruge elegante, let kursive overskrifter og læsbar sans serif til UI-tekst.
+	7	Bruge line-art trommeillustrationer.
+	8	Reducere tekstmængden på centrale skærme.
+	9	Skabe tydeligere CTA’er.
+	10	Gøre navigationen enklere.
+	11	Sørge for, at appen føles pædagogisk, musikalsk og nem at bruge.
+	12	Flytte avancerede underkategorier væk fra forsiden og ind på relevante undersider.
+	13	Sikre, at både begyndere og øvede brugere kan finde relevant indhold.
+	14	Sørge for, at Play-along får en tydelig og motiverende placering.

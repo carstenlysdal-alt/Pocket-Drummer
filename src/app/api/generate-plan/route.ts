@@ -1,8 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateLearningPlan } from '@/lib/ai';
+import { checkRateLimit, rateLimitResponse } from '@/lib/apiSecurity';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const rateLimit = checkRateLimit(request, { limit: 10, windowMs: 60000, prefix: 'gen-plan' });
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.resetSeconds);
+    }
+
     const body = await request.json();
     
     // Forventer: maal, niveau, tidPrDag, tidshorisont

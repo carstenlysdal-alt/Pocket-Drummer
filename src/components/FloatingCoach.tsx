@@ -51,7 +51,7 @@ export default function FloatingCoach() {
         role: m.role === 'ai' ? 'assistant' : 'user',
         content: m.text,
       }));
-      const res = await fetch('/api/coach', {
+      const res = await fetch('https://us-central1-gen-lang-client-0782413722.cloudfunctions.net/kaldDeepSeek', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: history }),

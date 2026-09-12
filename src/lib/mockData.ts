@@ -30,12 +30,21 @@ export interface PlanExercise {
   status: 'ikke startet' | 'i gang' | 'gennemført';
 }
 
+export interface JourneyProgress {
+  level: 'begynder' | 'oevet' | 'rutineret';
+  technique: 'enkeltslag' | 'dobbeltslag' | 'paradiddles' | 'mix';
+  lastExerciseId?: number;
+  startedAt: string;
+  updatedAt: string;
+}
+
 export interface UserPlan {
   goal_id: string;
   uge_start: string;
   fokustema: string; // f.eks. "Uge 1: Grundlæggende koordination"
   milepæl: string; // f.eks. "Spil 8. dels groove ved 100 BPM"
   øvelser: PlanExercise[];
+  journey?: JourneyProgress;
 }
 
 // Skabelon til en gyldig tromme-MusicXML (bruges af OSMD)
