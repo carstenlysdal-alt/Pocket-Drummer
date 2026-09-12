@@ -4336,7 +4336,7 @@ function PreviewModeToggle({ mode, onChange }: {
 }
 
 export default function MobilePrototype() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
   const [tab, setTab] = useState('home');
   const [trackId, setTrackId] = useState<string | null>(null);
   const [lessonId, setLessonId] = useState<string | null>(null);
