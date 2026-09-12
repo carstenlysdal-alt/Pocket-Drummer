@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-28T00:00:00Z",
+  "title": "Design System: Pocket Drummer",
+  "extensions": {
+    "colorMeta": {
+      "snare-red": {
+        "role": "primary",
+        "displayName": "Snare Red",
+        "canonical": "oklch(58% 0.19 24)",
+        "tonalRamp": ["#2a0a07", "#4a1208", "#6b1a0b", "#8c220e", "#ad2a11", "#c43425", "#f25545", "#f5826f", "#f8af9a", "#fbe0d8"]
+      },
+      "snare-red-deep": {
+        "role": "primary-deep",
+        "displayName": "Snare Red Deep",
+        "canonical": "oklch(47% 0.18 24)",
+        "tonalRamp": ["#1a0705", "#300d09", "#48130e", "#601a12", "#782116", "#8f271a", "#c43425", "#d45e4a", "#e48a79", "#f0b8ae"]
+      },
+      "streak-emerald": {
+        "role": "secondary",
+        "displayName": "Streak Emerald",
+        "canonical": "oklch(76% 0.14 160)",
+        "tonalRamp": ["#071a10", "#0e3020", "#164630", "#1d5c40", "#247250", "#2b8860", "#5dd39e", "#85ddb5", "#ade8cc", "#d5f4e5"]
+      },
+      "bg-deep": {
+        "role": "neutral",
+        "displayName": "Canvas Deep",
+        "canonical": "oklch(8% 0.003 240)",
+        "tonalRamp": ["#0a0a0a", "#111113", "#19191c", "#212124", "#2a2a2d", "#333336", "#4d4d50", "#666669", "#999a9c", "#ccccce"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "oklch(11% 0.003 240)",
+        "tonalRamp": ["#0a0a0b", "#0e0e10", "#141416", "#1c1c1f", "#212124", "#282829", "#3c3c3f", "#555558", "#888889", "#bbbbbc"]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Warm Off-White",
+        "canonical": "oklch(96% 0.005 80)",
+        "tonalRamp": ["#1a1917", "#302e2c", "#464441", "#5c5a57", "#72706d", "#888683", "#a4a2a0", "#c0bebb", "#dcdbd9", "#FAF8F5"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Personlige greetings, kategoritnavne, hero-momenter. The Coach's handwriting." },
+      "headline": { "displayName": "Headline", "purpose": "Sektionsoverskrifter, kortoverskrifter." },
+      "body": { "displayName": "Body", "purpose": "Brødtekst, beskrivelser, coach-dialog." },
+      "label": { "displayName": "Section Label", "purpose": "DAGLIGE ANBEFALINGER, DIN FREMGANG — altid uppercase." },
+      "mono": { "displayName": "Data Mono", "purpose": "BPM, XP, takter, lektionsnumre." }
+    },
+    "shadows": [
+      { "name": "accent-glow", "value": "0 6px 22px rgba(239,90,58,0.30)", "purpose": "Primær knap i hvile. Snare Red udstråling." },
+      { "name": "accent-glow-strong", "value": "0 6px 20px rgba(239,90,58,0.40)", "purpose": "Primær knap ved hover." },
+      { "name": "modal-ambient", "value": "0 10px 15px rgba(0,0,0,0.3), 0 4px 6px rgba(0,0,0,0.05)", "purpose": "Modaler og overlay-elementer." }
+    ],
+    "motion": [
+      { "name": "fast", "value": "0.15s ease", "purpose": "Mikro-interaktioner: hover-farveovergange, ikon-states." },
+      { "name": "standard", "value": "0.25s cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Standardtransitioner: kortborder, nav-state, accordion-åbning." },
+      { "name": "slow", "value": "0.4s cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Progress-bar-animationer og langsom state-shifts." },
+      { "name": "button-lift", "value": "translateY(-2px)", "purpose": "Knapper løfter sig 2px ved hover. Aldrig bounce, aldrig elastic." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "768px", "purpose": "Under dette: mobilprototype-route. App viser stacked layout." },
+      { "name": "tablet", "value": "968px", "purpose": "Player-layout stacker video og noder vertikalt." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primær handling. Altid pill-shape, Snare Red, uppercase tekst.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><polygon points=\"5,3 19,12 5,21\"/></svg> Start øvelse</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 7px; padding: 12px 22px; border-radius: 9999px; background: #F25545; color: #ffffff; border: none; font-family: Inter, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 22px rgba(239,90,58,0.30); transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease; } .ds-btn-primary:hover { background: #C43425; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239,90,58,0.40); } .ds-btn-primary:active { transform: translateY(0); } .ds-btn-primary:focus-visible { outline: 2px solid #F25545; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Sekundær handling. Neutral, ingen shadow.",
+      "html": "<button class=\"ds-btn-secondary\">Tilbage</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 7px; padding: 12px 22px; border-radius: 9999px; background: #1c1c1f; color: #FAF8F5; border: 1px solid rgba(255,255,255,0.13); font-family: Inter, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; cursor: pointer; transition: background 0.15s ease, transform 0.1s ease; } .ds-btn-secondary:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); } .ds-btn-secondary:focus-visible { outline: 2px solid #F25545; outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Standard indholdskort. Flad, 18px radius, 1px border.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-label\">Dagens anbefaling</div><div class=\"ds-card-title\">Paradiddle Grooves</div><div class=\"ds-card-body\">Styrk din koordination og fingerkontrol.</div></div>",
+      "css": ".ds-card { background: #141416; border: 1px solid rgba(255,255,255,0.06); border-radius: 18px; padding: 24px; transition: border-color 0.2s; } .ds-card:hover { border-color: rgba(255,255,255,0.13); } .ds-card-label { font-family: Inter, sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: #8a8580; margin-bottom: 14px; } .ds-card-title { font-family: 'DM Serif Display', Georgia, serif; font-style: italic; font-size: 28px; line-height: 1.05; color: #FAF8F5; margin-bottom: 8px; } .ds-card-body { font-family: Inter, sans-serif; font-size: 13px; line-height: 1.6; color: #8a8580; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Tekstfelt til onboarding, login og admin.",
+      "html": "<div class=\"ds-form-group\"><label class=\"ds-form-label\" for=\"ds-input\">Email</label><input class=\"ds-input\" id=\"ds-input\" type=\"email\" placeholder=\"din@email.dk\"></div>",
+      "css": ".ds-form-group { display: flex; flex-direction: column; gap: 6px; } .ds-form-label { font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; color: #8a8580; } .ds-input { width: 100%; background: rgba(15,17,26,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 16px; color: #FAF8F5; font-family: Inter, sans-serif; font-size: 15px; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; } .ds-input::placeholder { color: #56524c; } .ds-input:focus { border-color: #F25545; box-shadow: 0 0 0 3px rgba(239,90,58,0.20); }"
+    },
+    {
+      "name": "Badge Accent",
+      "kind": "chip",
+      "refersTo": "badge-accent",
+      "description": "Til premium-status og kategoribadges med accent-ladning.",
+      "html": "<span class=\"ds-badge-accent\">PRO</span>",
+      "css": ".ds-badge-accent { display: inline-flex; align-items: center; gap: 5px; background: rgba(242,85,69,0.13); color: #f5b8a8; padding: 4px 10px; border-radius: 9999px; font-family: Inter, sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; }"
+    },
+    {
+      "name": "Badge Success",
+      "kind": "chip",
+      "refersTo": "badge-success",
+      "description": "Til begynder-niveau og fuldførte øvelser.",
+      "html": "<span class=\"ds-badge-success\">Begynder</span>",
+      "css": ".ds-badge-success { display: inline-flex; align-items: center; gap: 5px; background: rgba(93,211,158,0.14); color: #5dd39e; padding: 4px 10px; border-radius: 9999px; font-family: Inter, sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; }"
+    },
+    {
+      "name": "Progress Bar",
+      "kind": "custom",
+      "refersTo": "progress-bar",
+      "description": "XP-fremskridt og pillar-completion. Tynd, accent-farvet.",
+      "html": "<div class=\"ds-prog-track\"><div class=\"ds-prog-fill\" style=\"width: 60%\"></div></div>",
+      "css": ".ds-prog-track { width: 100%; height: 6px; background: #1c1c1f; border-radius: 9999px; overflow: hidden; } .ds-prog-fill { height: 100%; background: #F25545; border-radius: 9999px; transition: width 0.4s ease; }"
+    },
+    {
+      "name": "Section Label",
+      "kind": "custom",
+      "refersTo": "label",
+      "description": "Uppercase sektionstitler. Bruges over alle navne indholdsgrupper.",
+      "html": "<div class=\"ds-sect-label\">Dagens anbefaling</div>",
+      "css": ".ds-sect-label { font-family: Inter, sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: #8a8580; margin-bottom: 14px; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Sidebar-navigation. Aktiv tilstand: snare-red baggrund og farve.",
+      "html": "<div class=\"ds-nav-item ds-nav-item--active\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z\"/><polyline points=\"9 22 9 12 15 12 15 22\"/></svg><span>Hjem</span><div class=\"ds-nav-dot\"></div></div>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 11px; padding: 10px 11px; border-radius: 10px; border: none; background: transparent; color: #FAF8F5; font-family: Inter, sans-serif; font-size: 13.5px; font-weight: 450; cursor: pointer; width: 100%; transition: background 0.15s; } .ds-nav-item:hover { background: rgba(242,85,69,0.06); } .ds-nav-item--active { background: rgba(242,85,69,0.13); color: #F25545; font-weight: 600; } .ds-nav-dot { width: 5px; height: 5px; border-radius: 50%; background: #F25545; margin-left: auto; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Coach's Notebook",
+    "overview": "Dette er ikke en app der prøver at underholde. Det er et arbejdsredskab for nogen der mener det alvorligt: annoteret, struktureret, levende. Tænk på en erfaren musikers notesbog — indbinding er slidt, marginer er fulde af præcise observationer, fremskridt er synlige og håndgribelige.\n\nMørkt tema er det eneste rigtige valg her. Brugeren øver derhjemme, ofte i svagt belyste rum, med instrumentet som det eneste lyspunkt. Snare Red og Streak Emerald har deres rette gennemslagskraft mod dyb baggrund.\n\nSystemet er personligt uden at være legende. Seriøst uden at være koldt.",
+    "keyCharacteristics": [
+      "Mørk som et øverum klokken 22, ikke mørk som et SaaS-dashboard",
+      "Snare Red bruges kun til handling — aldrig som dekoration",
+      "Serif-kursiv markerer personlige og motiverende momenter",
+      "Fire fontroller med tydeligt hierarki; aldrig mere end to på samme flade",
+      "Fremskridt er altid synlige; brugeren ved altid præcist hvor de er",
+      "Ingen glassmorphism, ingen neon, ingen gradientfyld på tekst"
+    ],
+    "rules": [
+      { "name": "The Snare Red Rule", "body": "Snare Red er brugt på maks. 10% af enhver given skærm. Dens sjældenhed er pointen.", "section": "colors" },
+      { "name": "The Tonal Depth Rule", "body": "Dybde skabes ved at stable bg-deep → surface → surface-raised → surface-elevated. Ingen skygge kræves.", "section": "colors" },
+      { "name": "The Two-Font Rule", "body": "Aldrig mere end to fontfamilier aktive på samme flade på én gang.", "section": "typography" },
+      { "name": "The Serif-Only-For-Moments Rule", "body": "DM Serif Display bruges udelukkende til brugerpersonlige momenter og kategorinavne. Aldrig til knapper eller systemtekst.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Kort er flade ved hvile. Skygger er forbeholdt knap-glow og modaler.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do brug Snare Red (#F25545) udelukkende til handlingsknapper, aktive navigationsmarkeringer og streaks.",
+      "Do brug DM Serif Display italic til greetings og kategoritnavne.",
+      "Do lav dybde med tonal lagdeling (bg-deep → surface → surface-raised).",
+      "Do hold tekst under 65ch per linje i brødtekst.",
+      "Do skriv labels i uppercase med Inter 10.5px og 1.8px letter-spacing.",
+      "Do brug Streak Emerald (#5dd39e) til genuint positive tilstande.",
+      "Do brug JetBrains Mono udelukkende til tekniske data: BPM, XP, takter.",
+      "Do hold border-radius på 18px for kort, 9999px for knapper og badges."
+    ],
+    "donts": [
+      "Don't brug glassmorphism dekorativt.",
+      "Don't brug gradient-tekst (background-clip: text).",
+      "Don't brug side-stripe borders som accent (border-left over 1px i farvet accent).",
+      "Don't brug overdreven gamification: badges for alt, animerede confetti, neon-belønningsflows.",
+      "Don't lav identiske kort-grids (ikon + heading + tekst gentaget identisk).",
+      "Don't brug hero-metrik-skabeloner (stor tal, lille label, gradient accent).",
+      "Don't brug neon-on-black.",
+      "Don't eksponér interne implementeringsdetaljer i UI-kopi (f.eks. model-navne).",
+      "Don't placer ikke-funktionelle UI-elementer (knapper uden handler)."
+    ]
+  }
+}
