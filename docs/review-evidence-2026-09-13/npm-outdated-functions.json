@@ -1,0 +1,12 @@
+{
+  "firebase-admin": {
+    "wanted": "11.11.1",
+    "latest": "14.4.0",
+    "dependent": "functions"
+  },
+  "firebase-functions": {
+    "wanted": "7.3.2",
+    "latest": "7.3.2",
+    "dependent": "functions"
+  }
+}

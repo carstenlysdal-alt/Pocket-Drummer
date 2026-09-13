@@ -1,0 +1,211 @@
+{
+  "date": "2026-09-13",
+  "commit": "b9e6303b1ab4ef81902bf599b2ba2d6bd9dc98ef",
+  "review_copy": "/private/tmp/pocket-drummer-review.EF3Klu",
+  "environment": {
+    "node": "24.14.0",
+    "npm": "11.9.0",
+    "project_declared_node": "20",
+    "ai_keys_configured": false,
+    "firebase_project": "demo-pocket-drummer",
+    "firebase_api_key": "fictitious review value",
+    "external_browser_requests": "blocked"
+  },
+  "commands": [
+    {
+      "command": "npm ci --ignore-scripts --no-audit",
+      "result": "pass in temporary copy"
+    },
+    {
+      "command": "tsc --noEmit --incremental false",
+      "result": "pass",
+      "errors": 0
+    },
+    {
+      "command": "npm run build",
+      "result": "pass",
+      "type_validation": "skipped by existing next.config.mjs"
+    },
+    {
+      "command": "eslint src functions --format json",
+      "result": "fail",
+      "errors": 7,
+      "warnings": 37
+    },
+    {
+      "command": "npm run lint",
+      "result": "fail",
+      "errors": 10,
+      "warnings": 45
+    }
+  ],
+  "firebase_sdk_probe": {
+    "input": "journey.lastExerciseId: undefined",
+    "result": "invalid-argument: Unsupported field value: undefined",
+    "remote_write": false
+  },
+  "browser": {
+    "viewports": [
+      [
+        1440,
+        1000
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "verified": [
+      "guest home displays fabricated streak and practice time",
+      "beginner technique list renders",
+      "exercise popup opens and references YouTube iframe",
+      "exercise popup has no dialog role",
+      "mobile root redirects to landing",
+      "landing calls to action point to prototype/login"
+    ],
+    "page_errors_observed": 0,
+    "not_verified": [
+      "completion button action: initial locator matched zero buttons",
+      "subsequent completion and coach context/history probe: auto-review usage-limit rejection",
+      "logged-in flows",
+      "physical iOS audio",
+      "live video content"
+    ]
+  },
+  "lockfile_sha256": {
+    "package-lock.json": "430b152293dd9bd1f5625651fc9b1327ed4d30d06f8a5c5e6adf25d2ecc196dd",
+    "functions/package-lock.json": "a3a71a53a281748fa0b524206200ed5e51b46265a9717fd748e144bec98807b5"
+  },
+  "package_inventory": {
+    "package.json": [
+      {
+        "name": "firebase",
+        "category": "dependencies",
+        "declared": "^12.13.0",
+        "locked": "12.13.0",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "lucide-react",
+        "category": "dependencies",
+        "declared": "^0.475.0",
+        "locked": "0.475.0",
+        "license": "ISC"
+      },
+      {
+        "name": "next",
+        "category": "dependencies",
+        "declared": "16.2.6",
+        "locked": "16.2.6",
+        "license": "MIT"
+      },
+      {
+        "name": "react",
+        "category": "dependencies",
+        "declared": "19.2.4",
+        "locked": "19.2.4",
+        "license": "MIT"
+      },
+      {
+        "name": "react-dom",
+        "category": "dependencies",
+        "declared": "19.2.4",
+        "locked": "19.2.4",
+        "license": "MIT"
+      },
+      {
+        "name": "react-markdown",
+        "category": "dependencies",
+        "declared": "^10.1.0",
+        "locked": "10.1.0",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/node",
+        "category": "devDependencies",
+        "declared": "^20",
+        "locked": "20.19.41",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/react",
+        "category": "devDependencies",
+        "declared": "^19",
+        "locked": "19.2.15",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/react-dom",
+        "category": "devDependencies",
+        "declared": "^19",
+        "locked": "19.2.3",
+        "license": "MIT"
+      },
+      {
+        "name": "eslint",
+        "category": "devDependencies",
+        "declared": "^9",
+        "locked": "9.39.4",
+        "license": "MIT"
+      },
+      {
+        "name": "eslint-config-next",
+        "category": "devDependencies",
+        "declared": "16.2.6",
+        "locked": "16.2.6",
+        "license": "MIT"
+      },
+      {
+        "name": "firebase-tools",
+        "category": "devDependencies",
+        "declared": "^15.18.0",
+        "locked": "15.18.0",
+        "license": "MIT"
+      },
+      {
+        "name": "jspdf",
+        "category": "devDependencies",
+        "declared": "^2.5.2",
+        "locked": "2.5.2",
+        "license": "MIT"
+      },
+      {
+        "name": "opensheetmusicdisplay",
+        "category": "devDependencies",
+        "declared": "^1.8.8",
+        "locked": "1.9.9",
+        "license": "BSD-3-Clause"
+      },
+      {
+        "name": "tone",
+        "category": "devDependencies",
+        "declared": "^15.0.4",
+        "locked": "15.1.22",
+        "license": "MIT"
+      },
+      {
+        "name": "typescript",
+        "category": "devDependencies",
+        "declared": "^5",
+        "locked": "5.9.3",
+        "license": "Apache-2.0"
+      }
+    ],
+    "functions/package.json": [
+      {
+        "name": "firebase-admin",
+        "category": "dependencies",
+        "declared": "^11.11.1",
+        "locked": "11.11.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "firebase-functions",
+        "category": "dependencies",
+        "declared": "^7.2.5",
+        "locked": "7.2.5",
+        "license": "MIT"
+      }
+    ]
+  }
+}

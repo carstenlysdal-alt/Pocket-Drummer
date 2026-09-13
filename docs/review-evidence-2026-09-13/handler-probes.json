@@ -1,0 +1,217 @@
+[
+  {
+    "name": "anonymous coach",
+    "status": 200,
+    "body": {
+      "message": "Timing er fundamentet for alt trommespil. Sæt metronomen til 60 BPM, og spil kun fjerdedele i to minutter. Mærk pulsen i kroppen. Hvordan oplever du din timing?",
+      "action": {
+        "category": "opvarmning",
+        "label": "Timing-opvarmning",
+        "description": "Opvarmning · Grundlæggende timing"
+      }
+    }
+  },
+  {
+    "name": "malformed coach messages",
+    "throws": "messages.slice is not a function"
+  },
+  {
+    "name": "invalid plan parameters",
+    "status": 200,
+    "body": {
+      "fokustema": "Uge 1: Grundlæggende stikteknik & timing",
+      "milepæl": "Spil Single Stroke Roll stabilt ved 90 BPM i 1 minut",
+      "øvelser": [
+        {
+          "exercise_id": "ex-5",
+          "dag": 1,
+          "uge": 1,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-6",
+          "dag": 3,
+          "uge": 1,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-7",
+          "dag": 5,
+          "uge": 1,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-8",
+          "dag": 7,
+          "uge": 1,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-1",
+          "dag": 1,
+          "uge": 2,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-2",
+          "dag": 3,
+          "uge": 2,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-3",
+          "dag": 5,
+          "uge": 2,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-4",
+          "dag": 7,
+          "uge": 2,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-5",
+          "dag": 1,
+          "uge": 3,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-6",
+          "dag": 3,
+          "uge": 3,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-7",
+          "dag": 5,
+          "uge": 3,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-8",
+          "dag": 7,
+          "uge": 3,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-1",
+          "dag": 1,
+          "uge": 4,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-2",
+          "dag": 3,
+          "uge": 4,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-3",
+          "dag": 5,
+          "uge": 4,
+          "status": "ikke startet"
+        },
+        {
+          "exercise_id": "ex-4",
+          "dag": 7,
+          "uge": 4,
+          "status": "ikke startet"
+        }
+      ],
+      "alleUger": [
+        {
+          "tema": "Uge 1: Grundlæggende stikteknik & timing",
+          "mil": "Spil Single Stroke Roll stabilt ved 90 BPM i 1 minut"
+        },
+        {
+          "tema": "Uge 2: Dit første 8. dels Rockgroove",
+          "mil": "Spil klassisk rockbeat ved 100 BPM synkroniseret"
+        },
+        {
+          "tema": "Uge 3: Introduktion til simple Fills",
+          "mil": "Lav en 16. dels tam-tam overgang uden at tabe tempoet"
+        },
+        {
+          "tema": "Uge 4: Kombination af Groove & Fills",
+          "mil": "Spil 3 takter groove og 1 takt fill flydende"
+        }
+      ]
+    }
+  },
+  {
+    "name": "anonymous 32-bar music generation",
+    "status": 200,
+    "actualMeasures": 2
+  },
+  {
+    "name": "anonymous save without directory",
+    "status": 500,
+    "body": {
+      "error": "ENOENT: no such file or directory, open '/private/tmp/pocket-drummer-review.EF3Klu/public/content/notation/review-only.xml'"
+    }
+  },
+  {
+    "name": "anonymous save invalid XML",
+    "status": 200,
+    "body": {
+      "saved": "review-only.xml"
+    }
+  },
+  {
+    "name": "anonymous overwrite XML",
+    "savedText": "overwritten"
+  },
+  {
+    "name": "anonymous image save",
+    "status": 200,
+    "body": {
+      "saved": "review-only.png"
+    }
+  },
+  {
+    "name": "rate limit trusts header",
+    "first": true,
+    "repeat": false,
+    "changedHeader": true
+  },
+  {
+    "name": "mock transcription",
+    "status": 200,
+    "logs": [
+      "Modtog lydfil: review.mp3 (Mime: unknown)",
+      "Ingen eksterne API-tjenester konfigureret (eller fejl opstod). Kører lokal intelligent transskription...",
+      "Kører stem-separation (Demucs v4) for at isolere trommesporet...",
+      "Detekterer rytmiske transients (stortromme, snare, bækkener)...",
+      "Analyserer underafdelinger: Fandt stabilt 8. dels mønster",
+      "BPM detekteret: 104 BPM",
+      "Taktart detekteret: 4/4 standard",
+      "Kortlægger transients til General MIDI Drum Map...",
+      "Genererer nodehoveder og MusicXML part-struktur...",
+      "Verificerer XML-integritet: 0 fejl fundet."
+    ],
+    "hasXml": true
+  },
+  {
+    "name": "XML preset patterns",
+    "initialExercises": 8,
+    "curriculumLessons": 73,
+    "uniqueNotePatterns": 3,
+    "patternGroups": [
+      [
+        "ex-1",
+        "ex-4"
+      ],
+      [
+        "ex-2",
+        "ex-5",
+        "ex-6",
+        "ex-8"
+      ],
+      [
+        "ex-3",
+        "ex-7"
+      ]
+    ]
+  }
+]

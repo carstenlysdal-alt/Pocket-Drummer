@@ -1,0 +1,436 @@
+URL http://127.0.0.1:3217/prototype
+Hjem
+Øvelser
+Play-along
+Rytmeboks
+Profil
+?
+SØNDAG 13. SEPTEMBER
+Hej Gæst
+🇩🇰
+🇬🇧
+🇩🇪
+🇪🇸
+I DAG · GRUNDRYTMER
+Begynder · Enkeltslag
+
+Skiftevis højre og venstre med jævn lyd. (Trin 1: Single Stroke Roll)
+
+Start min rejse
+Øv videre
+3 dage i streg
+01
+Øvelser
+15 i biblioteket
+02
+Play-along
+Spil med musik
+03
+Rytmeboks
+Digitalt trommesæt
+04
+AI Coach
+Spørg om alt
+Vælg dit niveau
+OPVARMNING / TEKNIK
+01
+Begynder
+Byg kontrol, puls og gode grundvaner.
+02
+Øvet
+Udvid tempo, dynamik og koordination.
+03
+Rutineret
+Forfin teknik, flow og udholdenhed.
+FORTSÆT HVOR DU SLAP
+Sekstendedele · timing
+DENNE UGE
+3 øvedage · 72 min
+NIVEAU 1
+ERRORS []
+BUTTONS [
+  '',
+  'Hjem',
+  'Øvelser',
+  'Play-along',
+  'Rytmeboks',
+  'Profil',
+  '',
+  '🇩🇰',
+  '🇬🇧',
+  '🇩🇪',
+  '🇪🇸',
+  '',
+  'Start min rejse',
+  '01Øvelser15 i biblioteket',
+  '02Play-alongSpil med musik',
+  '03RytmeboksDigitalt trommesæt',
+  '04AI CoachSpørg om alt',
+  '01BegynderByg kontrol, puls og gode grundvaner.',
+  '02ØvetUdvid tempo, dynamik og koordination.',
+  '03RutineretForfin teknik, flow og udholdenhed.',
+  'Fortsæt hvor du slapSekstendedele · timing'
+]
+HOME_LAYOUT {
+  box: {
+    x: 518.421875,
+    y: 668.640625,
+    width: 240,
+    height: 50,
+    top: 668.640625,
+    right: 758.421875,
+    bottom: 718.640625,
+    left: 518.421875
+  },
+  ancestors: [
+    {
+      tag: 'BUTTON',
+      cls: '',
+      opacity: '1',
+      animation: 'none',
+      display: 'flex'
+    },
+    {
+      tag: 'DIV',
+      cls: '',
+      opacity: '1',
+      animation: 'none',
+      display: 'grid'
+    },
+    {
+      tag: 'SECTION',
+      cls: '',
+      opacity: '1',
+      animation: 'none',
+      display: 'flex'
+    },
+    {
+      tag: 'MAIN',
+      cls: '',
+      opacity: '1',
+      animation: 'none',
+      display: 'grid'
+    },
+    {
+      tag: 'DIV',
+      cls: '',
+      opacity: '1',
+      animation: 'none',
+      display: 'block'
+    },
+    {
+      tag: 'DIV',
+      cls: 'tab-content-enter',
+      opacity: '1',
+      animation: 'fadeInUp',
+      display: 'block'
+    },
+    {
+      tag: 'DIV',
+      cls: '',
+      opacity: '1',
+      animation: 'none',
+      display: 'block'
+    },
+    {
+      tag: 'DIV',
+      cls: '',
+      opacity: '1',
+      animation: 'none',
+      display: 'flex'
+    },
+    {
+      tag: 'BODY',
+      cls: 'h-full flex flex-col',
+      opacity: '1',
+      animation: 'none',
+      display: 'flex'
+    },
+    {
+      tag: 'HTML',
+      cls: 'h-full',
+      opacity: '1',
+      animation: 'none',
+      display: 'block'
+    }
+  ]
+}
+PROGRAM Hjem
+Øvelser
+Play-along
+Rytmeboks
+Profil
+?
+🇩🇰
+🇬🇧
+🇩🇪
+🇪🇸
+01 · BEGYNDER · OPVARMNING / TEKNIK
+Enkeltslag
+0/8
+GENNEMFØRT
+01
+Enkeltslag 1
+KONTROL · BEGYNDER · 60 BPM · 5 MIN
+02
+Enkeltslag 2
+JÆVN PULS · BEGYNDER · 64 BPM · 5 MIN
+03
+Enkeltslag 3
+ACCENTER · BEGYNDER · 68 BPM · 6 MIN
+04
+Enkeltslag 4
+DYNAMIK · BEGYNDER · 72 BPM · 6 MIN
+05
+Enkeltslag 5
+UDHOLDENHED · BEGYNDER · 76 BPM · 7 MIN
+06
+Enkeltslag 6
+TEMPO · BEGYNDER · 80 BPM · 7 MIN
+07
+Enkeltslag 7
+KOORDINATION · BEGYNDER · 84 BPM · 8 MIN
+08
+Enkeltslag 8
+FULD SEKVENS · BEGYNDER · 88 BPM · 8 MIN
+
+Din rejse og dine fremskridt gemmes, så du altid kan fortsætte.
+
+Log ind og start min rejse
+PROGRAM_BUTTONS [
+  '',
+  'Hjem',
+  'Øvelser',
+  'Play-along',
+  'Rytmeboks',
+  'Profil',
+  '',
+  '',
+  '🇩🇰',
+  '🇬🇧',
+  '🇩🇪',
+  '🇪🇸',
+  '01Enkeltslag 1KONTROL · BEGYNDER · 60 BPM · 5 MIN',
+  '02Enkeltslag 2JÆVN PULS · BEGYNDER · 64 BPM · 5 MIN',
+  '03Enkeltslag 3ACCENTER · BEGYNDER · 68 BPM · 6 MIN',
+  '04Enkeltslag 4DYNAMIK · BEGYNDER · 72 BPM · 6 MIN',
+  '05Enkeltslag 5UDHOLDENHED · BEGYNDER · 76 BPM · 7 MIN',
+  '06Enkeltslag 6TEMPO · BEGYNDER · 80 BPM · 7 MIN',
+  '07Enkeltslag 7KOORDINATION · BEGYNDER · 84 BPM · 8 MIN',
+  '08Enkeltslag 8FULD SEKVENS · BEGYNDER · 88 BPM · 8 MIN',
+  'Log ind og start min rejse'
+]
+EXERCISE Hjem
+Øvelser
+Play-along
+Rytmeboks
+Profil
+?
+🇩🇰
+🇬🇧
+🇩🇪
+🇪🇸
+01 · BEGYNDER · OPVARMNING / TEKNIK
+Enkeltslag
+0/8
+GENNEMFØRT
+01
+Enkeltslag 1
+KONTROL · BEGYNDER · 60 BPM · 5 MIN
+02
+Enkeltslag 2
+JÆVN PULS · BEGYNDER · 64 BPM · 5 MIN
+03
+Enkeltslag 3
+ACCENTER · BEGYNDER · 68 BPM · 6 MIN
+04
+Enkeltslag 4
+DYNAMIK · BEGYNDER · 72 BPM · 6 MIN
+05
+Enkeltslag 5
+UDHOLDENHED · BEGYNDER · 76 BPM · 7 MIN
+06
+Enkeltslag 6
+TEMPO · BEGYNDER · 80 BPM · 7 MIN
+07
+Enkeltslag 7
+KOORDINATION · BEGYNDER · 84 BPM · 8 MIN
+08
+Enkeltslag 8
+FULD SEKVENS · BEGYNDER · 88 BPM · 8 MIN
+
+Din rejse og dine fremskridt gemmes, så du altid kan fortsætte.
+
+Log ind og start min rejse
+BEGYNDER · 5 MIN
+Enkeltslag 1
+✕
+4
+4
+1
+2
+3
+4
+4
+4
+1
+2
+3
+4
+TEMPO
+60BPM
+Kontrol · Begynder
+Marker som gennemført
+Spørg AI Coach om denne øvelse
+Enkeltslag 1
+Kontrol · Begynder · Begynder · 5 min
+Marker som gennemført
+EXERCISE_BUTTONS [
+  '',
+  'Hjem',
+  'Øvelser',
+  'Play-along',
+  'Rytmeboks',
+  'Profil',
+  '',
+  '',
+  '🇩🇰',
+  '🇬🇧',
+  '🇩🇪',
+  '🇪🇸',
+  '01Enkeltslag 1KONTROL · BEGYNDER · 60 BPM · 5 MIN',
+  '02Enkeltslag 2JÆVN PULS · BEGYNDER · 64 BPM · 5 MIN',
+  '03Enkeltslag 3ACCENTER · BEGYNDER · 68 BPM · 6 MIN',
+  '04Enkeltslag 4DYNAMIK · BEGYNDER · 72 BPM · 6 MIN',
+  '05Enkeltslag 5UDHOLDENHED · BEGYNDER · 76 BPM · 7 MIN',
+  '06Enkeltslag 6TEMPO · BEGYNDER · 80 BPM · 7 MIN',
+  '07Enkeltslag 7KOORDINATION · BEGYNDER · 84 BPM · 8 MIN',
+  '08Enkeltslag 8FULD SEKVENS · BEGYNDER · 88 BPM · 8 MIN',
+  'Log ind og start min rejse',
+  '',
+  '✕',
+  '',
+  '',
+  'Marker som gennemført',
+  ' Spørg AI Coach om denne øvelse',
+  'Marker som gennemført',
+  '',
+  '',
+  ''
+]
+IFRAMES [
+  {
+    src: 'https://www.youtube-nocookie.com/embed/F4FO7rsp-e0?rel=0&modestbranding=1',
+    title: 'Enkeltslag 1'
+  }
+]
+DIALOG_ROLES 0
+DONE_BUTTON_COUNT 0
+MOBILE_LANDING Pocket Drummer
+.
+Kom i gang
+Founding member — 50 kr/md
+Lær at spille
+trommer.
+På dine præmisser.
+
+Pocket Drummer er en dansk læringsplatform der fortæller dig præcist hvad du skal øve i dag — og beviser at du rykker dig. Med AI-coach, interaktive noder og strukturerede programmer.
+
+Founding members trommer allerede i dag
+HVAD ER DIT NIVEAU?
+Begynder
+Helt ny — har brug for struktur og et solidt udgangspunkt
+Mellemniveau
+Kender grundrytmerne og vil konsolidere nye teknikker
+Øvet
+Erfaren trommeslager der vil skubbe til egne grænser
+Prøv gratis
+Ingen kreditkort krævet · Founding member: 50 kr/md
+50 kr
+per måned — founding member
+14 min
+gennemsnitlig daglig øvelse
+30 dage
+til mærkbar fremgang
+AI
+lærer der husker dig
+Alt hvad en trommeslager behøver. Intet andet.
+
+Bygget til den voksne begynder der har præcis 15 minutter om dagen og vil vide, at de bruger dem rigtigt.
+
+AI-coach der husker dig
+Din personlige trommelærer tilpasser øvelserne til dit præcise niveau og husker hvad du sidst arbejdede med — på dansk.
+Strukturerede programmer
+4-ugers forløb med klare mål. Du ved altid hvad du skal øve i dag og kan se præcis hvad du har opnået.
+Interaktive trommenoder
+Se og hør dine noder i realtid. Upload et fotografi af noder og få AI til at analysere dem — med det samme.
+Bevis at du rykker dig
+Streak-tæller, progression-map og præcise fremskridtsdata. Du kan se det, og det motiverer dig til at fortsætte.
+Digitalt trommesæt
+Øv dine slag og rytmer direkte i appen — uden ekstra udstyr. Perfekt til at fæstne det i fingrene.
+Kun 50 kr. om måneden
+Founding member-prisen. Ingen binding. Fuld adgang til alt indhold, AI-coach og nye øvelser hver uge.
+Din trommelærer. I din lomme. Til under en kop kaffe om ugen.
+
+Pocket Drummer er bygget til hverdagen. Åbn appen, se hvad du skal øve i dag, øv i 15 minutter, luk appen. Så enkelt er det. AI-coachen gør det tunge arbejde — du spiller bare.
+
+01
+Åbn appen
+Din AI-coach har allerede planlagt din dag baseret på dit niveau og forrige session.
+02
+Øv i 15 minutter
+Følg strukturerede lektioner med video, noder og real-time feedback. Ingen gætværk.
+03
+Se fremgangen
+Din streak vokser. Dit progression-map udfyldes. Du kan mærke og bevise, at du rykker dig.
+Gratis at oprette
+Opret din profil.
+Din coach husker dig.
+
+Din AI-coach gemmer dit niveau, dine fremskridt og tilpasser øvelserne efter dig fra dag 1. Ingen tidligere erfaring krævet.
+
+Kom i gang på under et minut
+Fuld adgang fra dag 1
+Alle øvelser, AI-coach og progression-tracking
+Ingen binding
+Afmeld til enhver tid — ingen forklaring krævet
+Founding member-pris
+50 kr/md — låst fast så længe du er aktiv
+Opret gratis konto
+Har du allerede en konto? Log ind
+En pris. Fuld adgang.
+
+Founding member-prisen gælder så længe du er aktiv bruger. Ingen bindingsperiode.
+
+Founding member-pris
+50
+kr/md
+Ingen binding. Opsig når som helst.
+AI-coach der tilpasser sig dit niveau
+Fuldt øvelsesbibliotek med nye øvelser ugentligt
+Interaktive trommenoder og nodeanalyse
+Digitalt trommesæt og play-along tracks
+Progression-map og streak-tracking
+Adgang til alle fremtidige features
+Start som founding member
+Du behøver ikke en lærer.
+Du behøver Pocket Drummer.
+
+Kom i gang i dag. Ingen forudgående erfaring krævet.
+
+Åbn Pocket Drummer
+Pocket Drummer
+Bygget i Danmark. Til trommespillere på alle niveauer.
+Log ind
+Åbn app
+MOBILE_LINKS [
+  { text: 'Kom i gang', href: '/prototype' },
+  { text: 'Prøv gratis', href: '/prototype' },
+  { text: 'Opret gratis konto', href: '/login' },
+  { text: 'Har du allerede en konto? Log ind', href: '/login' },
+  { text: 'Start som founding member', href: '/prototype' },
+  { text: 'Åbn Pocket Drummer', href: '/prototype' },
+  { text: 'Log ind', href: '/login' },
+  { text: 'Åbn app', href: '/prototype' }
+]
+ERRORS_FINAL []

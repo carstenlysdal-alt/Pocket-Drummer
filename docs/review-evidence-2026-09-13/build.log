@@ -1,0 +1,46 @@
+
+> pocket-drummer@0.1.0 build
+> next build
+
+▲ Next.js 16.2.6 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 8.5s
+  Skipping validation of types
+  Finished TypeScript config validation in 20ms ...
+  Collecting page data using 5 workers ...
+  Generating static pages using 5 workers (0/26) ...
+  Generating static pages using 5 workers (6/26) 
+  Generating static pages using 5 workers (12/26) 
+  Generating static pages using 5 workers (19/26) 
+✓ Generating static pages using 5 workers (26/26) in 453ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin
+├ ƒ /api/coach
+├ ƒ /api/generate-music
+├ ƒ /api/generate-plan
+├ ƒ /api/save-notation
+├ ƒ /api/save-sheet-image
+├ ƒ /api/scan-sheet-music
+├ ƒ /api/transcribe-audio
+├ ○ /dashboard
+├ ○ /drumkit
+├ ● /exercise/[id]
+│ ├ /exercise/ex-1
+│ ├ /exercise/ex-2
+│ ├ /exercise/ex-3
+│ └ [+5 more paths]
+├ ○ /landing
+├ ○ /login
+├ ○ /onboarding
+└ ○ /prototype
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -1,0 +1,100 @@
+{
+  "@types/node": {
+    "current": "20.19.41",
+    "wanted": "20.19.43",
+    "latest": "26.5.1",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/@types/node"
+  },
+  "@types/react": {
+    "current": "19.2.15",
+    "wanted": "19.3.0",
+    "latest": "19.3.0",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/@types/react"
+  },
+  "@types/react-dom": {
+    "current": "19.2.3",
+    "wanted": "19.3.0",
+    "latest": "19.3.0",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/@types/react-dom"
+  },
+  "eslint": {
+    "current": "9.39.4",
+    "wanted": "9.39.5",
+    "latest": "10.10.0",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/eslint"
+  },
+  "eslint-config-next": {
+    "current": "16.2.6",
+    "wanted": "16.2.6",
+    "latest": "16.3.5",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/eslint-config-next"
+  },
+  "firebase": {
+    "current": "12.13.0",
+    "wanted": "12.19.0",
+    "latest": "12.19.0",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/firebase"
+  },
+  "firebase-tools": {
+    "current": "15.18.0",
+    "wanted": "15.30.0",
+    "latest": "15.30.0",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/firebase-tools"
+  },
+  "jspdf": {
+    "current": "2.5.2",
+    "wanted": "2.5.2",
+    "latest": "4.2.1",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/jspdf"
+  },
+  "lucide-react": {
+    "current": "0.475.0",
+    "wanted": "0.475.0",
+    "latest": "1.45.0",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/lucide-react"
+  },
+  "next": {
+    "current": "16.2.6",
+    "wanted": "16.2.6",
+    "latest": "16.3.5",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/next"
+  },
+  "opensheetmusicdisplay": {
+    "current": "1.9.9",
+    "wanted": "1.9.9",
+    "latest": "2.1.2",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/opensheetmusicdisplay"
+  },
+  "react": {
+    "current": "19.2.4",
+    "wanted": "19.2.4",
+    "latest": "19.3.0",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/react"
+  },
+  "react-dom": {
+    "current": "19.2.4",
+    "wanted": "19.2.4",
+    "latest": "19.3.0",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/react-dom"
+  },
+  "typescript": {
+    "current": "5.9.3",
+    "wanted": "5.9.3",
+    "latest": "7.0.2",
+    "dependent": "pocket-drummer-review.EF3Klu",
+    "location": "/private/tmp/pocket-drummer-review.EF3Klu/node_modules/typescript"
+  }
+}
