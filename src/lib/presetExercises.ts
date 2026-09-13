@@ -8,7 +8,7 @@ export interface PresetExercise {
   takter: number;
   beskrivelse: string;
   genre: string;
-  patternType: 'standard' | 'rudiment' | 'fill';
+  patternType: 'standard' | 'rudiment' | 'fill' | 'single-stroke' | 'double-stroke' | 'paradiddle' | 'shuffle' | 'bossa';
 }
 
 export const presetExercises: PresetExercise[] = [
@@ -30,7 +30,7 @@ export const presetExercises: PresetExercise[] = [
     takter: 2,
     beskrivelse: "Udfør dobbeltslag (to slag med hver hånd: R-R-L-L) jævnt og i et kontrolleret tempo. Fokuser på ensartet dynamik og stick height.",
     genre: "Rudiment",
-    patternType: "rudiment"
+    patternType: "double-stroke"
   },
   {
     titel: "Purdie Half-Time Shuffle",
@@ -40,7 +40,7 @@ export const presetExercises: PresetExercise[] = [
     takter: 2,
     beskrivelse: "Det legendariske Bernard Purdie Half-Time Shuffle med spøgelsesslag (ghost notes) på lilletrommen og et flydende triplet-ride-mønster.",
     genre: "Funk / Soul",
-    patternType: "standard"
+    patternType: "shuffle"
   },
   {
     titel: "Classic Jazz Swing Ride",

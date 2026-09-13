@@ -290,6 +290,7 @@ const PROTOTYPE_COPY: Record<Language, PrototypeCopy> = {
 interface PracticeScreenProps extends ScreenProps {
   onSelectCategory: (cat: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong') => void;
   isDesktop?: boolean;
+  onOpenCoach?: (exerciseTitle?: string) => void;
 }
 
 interface TrackDetailProps extends ScreenProps {
@@ -314,6 +315,7 @@ interface CoachScreenProps extends ScreenProps {
   selectedTechnique?: TechniqueProgram | null;
   journey?: JourneyProgress | null;
   currentExerciseTitle?: string | null;
+  onSelectExerciseAction?: (exerciseId: string) => void;
 }
 
 interface ProfileScreenProps extends ScreenProps {
@@ -746,9 +748,10 @@ const EXERCISE_VIDEOS: Record<string, string[]> = {
   ],
 };
 
-function getVideoUrl(category: string, id: number): string {
+function getVideoUrl(category: string, id: number | string): string {
+  const numericId = typeof id === 'number' ? id : parseInt(String(id).replace(/\D/g, '') || '1', 10);
   const arr = EXERCISE_VIDEOS[category] ?? EXERCISE_VIDEOS.grooves;
-  return arr[Math.min(id - 1, arr.length - 1)];
+  return arr[Math.min(Math.max(0, numericId - 1), arr.length - 1)];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -873,18 +876,20 @@ function HomeScreen({ t, dark, setDark, onSelectCategory, onSelectLevel, onOpenC
 
   const xp = user?.xp !== undefined ? user.xp : guestXp;
   const level = user ? (user.level || 1) : Math.floor(xp / 200) + 1;
-  const streak = user?.streak !== undefined ? user.streak : 3;
+  const streak = user?.streak !== undefined ? user.streak : (guestXp > 0 ? 1 : 0);
   const xpPct = ((xp % 200) / 200) * 100;
   const contentMax = isDesktop ? 980 : undefined;
 
-  // Dagens anbefalede øvelse — udledt dynamisk af journey-state (P1.4)
+  // Dagens anbefalede øvelse — udledt dynamisk af journey-state (P1.4, F03, F19)
   const recLevel: TrainingLevel = journey?.level || 'begynder';
   const recTechnique: TechniqueProgram = journey?.technique || 'enkeltslag';
-  const currentStepNumber = (journey?.lastExerciseId ?? 0) + 1;
   const hasActiveJourney = Boolean(journey);
+  const lastStepId = journey?.lastExerciseId ?? 0;
+  const isCompletedTrack = lastStepId >= 8;
+  const currentStepNumber = isCompletedTrack ? 8 : Math.min(8, Math.max(1, lastStepId + 1));
 
   const recTag = hasActiveJourney
-    ? `${copy.levels[recLevel].label} · ${copy.continueHere}`
+    ? `${copy.levels[recLevel].label} · ${isCompletedTrack ? (language === 'da' ? 'Fuldført' : 'Completed') : copy.continueHere}`
     : `${copy.todayFundamentals}`;
 
   const recTitle = hasActiveJourney
@@ -892,11 +897,13 @@ function HomeScreen({ t, dark, setDark, onSelectCategory, onSelectLevel, onOpenC
     : `${copy.levels.begynder.label} · ${copy.techniques.enkeltslag.label}`;
 
   const recDescription = hasActiveJourney
-    ? `${copy.techniques[recTechnique].description} (Trin ${currentStepNumber} af 8 i dit personlige spor)`
-    : `${copy.techniques.enkeltslag.description} (Trin 1: Single Stroke Roll)`;
+    ? (isCompletedTrack
+        ? `${copy.techniques[recTechnique].description} (${language === 'da' ? 'Alle 8 trin gennemført i sporet' : 'All 8 steps completed in track'})`
+        : `${copy.techniques[recTechnique].description} (${language === 'da' ? `Trin ${currentStepNumber} af 8 i dit personlige spor` : `Step ${currentStepNumber} of 8 in your track`})`)
+    : `${copy.techniques.enkeltslag.description} (${language === 'da' ? 'Trin 1: Single Stroke Roll' : 'Step 1: Single Stroke Roll'})`;
 
   const recProgressPct = hasActiveJourney
-    ? Math.min(100, Math.max(14, (currentStepNumber / 8) * 100))
+    ? (isCompletedTrack ? 100 : Math.min(100, Math.max(14, (currentStepNumber / 8) * 100)))
     : 12.5;
 
   const handleStartRecommended = () => {
@@ -1116,7 +1123,7 @@ function HomeScreen({ t, dark, setDark, onSelectCategory, onSelectLevel, onOpenC
           </button>
           <div style={{ padding: 24, borderRight: `1px solid ${t.hairline}` }}>
             <div style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 }}>{copy.thisWeek}</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: t.accent }}>3 {copy.practiceDays} · 72 min</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: t.accent }}>{streak} {copy.practiceDays} · {streak > 0 ? (user?.completedExercises?.length || 1) * 15 : 0} min</div>
           </div>
           <div style={{ padding: '24px 0 24px 24px' }}>
             <div style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>{translate('level')} {level}</div>
@@ -1293,8 +1300,8 @@ function HomeScreen({ t, dark, setDark, onSelectCategory, onSelectLevel, onOpenC
           <div style={{ fontSize: 12.5, color: t.text, lineHeight: 1.5 }}>
             <span style={{ fontWeight: 800 }}>{copy.thisWeek}</span>
             {' · '}
-            <span style={{ fontWeight: 800, color: t.accent }}>3 {copy.practiceDays}</span>
-            {' · 72 min · '}
+            <span style={{ fontWeight: 800, color: t.accent }}>{streak} {copy.practiceDays}</span>
+            {` · ${streak > 0 ? (user?.completedExercises?.length || 1) * 15 : 0} min · `}
             <span style={{ fontWeight: 800 }}>{translate('level')} {level}</span>
           </div>
           <div style={{ width: 64, flexShrink: 0 }}><Progress pct={xpPct} t={t} h={5} bars={5} /></div>
@@ -1348,11 +1355,17 @@ const practiceTracks = [
   },
 ];
 
-function PracticeScreen({ t, dark, onSelectCategory, isDesktop }: PracticeScreenProps) {
+function PracticeScreen({ t, dark, onSelectCategory, isDesktop, onOpenCoach }: PracticeScreenProps) {
   const [search, setSearch] = useState('');
   const { language, t: translate } = useLanguage();
   const copy = PROTOTYPE_COPY[language];
   const [activeChip, setActiveChip] = useState<'Alle' | 'opvarmning' | 'nodelære' | 'grooves' | 'playalong'>('Alle');
+  const [selectedPracticeExercise, setSelectedPracticeExercise] = useState<{
+    exercise: ExerciseItem;
+    category: 'opvarmning' | 'nodelære' | 'grooves' | 'playalong';
+  } | null>(null);
+  const { markCompleted, isCompleted: isExCompleted } = useExerciseProgress();
+  const { completeExercise, user } = useAuth();
 
   const allExercises = [
     { id: 'warmup-1', cat: 'opvarmning' as const, title: language === 'da' ? '5 min teknik-start' : language === 'en' ? '5 min tech startup' : language === 'de' ? '5 Min. Technik-Start' : 'Inicio técnico de 5 min', sub: language === 'da' ? 'Single strokes og håndkontrol' : language === 'en' ? 'Single strokes and hand control' : language === 'de' ? 'Single Strokes und Handkontrolle' : 'Single strokes y control de manos', dur: '5 min', bpm: '80', level: 'Begynder', tags: ['5 min', 'Single strokes'] },
@@ -1468,19 +1481,34 @@ function PracticeScreen({ t, dark, onSelectCategory, isDesktop }: PracticeScreen
             const levelColor = ex.level === 'Begynder' ? t.good : ex.level === 'Mellemniveau' ? t.warn : t.accent;
             const iconColor = ex.cat === 'playalong' ? t.accent : ex.cat === 'nodelære' ? t.warn : ex.cat === 'grooves' ? t.good : '#7B6FB0';
             return (
-              <button key={ex.id} onClick={() => onSelectCategory(ex.cat)} style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: `1px solid ${t.hairline}`,
-                padding: '18px 0',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 16,
-                width: '100%',
-                textAlign: 'left',
-                fontFamily: t.font,
-              }}>
+              <button
+                key={ex.id}
+                type="button"
+                onClick={() => setSelectedPracticeExercise({
+                  exercise: {
+                    id: ex.id,
+                    title: ex.title,
+                    sub: ex.sub,
+                    dur: ex.dur,
+                    bpm: Number(ex.bpm) || 90,
+                    level: ex.level,
+                    tags: ex.tags,
+                  },
+                  category: ex.cat,
+                })}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: `1px solid ${t.hairline}`,
+                  padding: '18px 0',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  width: '100%',
+                  textAlign: 'left',
+                  fontFamily: t.font,
+                }}>
                 <span style={{
                   width: 44, height: 44, flexShrink: 0, display: 'grid', placeItems: 'center',
                   border: `1px solid ${t.hairline}`,
@@ -1506,6 +1534,27 @@ function PracticeScreen({ t, dark, onSelectCategory, isDesktop }: PracticeScreen
             );
           })}
         </div>
+
+        {selectedPracticeExercise && (
+          <ExerciseDetailPopup
+            t={t}
+            dark={dark}
+            exercise={selectedPracticeExercise.exercise}
+            category={selectedPracticeExercise.category}
+            onClose={() => setSelectedPracticeExercise(null)}
+            onMarkDone={async () => {
+              const key = `${selectedPracticeExercise.category}_${selectedPracticeExercise.exercise.id}`;
+              markCompleted(key);
+              await completeExercise(key, 25);
+            }}
+            isCompleted={isExCompleted(`${selectedPracticeExercise.category}_${selectedPracticeExercise.exercise.id}`)}
+            onOpenCoach={(title) => {
+              setSelectedPracticeExercise(null);
+              if (onOpenCoach) onOpenCoach(title || selectedPracticeExercise.exercise.title);
+            }}
+            isAdmin={user?.role === 'admin'}
+          />
+        )}
       </div>
     </div>
   );
@@ -1515,7 +1564,7 @@ function PracticeScreen({ t, dark, onSelectCategory, isDesktop }: PracticeScreen
 // Exercise Detail Popup
 // ─────────────────────────────────────────────────────────────
 interface ExerciseItem {
-  id: number;
+  id: number | string;
   title: string;
   sub: string;
   dur: string;
@@ -1534,17 +1583,19 @@ interface ExerciseDetailPopupProps {
   onClose: () => void;
   onMarkDone: () => void;
   isCompleted: boolean;
-  onOpenCoach: () => void;
+  onOpenCoach: (exerciseTitle?: string) => void;
+  onNextExercise?: () => void;
   isAdmin?: boolean;
 }
 
-function ExerciseDetailPopup({ t, exercise, category, onClose, onMarkDone, isCompleted, onOpenCoach, isAdmin }: ExerciseDetailPopupProps) {
+function ExerciseDetailPopup({ t, exercise, category, onClose, onMarkDone, isCompleted, onOpenCoach, onNextExercise, isAdmin }: ExerciseDetailPopupProps) {
   const { language } = useLanguage();
   const copy = PROTOTYPE_COPY[language];
   const [tab, setTab] = React.useState<'noder' | 'video'>(exercise.notation ? 'noder' : 'video');
   const [isDesktopView, setIsDesktopView] = React.useState(false);
   const [bpm, setBpm] = React.useState(typeof exercise.bpm === 'number' ? exercise.bpm : 90);
   const [playing, setPlaying] = React.useState(false);
+  const [isLooping, setIsLooping] = React.useState(true);
 
   React.useEffect(() => {
     const check = () => setIsDesktopView(window.innerWidth >= 1024);
@@ -1620,32 +1671,40 @@ function ExerciseDetailPopup({ t, exercise, category, onClose, onMarkDone, isCom
     return () => window.removeEventListener('keydown', h);
   }, [onClose]);
 
-  // Metronome
+  const playClick = React.useCallback((isAccent: boolean) => {
+    try {
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') void ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(isAccent ? 880 : 660, ctx.currentTime);
+      gain.gain.setValueAtTime(isAccent ? 0.15 : 0.07, ctx.currentTime);
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+      osc.stop(ctx.currentTime + 0.06);
+    } catch {}
+  }, []);
+
+  // Metronome (ren timing uden audio inde i state-updater)
   useEffect(() => {
-    if (!playing) { setTimeout(() => setBeat(0), 0); return; }
+    if (!playing) {
+      setTimeout(() => setBeat(0), 0);
+      return;
+    }
     const ms = (60000 / bpm) / 2;
+    let localBeat = 0;
     const id = setInterval(() => {
-      setBeat(b => {
-        const next = (b + 1) % 8;
-        try {
-          if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-            audioCtxRef.current = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
-          }
-          const ctx = audioCtxRef.current!;
-          if (ctx.state === 'suspended') ctx.resume();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.frequency.setValueAtTime(next === 0 ? 880 : 660, ctx.currentTime);
-          gain.gain.setValueAtTime(next === 0 ? 0.15 : 0.07, ctx.currentTime);
-          osc.start(); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-          osc.stop(ctx.currentTime + 0.06);
-        } catch {}
-        return next;
-      });
+      localBeat = (localBeat + 1) % 8;
+      playClick(localBeat === 0);
+      setBeat(localBeat);
     }, ms);
     return () => clearInterval(id);
-  }, [playing, bpm]);
+  }, [playing, bpm, playClick]);
 
   useEffect(() => () => { audioCtxRef.current?.close(); }, []);
 
@@ -1953,7 +2012,7 @@ function ExerciseDetailPopup({ t, exercise, category, onClose, onMarkDone, isCom
             }}>
               {isCompleted ? <><IcCheck size={16} /> {copy.completed}</> : copy.markCompleted}
             </button>
-            <button onClick={() => { onOpenCoach(); onClose(); }} style={{
+            <button onClick={() => onOpenCoach(exercise.title)} style={{
               width: '100%', padding: '12px', borderRadius: 0, border: `1px solid ${t.hairline}`,
               background: 'transparent', color: t.textMuted, fontFamily: t.font, fontSize: 13, fontWeight: 500, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -1997,10 +2056,20 @@ function ExerciseDetailPopup({ t, exercise, category, onClose, onMarkDone, isCom
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <button aria-label={copy.loop} style={{
-          background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', display: 'flex',
-        }}>
-          <IcLoop size={20} />
+        <button
+          type="button"
+          onClick={() => setIsLooping(l => !l)}
+          aria-label={copy.loop}
+          aria-pressed={isLooping}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: isLooping ? t.accent : t.textMuted,
+            cursor: 'pointer',
+            display: 'flex',
+            padding: 8,
+          }}>
+          <IcLoop size={20} color={isLooping ? t.accent : t.textMuted} />
         </button>
         <button onClick={() => setPlaying(!playing)} aria-label={playing ? copy.pause : copy.play} style={{
           width: 62, height: 62, borderRadius: '50%', background: t.text, border: 'none',
@@ -2009,10 +2078,20 @@ function ExerciseDetailPopup({ t, exercise, category, onClose, onMarkDone, isCom
         }}>
           {playing ? <IcPause size={24} fill color={t.bg} /> : <IcPlay size={24} fill color={t.bg} />}
         </button>
-        <button aria-label={copy.next} style={{
-          background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', display: 'flex',
-        }}>
-          <IcArrowRight size={20} />
+        <button
+          type="button"
+          onClick={onNextExercise}
+          disabled={!onNextExercise}
+          aria-label={copy.next}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: onNextExercise ? t.text : t.textDim,
+            cursor: onNextExercise ? 'pointer' : 'default',
+            display: 'flex',
+            padding: 8,
+          }}>
+          <IcArrowRight size={20} color={onNextExercise ? t.text : t.textDim} />
         </button>
       </div>
     </div>
@@ -2050,6 +2129,7 @@ function TechniqueProgramScreen({
 }) {
   const [selectedExercise, setSelectedExercise] = useState<ExerciseItem | null>(null);
   const { markOpened, markCompleted, isCompleted } = useExerciseProgress();
+  const { user, completeExercise } = useAuth();
   const { language, setLanguage } = useLanguage();
   const copy = PROTOTYPE_COPY[language];
   const levelInfo = TRAINING_LEVELS.find(item => item.id === level) ?? TRAINING_LEVELS[0];
@@ -2081,7 +2161,6 @@ function TechniqueProgramScreen({
 
   const openExercise = (exercise: ExerciseItem) => {
     markOpened(exerciseKey(exercise));
-    if (technique) onOpenExercise(technique, exercise.id);
     setSelectedExercise(exercise);
   };
 
@@ -2089,8 +2168,12 @@ function TechniqueProgramScreen({
     const targetTechnique = technique ?? activeJourney?.technique ?? 'enkeltslag';
     onStartJourney(targetTechnique);
     if (activeJourney?.technique === technique && activeJourney.lastExerciseId) {
-      const exercise = exercises.find(item => item.id === activeJourney.lastExerciseId);
-      if (exercise) openExercise(exercise);
+      const nextEx = exercises.find(item => item.id === (activeJourney.lastExerciseId ?? 0) + 1)
+        || exercises.find(item => item.id === activeJourney.lastExerciseId)
+        || exercises[0];
+      if (nextEx) openExercise(nextEx);
+    } else if (exercises.length > 0) {
+      openExercise(exercises[0]);
     }
   };
 
@@ -2250,7 +2333,18 @@ function TechniqueProgramScreen({
         </button>
         {journeyError && (
           <div role="alert" style={{ marginTop: 10, color: t.accent, fontSize: 12, textAlign: 'center' }}>
-            {copy.journeyLoginError}
+            <div>{copy.journeyLoginError}</div>
+            <button
+              type="button"
+              onClick={handleJourneyAction}
+              style={{
+                marginTop: 8, background: 'transparent', border: `1px solid ${t.accent}`,
+                color: t.accent, padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                fontFamily: t.font, fontSize: 12, fontWeight: 700,
+              }}
+            >
+              {language === 'da' ? 'Prøv igen' : 'Try again'}
+            </button>
           </div>
         )}
       </div>
@@ -2262,9 +2356,24 @@ function TechniqueProgramScreen({
           exercise={selectedExercise}
           category="opvarmning"
           onClose={() => setSelectedExercise(null)}
-          onMarkDone={() => markCompleted(exerciseKey(selectedExercise))}
+          onMarkDone={async () => {
+            const key = exerciseKey(selectedExercise);
+            markCompleted(key);
+            await completeExercise(key, 25);
+            if (technique) {
+              const numId = typeof selectedExercise.id === 'number' ? selectedExercise.id : 1;
+              onOpenExercise(technique, numId);
+            }
+          }}
           isCompleted={isCompleted(exerciseKey(selectedExercise))}
           onOpenCoach={onOpenCoach}
+          onNextExercise={(() => {
+            const idx = exercises.findIndex(e => e.id === selectedExercise.id);
+            if (idx >= 0 && idx < exercises.length - 1) {
+              return () => openExercise(exercises[idx + 1]);
+            }
+            return undefined;
+          })()}
         />
       )}
     </div>
@@ -2285,58 +2394,17 @@ function MobileCategoryDetail({ t, dark, category, onClose, onOpenCoach }: Mobil
   const [bpm, setBpm] = useState(category === 'playalong' ? 105 : 90);
   const [selectedExercise, setSelectedExercise] = useState<ExerciseItem | null>(null);
   const { markOpened, markCompleted, isCompleted } = useExerciseProgress();
-  const { user, syncCompletedExercises } = useAuth();
+  const { user, completeExercise } = useAuth();
 
   const handleMarkCompleted = async (key: string) => {
     markCompleted(key);
-
-    // XP: +25 per gennemført øvelse
-    const XP_PER_EXERCISE = 25;
-    const today = new Date().toISOString().slice(0, 10);
-
     try {
-      if (user) {
-        // Streak-logik
-        const lastDate = localStorage.getItem('pocketdrummer_last_practice');
-        let newStreak = user.streak || 0;
-        if (lastDate !== today) {
-          const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-          newStreak = lastDate === yesterday ? newStreak + 1 : 1;
-        }
-        localStorage.setItem('pocketdrummer_last_practice', today);
-
-        const newXp = (user.xp || 0) + XP_PER_EXERCISE;
-        const newLevel = Math.floor(newXp / 200) + 1;
-
-        // Opdater completedExercises
-        const completed = [...(user.completedExercises || [])];
-        if (!completed.includes(key)) completed.push(key);
-
-        const { firestoreService } = await import('@/lib/firestoreService');
-        await firestoreService.saveUserProfile(user.uid, {
-          xp: newXp,
-          level: newLevel,
-          streak: newStreak,
-          completedExercises: completed,
-        });
-        await syncCompletedExercises(completed);
-      } else {
-        // Gæst: gem streak og XP i localStorage
-        const lastDate = localStorage.getItem('pocketdrummer_last_practice');
-        if (lastDate !== today) {
-          const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-          const prevStreak = parseInt(localStorage.getItem('pocketdrummer_streak') || '0', 10);
-          const newStreak = lastDate === yesterday ? prevStreak + 1 : 1;
-          localStorage.setItem('pocketdrummer_streak', String(newStreak));
-          localStorage.setItem('pocketdrummer_last_practice', today);
-        }
-        const prevXp = parseInt(localStorage.getItem('pocketdrummer_xp') || '0', 10);
-        localStorage.setItem('pocketdrummer_xp', String(prevXp + XP_PER_EXERCISE));
-      }
+      await completeExercise(key, 25);
     } catch (err) {
       console.error('Fejl ved opdatering af XP/streak:', err);
     }
   };
+
 
   // Escape key to close this overlay (only when no sub-popup is open)
   useEffect(() => {
@@ -2682,6 +2750,13 @@ function MobileCategoryDetail({ t, dark, category, onClose, onOpenCoach }: Mobil
           onMarkDone={() => handleMarkCompleted(`${category}_${selectedExercise.id}`)}
           isCompleted={isCompleted(`${category}_${selectedExercise.id}`)}
           onOpenCoach={onOpenCoach}
+          onNextExercise={(() => {
+            const idx = filteredExercises.findIndex(e => e.id === selectedExercise.id);
+            if (idx >= 0 && idx < filteredExercises.length - 1) {
+              return () => setSelectedExercise(filteredExercises[idx + 1] as ExerciseItem);
+            }
+            return undefined;
+          })()}
           isAdmin={user?.role === 'admin'}
         />
       )}
@@ -3145,18 +3220,18 @@ function StudioKitScreen({ t }: StudioKitScreenProps) {
     return audioCtxRef.current;
   };
 
-  const playSound = React.useCallback((isAccent: boolean, soundType: string, isSub = false) => {
+  const playSoundAtTime = React.useCallback((time: number, isAccent: boolean, soundType: string, isSub = false) => {
     try {
       const ctx = getCtx();
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state === 'suspended') void ctx.resume();
       const gain = ctx.createGain();
       gain.connect(ctx.destination);
       const vol = isSub ? 0.07 : (isAccent ? 0.38 : 0.18);
-      gain.gain.setValueAtTime(vol, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (isSub ? 0.04 : 0.08));
+      gain.gain.setValueAtTime(vol, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + (isSub ? 0.04 : 0.08));
 
       if (soundType === 'hihat') {
-        const bufSize = ctx.sampleRate * (isSub ? 0.025 : 0.05);
+        const bufSize = Math.floor(ctx.sampleRate * (isSub ? 0.025 : 0.05));
         const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
         const data = buf.getChannelData(0);
         for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
@@ -3166,70 +3241,127 @@ function StudioKitScreen({ t }: StudioKitScreenProps) {
         filter.type = isSub ? 'lowpass' : 'highpass';
         filter.frequency.value = isSub ? 2500 : (isAccent ? 8000 : 10000);
         src.connect(filter); filter.connect(gain);
-        src.start(); src.stop(ctx.currentTime + (isSub ? 0.025 : 0.05));
+        src.start(time); src.stop(time + (isSub ? 0.025 : 0.05));
       } else {
         const osc = ctx.createOscillator();
         osc.connect(gain);
         const baseFreq = soundType === 'woodblock' ? (isAccent ? 900 : 700) : (isAccent ? 1200 : 800);
-        osc.frequency.setValueAtTime(isSub ? baseFreq * 0.42 : baseFreq, ctx.currentTime);
-        osc.start(); osc.stop(ctx.currentTime + (isSub ? 0.03 : 0.06));
+        osc.frequency.setValueAtTime(isSub ? baseFreq * 0.42 : baseFreq, time);
+        osc.start(time); osc.stop(time + (isSub ? 0.03 : 0.06));
       }
     } catch {}
   }, []);
 
-  // Metronome engine — bruger primitive dependencies for at undgå useEffect-genstart
+  // Metronome engine — Web Audio lookahead scheduling med swing
   const totalBeats = timeSig.beats;
   const subMult = sub.mult;
+  const nextNoteTimeRef = React.useRef(0);
+  const currentTickRef = React.useRef(0);
+  const animFrameRef = React.useRef<number | null>(null);
+  const scheduledNotesRef = React.useRef<{ time: number; pulseIdx: number; tick: number }[]>([]);
 
   React.useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+
     if (!playing) {
       setTimeout(() => { setPulseBeat(-1); setSubBeat(-1); }, 0);
       barCountRef.current = 0; gapBarRef.current = 0; gapModeRef.current = 'on';
+      scheduledNotesRef.current = [];
       return;
     }
 
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') void ctx.resume();
+
     const totalTicks = totalBeats * subMult;
-    let tick = 0;
+    currentTickRef.current = 0;
+    nextNoteTimeRef.current = ctx.currentTime + 0.05;
     rampBpmRef.current = mode === 'ramp' ? rampStart : bpm;
+    scheduledNotesRef.current = [];
 
-    const schedule = () => {
-      const isPulse = tick % subMult === 0;
-      const pulseIdx = Math.floor(tick / subMult);
-      const isAccent = tick === 0;
-      const muted = mode === 'gap' && gapModeRef.current === 'off';
-      const backbeatOnly = mode === 'backbeat' && isPulse && !(pulseIdx === 1 || pulseIdx === 3);
-
-      if (!muted && !backbeatOnly) {
-        if (isPulse) playSound(isAccent, sound, false);
-        else playSound(false, sound, true);
+    // Trin-varighed baseret på BPM, underdeling og swing (50% - 70%)
+    const getStepDuration = (tick: number, currentBpm: number) => {
+      const beatDuration = 60 / currentBpm;
+      if (subMult === 2) {
+        // 8.-dels swing
+        const isDownbeat = tick % 2 === 0;
+        const swingRatio = swing / 100;
+        return isDownbeat ? beatDuration * swingRatio : beatDuration * (1 - swingRatio);
       }
+      if (subMult === 4) {
+        // 16.-dels swing
+        const subTick = tick % 4;
+        const swingRatio = swing / 100;
+        const halfBeat = beatDuration / 2;
+        return (subTick === 0 || subTick === 2) ? halfBeat * swingRatio : halfBeat * (1 - swingRatio);
+      }
+      return beatDuration / subMult;
+    };
 
-      setPulseBeat(pulseIdx);
-      setSubBeat(tick);
-      tick = (tick + 1) % totalTicks;
+    const scheduleLoop = () => {
+      const scheduleAheadTime = 0.12; // 120ms lookahead
+      while (nextNoteTimeRef.current < ctx.currentTime + scheduleAheadTime) {
+        const tick = currentTickRef.current;
+        const isPulse = tick % subMult === 0;
+        const pulseIdx = Math.floor(tick / subMult);
+        const isAccent = tick === 0;
+        const muted = mode === 'gap' && gapModeRef.current === 'off';
+        const backbeatOnly = mode === 'backbeat' && isPulse && !(pulseIdx === 1 || pulseIdx === 3);
 
-      if (tick === 0) {
-        barCountRef.current++;
-        if (mode === 'gap') {
-          gapBarRef.current++;
-          if (gapBarRef.current >= (gapModeRef.current === 'on' ? gapOn : gapOff)) {
-            gapModeRef.current = gapModeRef.current === 'on' ? 'off' : 'on';
-            gapBarRef.current = 0;
-          }
+        if (!muted && !backbeatOnly) {
+          if (isPulse) playSoundAtTime(nextNoteTimeRef.current, isAccent, sound, false);
+          else playSoundAtTime(nextNoteTimeRef.current, false, sound, true);
         }
-        if (mode === 'ramp' && rampBpmRef.current < rampEnd) {
-          rampBpmRef.current = Math.min(rampEnd, rampBpmRef.current + (rampEnd - rampStart) / rampBars);
-          clearInterval(intervalRef.current!);
-          intervalRef.current = setInterval(schedule, (60000 / rampBpmRef.current) / subMult);
+
+        scheduledNotesRef.current.push({
+          time: nextNoteTimeRef.current,
+          pulseIdx,
+          tick,
+        });
+
+        const stepSec = getStepDuration(tick, rampBpmRef.current);
+        nextNoteTimeRef.current += stepSec;
+
+        const nextTick = (tick + 1) % totalTicks;
+        currentTickRef.current = nextTick;
+
+        if (nextTick === 0) {
+          barCountRef.current++;
+          if (mode === 'gap') {
+            gapBarRef.current++;
+            if (gapBarRef.current >= (gapModeRef.current === 'on' ? gapOn : gapOff)) {
+              gapModeRef.current = gapModeRef.current === 'on' ? 'off' : 'on';
+              gapBarRef.current = 0;
+            }
+          }
+          if (mode === 'ramp' && rampBpmRef.current < rampEnd) {
+            rampBpmRef.current = Math.min(rampEnd, rampBpmRef.current + (rampEnd - rampStart) / rampBars);
+          }
         }
       }
     };
 
-    schedule();
-    intervalRef.current = setInterval(schedule, (60000 / (mode === 'ramp' ? rampStart : bpm)) / subMult);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [playing, bpm, totalBeats, subMult, mode, gapOn, gapOff, rampStart, rampEnd, rampBars, sound, playSound]);
+    intervalRef.current = setInterval(scheduleLoop, 25);
+
+    const updateVisuals = () => {
+      const now = ctx.currentTime;
+      while (scheduledNotesRef.current.length > 0 && scheduledNotesRef.current[0].time <= now) {
+        const note = scheduledNotesRef.current.shift()!;
+        setPulseBeat(note.pulseIdx);
+        setSubBeat(note.tick);
+      }
+      if (playing) {
+        animFrameRef.current = requestAnimationFrame(updateVisuals);
+      }
+    };
+    animFrameRef.current = requestAnimationFrame(updateVisuals);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [playing, bpm, totalBeats, subMult, swing, mode, gapOn, gapOff, rampStart, rampEnd, rampBars, sound, playSoundAtTime]);
 
   React.useEffect(() => () => { audioCtxRef.current?.close(); }, []);
 
@@ -3462,24 +3594,42 @@ function StudioKitScreen({ t }: StudioKitScreenProps) {
 }
 
 // 8. Coach Screen Overlay
+interface CoachAction {
+  type: 'open_exercise' | 'change_tempo' | 'change_technique';
+  target?: string | number;
+  label?: string;
+}
+
 interface CoachMessage {
   role: string;
   text: string;
   typing?: boolean;
+  action?: CoachAction;
 }
 
-function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, currentExerciseTitle }: CoachScreenProps) {
+function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, currentExerciseTitle, onSelectExerciseAction }: CoachScreenProps) {
   const { user } = useAuth();
   const { language } = useLanguage();
   const copy = PROTOTYPE_COPY[language];
   const firstName = (user?.displayName || user?.email?.split('@')[0] || copy.guest).split(' ')[0];
   const introMessage = copy.coachIntro.replace('{name}', firstName);
+  const storageKey = `pocketdrummer_coach_chat_${user?.uid || 'guest'}`;
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<CoachMessage[]>([
-    { role: 'ai', text: introMessage },
-  ]);
+  const [messages, setMessages] = useState<CoachMessage[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [{ role: 'ai', text: introMessage }];
+  });
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const previousLanguage = useRef(language);
 
@@ -3492,6 +3642,12 @@ function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, cu
   }, [introMessage, language]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages.filter(m => !m.typing)));
+    } catch {}
+  }, [messages, storageKey]);
+
+  useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
@@ -3500,6 +3656,13 @@ function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, cu
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
+
+  const clearChat = () => {
+    setMessages([{ role: 'ai', text: introMessage }]);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {}
+  };
 
   const send = async (text?: string) => {
     const msg = (text ?? input).trim();
@@ -3529,9 +3692,19 @@ function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, cu
           }
         }),
       });
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          setMessages([...next, { role: 'ai', text: language === 'da' ? 'Du sender for mange beskeder. Vent et øjeblik og prøv igen.' : 'Too many requests. Please wait a moment.' }]);
+        } else {
+          setMessages([...next, { role: 'ai', text: copy.coachOffline }]);
+        }
+        return;
+      }
+
       const data = await res.json();
       const reply = data.message || copy.coachFallback;
-      setMessages([...next, { role: 'ai', text: reply }]);
+      setMessages([...next, { role: 'ai', text: reply, action: data.action }]);
     } catch {
       setMessages([...next, { role: 'ai', text: copy.coachOffline }]);
     } finally {
@@ -3539,10 +3712,15 @@ function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, cu
     }
   };
 
-  const suggested = copy.coachSuggestions;
+  const exerciseSuggestion = currentExerciseTitle
+    ? (language === 'da' ? `Tips til ${currentExerciseTitle}` : `Tips for ${currentExerciseTitle}`)
+    : null;
+  const suggested = exerciseSuggestion
+    ? [exerciseSuggestion, ...copy.coachSuggestions]
+    : copy.coachSuggestions;
 
   return (
-    <div style={{
+    <div role="dialog" aria-modal="true" aria-label="AI Coach" style={{
       position: 'absolute', inset: 0, background: t.bg, zIndex: 130,
       display: 'flex', flexDirection: 'column', color: t.text, fontFamily: t.font,
       animation: 'slideUp 0.3s ease-out', overflow: 'hidden',
@@ -3554,10 +3732,10 @@ function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, cu
           <button onClick={onClose} aria-label={copy.back} style={{
             width: 38, height: 38, borderRadius: '50%', background: 'transparent',
             border: `1px solid ${t.border}`, color: t.text, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', }}><IcBack size={16} /></button>
+            display: 'flex', alignItems: 'center', justifyContent: 'center', }}><IcBack size={16} /></button>
           <div style={{
             width: 44, height: 44, borderRadius: '50%', background: t.accent, color: '#fff',
-            display: 'flex', alignItems: 'center', boxShadow: '0 4px 12px rgba(239,90,58,0.35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(239,90,58,0.35)',
           }}><IcSpark size={20} color="#fff" /></div>
           <div style={{ flex: 1 }}>
             <Display t={t} size={20} style={{ lineHeight: 1 }}>AI Coach</Display>
@@ -3566,6 +3744,17 @@ function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, cu
               <span style={{ fontSize: 11, color: t.textMuted }}>{copy.coachStatus}</span>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={clearChat}
+            style={{
+              background: 'transparent', border: `1px solid ${t.border}`,
+              color: t.textMuted, fontSize: 11, padding: '4px 10px', borderRadius: 8,
+              cursor: 'pointer', fontFamily: t.font,
+            }}
+          >
+            {language === 'da' ? 'Ryd chat' : 'Clear chat'}
+          </button>
         </div>
       </div>
 
@@ -3587,14 +3776,37 @@ function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, cu
               fontWeight: m.role === 'user' ? 500 : 400,
             }}>
               {m.role === 'ai' ? (
-                <ReactMarkdown components={{
-                  p: ({ children }) => <p style={{ margin: '0 0 8px', whiteSpace: 'pre-wrap' }}>{children}</p>,
-                  ul: ({ children }) => <ul style={{ margin: '0 0 8px', paddingLeft: 18 }}>{children}</ul>,
-                  ol: ({ children }) => <ol style={{ margin: '0 0 8px', paddingLeft: 18 }}>{children}</ol>,
-                  li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
-                  strong: ({ children }) => <strong style={{ fontWeight: 700 }}>{children}</strong>,
-                  a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: t.accent }}>{children}</a>,
-                }}>{m.text}</ReactMarkdown>
+                <>
+                  <ReactMarkdown components={{
+                    p: ({ children }) => <p style={{ margin: '0 0 8px', whiteSpace: 'pre-wrap' }}>{children}</p>,
+                    ul: ({ children }) => <ul style={{ margin: '0 0 8px', paddingLeft: 18 }}>{children}</ul>,
+                    ol: ({ children }) => <ol style={{ margin: '0 0 8px', paddingLeft: 18 }}>{children}</ol>,
+                    li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
+                    strong: ({ children }) => <strong style={{ fontWeight: 700 }}>{children}</strong>,
+                    a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: t.accent }}>{children}</a>,
+                  }}>{m.text}</ReactMarkdown>
+                  {m.action && (
+                    <div style={{ marginTop: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (m.action?.type === 'open_exercise' && onSelectExerciseAction && m.action.target) {
+                            onSelectExerciseAction(String(m.action.target));
+                            onClose();
+                          }
+                        }}
+                        style={{
+                          background: t.accent, color: '#fff', border: 'none',
+                          borderRadius: 12, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
+                        }}
+                      >
+                        <span>{m.action.label || (language === 'da' ? 'Gå til øvelse' : 'Go to exercise')}</span>
+                        <IcArrowRight size={14} color="#fff" />
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : m.text}
               {m.typing && <span style={{ marginLeft: 4, opacity: 0.5 }}>•••</span>}
             </div>
@@ -3625,7 +3837,7 @@ function CoachScreen({ t, onClose, selectedLevel, selectedTechnique, journey, cu
           <button style={{
             width: 32, height: 32, borderRadius: '50%', background: 'transparent',
             border: 'none', color: t.textMuted, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', }}><IcAttach size={18} /></button>
+            display: 'flex', alignItems: 'center', justifyContent: 'center', }}><IcAttach size={18} /></button>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -3677,7 +3889,7 @@ function ProfileScreen({ t, dark, setDark, guestXp }: ProfileScreenProps) {
 
   const xp = user?.xp !== undefined ? user.xp : guestXp;
   const level = user ? (user.level || 1) : Math.floor(xp / 200) + 1;
-  const streak = user?.streak !== undefined ? user.streak : 7;
+  const streak = user?.streak !== undefined ? user.streak : (guestXp > 0 ? 1 : 0);
   const xpPct = ((xp % 200) / 200) * 100;
   const isPremium = user ? (user.isPremium || false) : false;
 
@@ -4352,7 +4564,7 @@ export default function MobilePrototype() {
   const [journey, setJourney] = useState<JourneyProgress | null>(null);
   const [journeySaving, setJourneySaving] = useState(false);
   const [journeyError, setJourneyError] = useState(false);
-  const [guestXp, setGuestXp] = useState(120);
+  const [guestXp, setGuestXp] = useState(0);
   const [adminOpen, setAdminOpen] = useState(false);
 
   const { user, loading: authLoading, login, syncLearningPlan } = useAuth();
@@ -4523,7 +4735,7 @@ export default function MobilePrototype() {
     const progress: JourneyProgress = {
       level,
       technique,
-      lastExerciseId,
+      ...(typeof lastExerciseId === 'number' ? { lastExerciseId } : {}),
       startedAt: currentJourney?.level === level ? currentJourney.startedAt : now,
       updatedAt: now,
     };
@@ -4603,18 +4815,22 @@ export default function MobilePrototype() {
     setSelectedLevel(null);
     pushNavUrl({ level: null, technique: null });
   };
-  const openCoachOverlay = () => {
+
+  const [activeCoachExerciseTitle, setActiveCoachExerciseTitle] = useState<string | null>(null);
+
+  const openCoachOverlay = (exerciseTitle?: string) => {
+    setActiveCoachExerciseTitle(exerciseTitle || null);
     setCoachOpen(true);
     pushNavUrl({ coach: true });
   };
   const closeCoachOverlay = () => {
     setCoachOpen(false);
+    setActiveCoachExerciseTitle(null);
     pushNavUrl({ coach: false });
   };
-  const openCoachFromCategory = () => {
+  const openCoachFromCategory = (exerciseTitle?: string) => {
     setSelectedCategory(null);
-    setCoachOpen(true);
-    pushNavUrl({ category: null, coach: true });
+    openCoachOverlay(exerciseTitle);
   };
 
   const t = tokens(dark);
@@ -4692,7 +4908,8 @@ export default function MobilePrototype() {
             )}
             {tab === 'practice' && (
               <PracticeScreen t={t} dark={dark} isDesktop
-                onSelectCategory={openCategory} />
+                onSelectCategory={openCategory}
+                onOpenCoach={openCoachOverlay} />
             )}
             {tab === 'kit' && (
               <StudioKitScreen t={t} dark={dark} />
@@ -4727,6 +4944,7 @@ export default function MobilePrototype() {
               selectedLevel={selectedLevel}
               selectedTechnique={selectedTechnique}
               journey={journey}
+              currentExerciseTitle={activeCoachExerciseTitle ?? undefined}
             />
           )}
           {adminOpen && user?.role === 'admin' && <AdminPanel t={t} onClose={() => setAdminOpen(false)} />}
@@ -4881,7 +5099,8 @@ export default function MobilePrototype() {
                 )}
                 {tab === 'practice' && (
                   <PracticeScreen t={t} dark={dark}
-                    onSelectCategory={openCategory} />
+                    onSelectCategory={openCategory}
+                    onOpenCoach={openCoachOverlay} />
                 )}
                 {tab === 'kit' && (
                   <StudioKitScreen t={t} dark={dark} />
@@ -4930,7 +5149,13 @@ export default function MobilePrototype() {
                 selectedLevel={selectedLevel}
                 selectedTechnique={selectedTechnique}
                 journey={journey}
+                currentExerciseTitle={activeCoachExerciseTitle ?? undefined}
               />
+            )}
+
+            {/* Mobile admin overlay */}
+            {adminOpen && user?.role === 'admin' && (
+              <AdminPanel t={t} onClose={() => setAdminOpen(false)} />
             )}
 
             {/* Pad view overlay */}

@@ -7,7 +7,7 @@ import { Play, RotateCcw, X, Volume2, Award, Zap } from 'lucide-react';
 interface RhythmHeroProps {
   onClose: () => void;
   onAwardXP: (xp: number) => void;
-  tTokens: any;
+  tTokens: Record<string, string>;
 }
 
 interface Note {
@@ -51,7 +51,7 @@ export default function RhythmHero({ onClose, onAwardXP, tTokens }: RhythmHeroPr
   const playSynthSound = (frequency: number, type: 'sine' | 'triangle' | 'noise', duration: number) => {
     if (!soundEnabled) return;
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass) return;
       const ctx = new AudioContextClass();
       

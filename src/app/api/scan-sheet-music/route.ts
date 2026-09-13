@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scanSheetMusic } from '@/lib/gemini';
 import { checkRateLimit, rateLimitResponse } from '@/lib/apiSecurity';
+import { requireAdmin } from '@/lib/serverAuth';
 
 export const maxDuration = 120;
 
@@ -11,6 +12,12 @@ export async function POST(req: NextRequest) {
     const rateLimit = checkRateLimit(req, { limit: 10, windowMs: 60000, prefix: 'scan-omr' });
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit.resetSeconds);
+    }
+
+    // Require admin privileges to scan and generate music sheets
+    const authResult = await requireAdmin(req);
+    if (authResult.errorResponse) {
+      return authResult.errorResponse;
     }
 
     const formData = await req.formData();
@@ -36,13 +43,13 @@ export async function POST(req: NextRequest) {
     const base64Data = buffer.toString('base64');
 
     // Run the OMR processing via Gemini
-    const xml = await scanSheetMusic({ 
+    const result = await scanSheetMusic({ 
       base64Data, 
       mimeType, 
       systemPrompt: systemPrompt || undefined 
     });
 
-    return NextResponse.json({ xml });
+    return NextResponse.json({ xml: result.xml, source: result.source });
   } catch (error) {
     console.error("Fejl i /api/scan-sheet-music:", error);
     const message = error instanceof Error ? error.message : String(error);

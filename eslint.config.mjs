@@ -14,6 +14,8 @@ const eslintConfig = [
       "**/.npm-cache/**",
       "**/start-wrapper.js",
       "**/.firebase/**",
+      "design/**",
+      "functions/**",
     ],
   },
   ...nextVitals,

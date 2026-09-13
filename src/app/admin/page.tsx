@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '@/components/Header';
 import dynamic from 'next/dynamic';
 import { 
@@ -113,7 +113,18 @@ Vigtige regler:
 
   // Gemini OMR scan state
   const [scanFile, setScanFile] = useState<File | null>(null);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const pdfPreviewUrl = useMemo(() => {
+    if (scanFile && (scanFile.type === 'application/pdf' || scanFile.name.toLowerCase().endsWith('.pdf'))) {
+      return URL.createObjectURL(scanFile);
+    }
+    return null;
+  }, [scanFile]);
+
+  useEffect(() => {
+    return () => {
+      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+    };
+  }, [pdfPreviewUrl]);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanLog, setScanLog] = useState<string[]>([]);
   const [notationFilename, setNotationFilename] = useState('');
@@ -133,16 +144,6 @@ Vigtige regler:
   const [logs, setLogs] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'preview' | 'xml'>('preview');
   const [successMsg, setSuccessMsg] = useState("");
-
-  useEffect(() => {
-    if (scanFile && (scanFile.type === 'application/pdf' || scanFile.name.toLowerCase().endsWith('.pdf'))) {
-      const url = URL.createObjectURL(scanFile);
-      setPdfPreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setPdfPreviewUrl(null);
-    }
-  }, [scanFile]);
 
   useEffect(() => {
     setTimeout(() => {

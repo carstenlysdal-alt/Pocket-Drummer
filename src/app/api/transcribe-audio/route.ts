@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TranscriptionService } from '@/lib/transcriptionService';
+import { checkRateLimit, rateLimitResponse } from '@/lib/apiSecurity';
+import { requireAdmin } from '@/lib/serverAuth';
+
+export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimit = checkRateLimit(req, { limit: 10, windowMs: 60000, prefix: 'transcribe' });
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.resetSeconds);
+    }
+
+    const authResult = await requireAdmin(req);
+    if (authResult.errorResponse) {
+      return authResult.errorResponse;
+    }
+
     const contentType = req.headers.get('content-type') || '';
     
     let fileData: string | undefined;
@@ -28,7 +42,7 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // Expect JSON
-      const body = await req.json();
+      const body = await req.json().catch(() => ({}));
       youtubeUrl = body.youtubeUrl;
       fileData = body.fileData;
       mimeType = body.mimeType;
@@ -54,7 +68,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       xml: result.xml,
-      logs: result.logs
+      logs: result.logs,
+      source: result.source,
     });
     
   } catch (error) {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateLearningPlan } from '@/lib/ai';
 import { checkRateLimit, rateLimitResponse } from '@/lib/apiSecurity';
 
+const ALLOWED_NIVEAU = new Set(['begynder', 'mellemniveau', 'øvet']);
+
 export async function POST(request: NextRequest) {
   try {
     const rateLimit = checkRateLimit(request, { limit: 10, windowMs: 60000, prefix: 'gen-plan' });
@@ -9,21 +11,50 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse(rateLimit.resetSeconds);
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: "Ugyldig request body." }, { status: 400 });
+    }
+
+    const { niveau, tidPrDag, tidshorisont, maal } = body as {
+      niveau?: unknown;
+      tidPrDag?: unknown;
+      tidshorisont?: unknown;
+      maal?: unknown;
+    };
     
-    // Forventer: maal, niveau, tidPrDag, tidshorisont
-    if (!body.niveau || !body.tidPrDag || !body.tidshorisont) {
+    // Runtime validation (F14)
+    if (typeof niveau !== 'string' || !ALLOWED_NIVEAU.has(niveau)) {
       return NextResponse.json(
-        { error: "Manglende påkrævede parametre (niveau, tidPrDag, tidshorisont)" },
+        { error: "Ugyldigt niveau. Tilladte værdier er: 'begynder', 'mellemniveau', 'øvet'." },
         { status: 400 }
       );
     }
 
+    const parsedTidPrDag = Number(tidPrDag);
+    if (isNaN(parsedTidPrDag) || parsedTidPrDag < 5 || parsedTidPrDag > 180) {
+      return NextResponse.json(
+        { error: "Ugyldig daglig øvetid. Angiv et tal mellem 5 og 180 minutter." },
+        { status: 400 }
+      );
+    }
+
+    if (typeof tidshorisont !== 'string' || tidshorisont.trim().length === 0 || tidshorisont.length > 50) {
+      return NextResponse.json(
+        { error: "Ugyldig tidshorisont. Angiv en gyldig tekststreng (maks. 50 tegn)." },
+        { status: 400 }
+      );
+    }
+
+    const cleanMaal = typeof maal === 'string' && maal.trim().length > 0
+      ? maal.slice(0, 200).trim()
+      : "Generel forbedring af teknik og timing";
+
     const plan = await generateLearningPlan({
-      maal: body.maal || "Generel forbedring",
-      niveau: body.niveau,
-      tidPrDag: Number(body.tidPrDag),
-      tidshorisont: body.tidshorisont
+      maal: cleanMaal,
+      niveau: niveau as 'begynder' | 'mellemniveau' | 'øvet',
+      tidPrDag: parsedTidPrDag,
+      tidshorisont: tidshorisont.trim(),
     });
 
     return NextResponse.json(plan);

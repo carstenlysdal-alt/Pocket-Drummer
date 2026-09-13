@@ -52,8 +52,8 @@ export function getStandardDrumMusicXML(title: string, tempo: number = 100, patt
   const bpm = tempo;
   let measuresXml = '';
   
-  if (patternType === 'rudiment') {
-    // Rudiment: Hvirvel (højre/venstre) - en masse hvirvlende 16.-dels slag på lilletrommen (C5)
+  if (patternType === 'rudiment' || patternType === 'single-stroke') {
+    // Rudiment: Single Stroke Roll (R L R L)
     measuresXml = `
     <measure number="1">
       <attributes>
@@ -66,7 +66,7 @@ export function getStandardDrumMusicXML(title: string, tempo: number = 100, patt
         <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type>
         <sound tempo="${bpm}"/>
       </direction>
-      <!-- Beat 1: R L R L (16th notes) -->
+      <!-- Beat 1: R L R L -->
       <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
       <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
       <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
@@ -96,8 +96,161 @@ export function getStandardDrumMusicXML(title: string, tempo: number = 100, patt
       <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
       <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
       <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
       <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>4</duration><voice>1</voice><type>quarter</type><lyric><text>R</text></lyric></note>
       <note><rest/><duration>4</duration><voice>1</voice><type>quarter</type></note>
+    </measure>
+    `;
+  } else if (patternType === 'double-stroke') {
+    // Rudiment: Double Stroke Roll (R R L L)
+    measuresXml = `
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>percussion</sign><line>2</line></clef>
+      </attributes>
+      <direction placement="above">
+        <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type>
+        <sound tempo="${bpm}"/>
+      </direction>
+      <!-- Beat 1: R R L L -->
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <!-- Beat 2: R R L L -->
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <!-- Beat 3: R R L L -->
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <!-- Beat 4: R R L L -->
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+    </measure>
+    <measure number="2">
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>4</duration><voice>1</voice><type>quarter</type><lyric><text>R</text></lyric></note>
+      <note><rest/><duration>4</duration><voice>1</voice><type>quarter</type></note>
+    </measure>
+    `;
+  } else if (patternType === 'paradiddle') {
+    // Rudiment: Single Paradiddle (R L R R   L R L L)
+    measuresXml = `
+    <measure number="1">
+      <attributes>
+        <divisions>4</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>percussion</sign><line>2</line></clef>
+      </attributes>
+      <direction placement="above">
+        <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type>
+        <sound tempo="${bpm}"/>
+      </direction>
+      <!-- Beat 1: R L R R -->
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><notations><articulations><accent/></articulations></notations><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <!-- Beat 2: L R L L -->
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><notations><articulations><accent/></articulations></notations><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <!-- Beat 3: R L R R -->
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><notations><articulations><accent/></articulations></notations><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <!-- Beat 4: L R L L -->
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><notations><articulations><accent/></articulations></notations><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+    </measure>
+    <measure number="2">
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><notations><articulations><accent/></articulations></notations><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><notations><articulations><accent/></articulations></notations><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>R</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>16th</type><lyric><text>L</text></lyric></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>4</duration><voice>1</voice><type>quarter</type><lyric><text>R</text></lyric></note>
+      <note><rest/><duration>4</duration><voice>1</voice><type>quarter</type></note>
+    </measure>
+    `;
+  } else if (patternType === 'bossa') {
+    // Latin Bossa Nova Groove
+    measuresXml = `
+    <measure number="1">
+      <attributes>
+        <divisions>2</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>percussion</sign><line>2</line></clef>
+      </attributes>
+      <direction placement="above">
+        <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type>
+        <sound tempo="${bpm}"/>
+      </direction>
+      <!-- Beat 1: Bass drum (F4) + Rim Click (E4) + HiHat (G5) -->
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type></note>
+      <note><chord/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>cross</notehead></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <!-- Beat 1.5: HiHat -->
+      <note><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <!-- Beat 2: HiHat -->
+      <note><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <!-- Beat 2.5: Bass drum (F4) + Rim click (E4) + HiHat -->
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type></note>
+      <note><chord/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>cross</notehead></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <!-- Beat 3: Bass drum + HiHat -->
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <!-- Beat 3.5: HiHat -->
+      <note><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <!-- Beat 4: Rim Click (E4) + HiHat -->
+      <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>cross</notehead></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <!-- Beat 4.5: Bass drum + HiHat -->
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+    </measure>
+    <measure number="2">
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>cross</notehead></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <note><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <note><unpitched><display-step>F</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type></note>
+      <note><chord/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>cross</notehead></note>
+      <note><chord/><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <note><unpitched><display-step>G</display-step><display-octave>5</display-octave></unpitched><duration>1</duration><voice>1</voice><type>eighth</type><notehead>x</notehead></note>
+      <note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>2</duration><voice>1</voice><type>quarter</type></note>
     </measure>
     `;
   } else if (patternType === 'fill') {
@@ -276,7 +429,7 @@ export const initialExercises: Exercise[] = [
     ai_genereret: false,
     godkendt: true,
     beskrivelse: "Spil R-L-R-R L-R-L-L. Fokuser på at holde accentslagene på det første slag af hver gruppe skarpe og spøgelsesslagene svage.",
-    musicxml_data: getStandardDrumMusicXML("Paradiddle Kombination", 110, "rudiment")
+    musicxml_data: getStandardDrumMusicXML("Paradiddle Kombination", 110, "paradiddle")
   },
   {
     id: "ex-5",
@@ -332,7 +485,7 @@ export const initialExercises: Exercise[] = [
     ai_genereret: false,
     godkendt: true,
     beskrivelse: "Kræver uafhængig kontrol. Rim-click mønster i venstre hånd kombineres med stortrommens bossa-mønster og 8.-dele på hi-hat.",
-    musicxml_data: getStandardDrumMusicXML("Latin Bossa Nova", 130, "standard")
+    musicxml_data: getStandardDrumMusicXML("Latin Bossa Nova", 130, "bossa")
   }
 ];
 

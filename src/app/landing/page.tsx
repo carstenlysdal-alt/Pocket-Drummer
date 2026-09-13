@@ -8,12 +8,7 @@ function markLandingSeen() {
 }
 
 function useAppUrl() {
-  const [url, setUrl] = useState('/prototype');
-  useEffect(() => {
-    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024;
-    setUrl(mobile ? '/prototype' : '/');
-  }, []);
-  return url;
+  return '/prototype';
 }
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────

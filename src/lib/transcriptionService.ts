@@ -3,6 +3,7 @@ import { getStandardDrumMusicXML } from './mockData';
 export interface TranscriptionJobResult {
   xml: string;
   logs: string[];
+  source: 'klangio' | 'basic-pitch' | 'demo';
 }
 
 /**
@@ -12,7 +13,7 @@ export class TranscriptionService {
   
   /**
    * Main entry point to transcribe audio/YouTube.
-   * Routes to Klangio, Spotify Basic Pitch, or high-fidelity fallback.
+   * Routes to Klangio, Spotify Basic Pitch, or honest demo fallback.
    */
   static async transcribe({
     fileData,
@@ -44,10 +45,10 @@ export class TranscriptionService {
       try {
         const xml = await this.runKlangioTranscription(fileData, youtubeUrl, apiKey, logs);
         logs.push("Klangio transskribering fuldført med succes!");
-        return { xml, logs };
+        return { xml, logs, source: 'klangio' };
       } catch (error) {
         logs.push(`⚠️ Fejl under Klangio-transskribering: ${error instanceof Error ? error.message : String(error)}`);
-        logs.push("Forsøger at falde tilbage til den interne transskribering...");
+        logs.push("Falder tilbage til lokal visning...");
       }
     }
 
@@ -57,21 +58,22 @@ export class TranscriptionService {
       try {
         const xml = await this.runBasicPitchTranscription(fileData, mimeType || "audio/mp3", basicPitchUrl, logs);
         logs.push("Basic Pitch transskribering fuldført!");
-        return { xml, logs };
+        return { xml, logs, source: 'basic-pitch' };
       } catch (error) {
         logs.push(`⚠️ Fejl under Basic Pitch kørsel: ${error instanceof Error ? error.message : String(error)}`);
-        logs.push("Falder tilbage til den interne simulations-motor...");
+        logs.push("Falder tilbage til lokal demonstration...");
       }
     }
 
-    // 3. Fallback: High-fidelity simulation for demo / development
-    logs.push("Ingen eksterne API-tjenester konfigureret (eller fejl opstod). Kører lokal intelligent transskription...");
+    // 3. Fallback: Honest demo response
+    logs.push("Ingen ekstern transskriberingstjeneste konfigureret (eller tjenesten er utilgængelig).");
+    logs.push("Viser kurateret standardnodeark (Demo-tilstand).");
     const xml = await this.runLocalMockTranscription(youtubeUrl, fileName, logs);
-    return { xml, logs };
+    return { xml, logs, source: 'demo' };
   }
 
   /**
-   * Communicates with Klangio REST API
+   * Communicates with Klangio REST API according to official documentation
    */
   private static async runKlangioTranscription(
     fileData: string | undefined,
@@ -79,12 +81,11 @@ export class TranscriptionService {
     apiKey: string,
     logs: string[]
   ): Promise<string> {
-    const klangioBaseUrl = "https://api.klang.io/v1";
+    const klangioBaseUrl = process.env.KLANGIO_API_URL || "https://api.klang.io";
     
-    // Create transcription job
-    logs.push("Kontakter Klangio server: POST /transcribe...");
+    logs.push("Kontakter Klangio server: Opretter transskribering...");
     
-    const requestBody: Record<string, any> = {
+    const requestBody: Record<string, string> = {
       type: "drums",
     };
 
@@ -96,9 +97,10 @@ export class TranscriptionService {
       throw new Error("Hverken lydfil eller YouTube-link blev leveret.");
     }
 
-    const response = await fetch(`${klangioBaseUrl}/transcribe`, {
+    const response = await fetch(`${klangioBaseUrl}/transcription`, {
       method: "POST",
       headers: {
+        "kl-api-key": apiKey,
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       },
@@ -110,22 +112,28 @@ export class TranscriptionService {
       throw new Error(`Klangio API returnerede fejl: ${response.status} - ${errText}`);
     }
 
-    const jobData = await response.json();
-    const jobId = jobData.id || jobData.jobId;
+    const jobData = await response.json() as Record<string, unknown>;
+    const jobId = (jobData.job_id || jobData.id || jobData.jobId) as string | undefined;
+    if (!jobId) {
+      throw new Error("Intet job-id modtaget fra Klangio API.");
+    }
     logs.push(`Job oprettet hos Klangio med ID: ${jobId}`);
 
     // Poll for status
-    let status = "PROCESSING";
+    let status = "IN_PROGRESS";
     let attempts = 0;
     const maxAttempts = 30; // 30 * 4 seconds = 2 mins max poll
 
-    while ((status === "PROCESSING" || status === "QUEUED") && attempts < maxAttempts) {
+    while ((status === "IN_PROGRESS" || status === "PROCESSING" || status === "QUEUED") && attempts < maxAttempts) {
       attempts++;
       logs.push(`[Polling ${attempts}/${maxAttempts}] Venter på at Klangio færdiggør transskription...`);
       await new Promise(resolve => setTimeout(resolve, 4000));
 
-      const statusRes = await fetch(`${klangioBaseUrl}/jobs/${jobId}`, {
-        headers: { "Authorization": `Bearer ${apiKey}` }
+      const statusRes = await fetch(`${klangioBaseUrl}/job/${jobId}`, {
+        headers: { 
+          "kl-api-key": apiKey,
+          "Authorization": `Bearer ${apiKey}` 
+        }
       });
 
       if (!statusRes.ok) {
@@ -133,13 +141,16 @@ export class TranscriptionService {
         continue;
       }
 
-      const statusData = await statusRes.json();
-      status = statusData.status || "PROCESSING";
+      const statusData = await statusRes.json() as Record<string, unknown>;
+      status = String(statusData.status || "IN_PROGRESS").toUpperCase();
 
-      if (status === "SUCCESS") {
+      if (status === "COMPLETED" || status === "SUCCESS") {
         logs.push("Klangio transskription fuldført! Downloader MusicXML...");
-        const resultRes = await fetch(`${klangioBaseUrl}/jobs/${jobId}/musicxml`, {
-          headers: { "Authorization": `Bearer ${apiKey}` }
+        const resultRes = await fetch(`${klangioBaseUrl}/job/${jobId}/xml`, {
+          headers: { 
+            "kl-api-key": apiKey,
+            "Authorization": `Bearer ${apiKey}` 
+          }
         });
         if (!resultRes.ok) {
           throw new Error("Kunne ikke hente den færdige MusicXML-fil fra Klangio.");
@@ -148,7 +159,8 @@ export class TranscriptionService {
       }
 
       if (status === "FAILED" || status === "ERROR") {
-        throw new Error(statusData.errorMessage || "Klangio transskribering fejlede under afvikling.");
+        const errorMsg = String(statusData.errorMessage || statusData.error || "Klangio transskribering fejlede.");
+        throw new Error(errorMsg);
       }
     }
 
@@ -183,7 +195,7 @@ export class TranscriptionService {
       throw new Error(`Basic Pitch API returnerede fejl: ${response.status} - ${errText}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as { xml?: string };
     if (!result.xml) {
       throw new Error("Basic Pitch returnerede intet gyldigt MusicXML output.");
     }
@@ -192,39 +204,21 @@ export class TranscriptionService {
   }
 
   /**
-   * Generates a high-quality simulated transcription for testing and demo purposes
+   * Returns a standard curated demonstration transcription with transparent logs
    */
   private static async runLocalMockTranscription(
     youtubeUrl: string | undefined,
     fileName: string | undefined,
     logs: string[]
   ): Promise<string> {
-    // Simulate real logs
-    await new Promise(resolve => setTimeout(resolve, 800));
-    logs.push("Kører stem-separation (Demucs v4) for at isolere trommesporet...");
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    logs.push("Detekterer rytmiske transients (stortromme, snare, bækkener)...");
-    
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    logs.push("Analyserer underafdelinger: Fandt stabilt 8. dels mønster");
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    logs.push("BPM detekteret: 104 BPM");
-    logs.push("Taktart detekteret: 4/4 standard");
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    logs.push("Kortlægger transients til General MIDI Drum Map...");
-    logs.push("Genererer nodehoveder og MusicXML part-struktur...");
-    
-    await new Promise(resolve => setTimeout(resolve, 800));
-    logs.push("Verificerer XML-integritet: 0 fejl fundet.");
+    await new Promise(resolve => setTimeout(resolve, 400));
+    logs.push("Genererer eksempelnode i 4/4 standard groove (104 BPM)...");
+    logs.push("Status: Demo-output indlæst til afprøvning.");
 
     const sourceName = youtubeUrl 
-      ? "YouTube Transskription" 
-      : `Transskriberet: ${fileName || "Trommeøvelse"}`;
+      ? "YouTube Transskription (Demo)" 
+      : `Demo: ${fileName || "Trommeøvelse"}`;
     
-    // Return standard valid MusicXML representing a transcribed groove
     return getStandardDrumMusicXML(sourceName, 104, "standard");
   }
 }
